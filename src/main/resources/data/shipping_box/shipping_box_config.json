@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "input": [
+        {
+          "item": "minecraft:emerald",
+          "count": 1
+        }
+      ],
+      "output": {
+        "item": "minecraft:apple",
+        "count": 2
+      }
+    },
+    {
+      "input": [
+        {
+          "item": "minecraft:diamond",
+          "count": 2
+        }
+      ],
+      "output": {
+        "item": "minecraft:golden_apple",
+        "count": 1
+      }
+    },
+    {
+      "input": [
+        {
+          "item": "minecraft:iron_ingot",
+          "count": 3
+        }
+      ],
+      "output": {
+        "item": "minecraft:amethyst_shard",
+        "count": 2
+      }
+    },
+    {
+      "input": [
+        {
+          "item": "minecraft:cobblestone",
+          "count": 2
+        }
+      ],
+      "output": {
+        "item": "minecraft:stone",
+        "count": 10
+      }
+    }
+  ]
+}

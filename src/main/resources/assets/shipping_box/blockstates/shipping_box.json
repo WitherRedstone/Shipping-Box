@@ -1,0 +1,7 @@
+{ 
+  "variants": { 
+    "": { 
+      "model": "shipping_box:block/shipping_box" 
+    } 
+  } 
+} 

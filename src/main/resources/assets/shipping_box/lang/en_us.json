@@ -1,0 +1,8 @@
+{
+  "itemGroup.shipping_box_tab": "Shipping Box",
+
+  "container.shipping_box.shipping_box": "Shipping Box",
+  "block.shipping_box.shipping_box": "Shipping Box",
+
+  "message.shipping_box.exchange_success": "§a§lExchange Successful! §rReceived items in shipping box."
+}

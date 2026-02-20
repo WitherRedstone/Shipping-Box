@@ -1,0 +1,8 @@
+{
+  "itemGroup.shipping_box_tab": "售货箱",
+
+  "container.shipping_box.shipping_box": "售货箱",
+  "block.shipping_box.shipping_box": "售货箱",
+
+  "message.shipping_box.exchange_success": "§a§l出售成功！§r物品已放入售货箱"
+}
