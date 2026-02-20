@@ -180,4 +180,30 @@ public class ExchangeRule {
             this.count = count;
         }
     }
+
+    /**
+     * 获取输入物品的显示名称
+     */
+    public String getInputDisplayName() {
+        if (!inputs.isEmpty()) {
+            ResourceLocation id = ResourceLocation.parse(inputs.get(0).getItem());
+            Item item = BuiltInRegistries.ITEM.get(id);
+            if (item != null) {
+                return item.getDescription().getString();
+            }
+        }
+        return "未知物品";
+    }
+
+    /**
+     * 获取输出物品的显示名称
+     */
+    public String getOutputDisplayName() {
+        ResourceLocation id = ResourceLocation.parse(output.getItem());
+        Item item = BuiltInRegistries.ITEM.get(id);
+        if (item != null) {
+            return item.getDescription().getString();
+        }
+        return "未知物品";
+    }
 }

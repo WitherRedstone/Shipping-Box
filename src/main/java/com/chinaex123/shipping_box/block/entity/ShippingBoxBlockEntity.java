@@ -72,7 +72,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
      */
     @Override
     protected @NotNull Component getDefaultName() {
-        return Component.translatable("container.shippingbox.shipping_box");
+        return Component.translatable("container.shipping_box.shipping_box");
     }
 
     /**
@@ -259,7 +259,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                 double distance = player.distanceToSqr(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ());
                 if (distance <= 4096.0) { // 64格范围
                     player.displayClientMessage(
-                            Component.translatable("message.shippingbox.exchange_success"),
+                            Component.translatable("message.shipping_box.exchange_success"),
                             true);
                 }
             }

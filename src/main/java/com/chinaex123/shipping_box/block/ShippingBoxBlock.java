@@ -3,7 +3,10 @@ package com.chinaex123.shipping_box.block;
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -42,10 +45,20 @@ public class ShippingBoxBlock extends BaseEntityBlock {
 
     /**
      * 处理方块被玩家右键点击的交互
-     * 打开GUI
+     * 播放声音并打开GUI
      */
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        // 播放声音效果
+        level.playSound(
+                player,
+                pos,
+                SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.chest.open")),
+                SoundSource.BLOCKS,
+                0.5F,
+                level.random.nextFloat() * 0.1F + 0.9F
+        );
+
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ShippingBoxBlockEntity shippingBox) {

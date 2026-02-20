@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 兑换配方管理器
@@ -36,8 +37,8 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     /** JSON解析器实例 */
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    /** 配置文件路径 */
-    private static final String CONFIG_PATH = "shipping_box_config.json";
+    /** 配置文件夹路径 */
+    private static final String CONFIG_FOLDER = "recipe_manager";
 
     /** 当前生效的兑换规则列表 */
     private static List<ExchangeRule> currentRules = new ArrayList<>();
@@ -55,31 +56,44 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
         try {
             // 遍历所有匹配的资源配置文件
-            for (Resource resource : resourceManager.getResourceStack(
-                    ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, CONFIG_PATH))) {
-                try (InputStream inputStream = resource.open();
-                     BufferedReader reader = new BufferedReader(
-                             new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            for (ResourceLocation resourceLocation : resourceManager.listResources(
+                    CONFIG_FOLDER,
+                    path -> path.getPath().endsWith(".json")).keySet()) {
 
-                    // 解析JSON配置文件
-                    JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                try {
+                    // 正确处理Optional<Resource>
+                    Optional<Resource> resourceOptional = resourceManager.getResource(resourceLocation);
+                    if (resourceOptional.isPresent()) {
+                        Resource resource = resourceOptional.get();
+                        try (InputStream inputStream = resource.open();
+                             BufferedReader reader = new BufferedReader(
+                                     new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
 
-                    // 解析规则数组
-                    if (json.has("rules") && json.get("rules").isJsonArray()) {
-                        for (JsonElement element : json.getAsJsonArray("rules")) {
-                            ExchangeRule rule = parseRule(element.getAsJsonObject());
-                            if (validateRule(rule)) {
-                                rules.add(rule);
+                            // 解析JSON配置文件
+                            JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+
+                            // 解析规则数组
+                            if (json.has("rules") && json.get("rules").isJsonArray()) {
+                                for (JsonElement element : json.getAsJsonArray("rules")) {
+                                    ExchangeRule rule = parseRule(element.getAsJsonObject());
+                                    if (validateRule(rule)) {
+                                        rules.add(rule);
+                                    }
+                                }
                             }
+
+                            ShippingBox.LOGGER.info("Loaded exchange rules from: {}", resourceLocation);
                         }
                     }
+                } catch (Exception e) {
+                    ShippingBox.LOGGER.error("Error loading exchange config from {}: ", resourceLocation, e);
                 }
             }
 
-            ShippingBox.LOGGER.info("Loaded {} exchange rules from config", rules.size());
+            ShippingBox.LOGGER.info("Total loaded {} exchange rules from all config files", rules.size());
 
         } catch (Exception e) {
-            ShippingBox.LOGGER.error("Error loading exchange config", e);
+            ShippingBox.LOGGER.error("Error scanning exchange config folder", e);
         }
 
         return rules;

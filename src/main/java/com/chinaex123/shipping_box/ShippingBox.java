@@ -5,6 +5,7 @@ import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.item.ModItems;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
+import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -41,6 +42,8 @@ public class ShippingBox {
         ModBlocks.register(modEventBus);      // 注册方块
         ModItems.register(modEventBus);        // 注册物品
         ModBlockEntities.register(modEventBus); // 注册方块实体
+
+        NeoForge.EVENT_BUS.register(TooltipEventHandler.class);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
