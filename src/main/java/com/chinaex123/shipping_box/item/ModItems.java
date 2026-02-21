@@ -8,6 +8,7 @@ public class ModItems {
     public static final DeferredRegister.Items ITEMS =
             DeferredRegister.createItems(ShippingBox.MOD_ID);
 
+    // 向指定事件总线注册所有物品
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
     }

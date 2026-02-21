@@ -11,9 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
-import net.minecraft.tags.TagKey;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -26,9 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.regex.Pattern;
 
 /**
  * 兑换配方管理器
@@ -49,15 +44,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     /** 当前生效的兑换规则列表 */
     private static List<ExchangeRule> currentRules = new ArrayList<>();
 
-    /** 组件模式匹配 */
-    private static final Pattern COMPONENT_PATTERN = Pattern.compile(".*\\[.*\\].*");
-
     /**
      * 准备阶段：从资源配置中加载并解析兑换规则
      *
-     * @param resourceManager 资源管理器
-     * @param profiler 性能分析器
-     * @return List<ExchangeRule> 解析后的规则列表
+     * @param resourceManager 资源管理器，用于访问配置文件
+     * @param profiler 性能分析器，用于监控加载性能
+     * @return 解析后的有效兑换规则列表
      */
     @Override
     protected List<ExchangeRule> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
@@ -108,7 +100,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * 解析单个兑换规则JSON对象
      *
      * @param json 规则JSON对象
-     * @return ExchangeRule 解析后的兑换规则
+     * @return 解析后的兑换规则实例
      */
     private ExchangeRule parseRule(JsonObject json) {
         ExchangeRule rule = new ExchangeRule();
@@ -141,9 +133,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     /**
      * 解析输入物品JSON对象
+     * 支持标签、物品ID和组件等多种定义方式
      *
      * @param inputObj 输入物品JSON对象
-     * @return InputItem 解析后的输入物品
+     * @return 解析后的输入物品实例
      */
     private ExchangeRule.InputItem parseInputItem(JsonObject inputObj) {
         ExchangeRule.InputItem input = new ExchangeRule.InputItem();
@@ -173,7 +166,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * 解析输出物品JSON对象
      *
      * @param outputObj 输出物品JSON对象
-     * @return OutputItem 解析后的输出物品
+     * @return 解析后的输出物品实例
      */
     private ExchangeRule.OutputItem parseOutputItem(JsonObject outputObj) {
         ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
@@ -196,10 +189,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     /**
      * 验证兑换规则的有效性
-     * 检查输入和输出物品是否存在于游戏注册表中
+     * 检查输入和输出物品是否都有效
      *
      * @param rule 要验证的兑换规则
-     * @return boolean 规则有效返回true，否则返回false
+     * @return 规则有效返回true，否则返回false
      */
     private boolean validateRule(ExchangeRule rule) {
         // 验证所有输入物品
@@ -214,10 +207,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 验证输入物品
+     * 验证输入物品的有效性
+     * 支持标签和物品ID两种验证方式
      *
-     * @param input 输入物品
-     * @return boolean 有效返回true
+     * @param input 输入物品对象
+     * @return 物品有效返回true，否则返回false
      */
     private boolean validateInputItem(ExchangeRule.InputItem input) {
         // 如果是标签形式
@@ -240,10 +234,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 验证输出物品
+     * 验证输出物品的有效性
      *
-     * @param output 输出物品
-     * @return boolean 有效返回true
+     * @param output 输出物品对象
+     * @return 物品有效返回true，否则返回false
      */
     private boolean validateOutputItem(ExchangeRule.OutputItem output) {
         if (output.getItem() == null || output.getItem().isEmpty()) {
@@ -253,10 +247,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 验证可能包含组件的物品ID
+     * 验证可能包含组件的物品ID字符串
+     * 支持物品ID与组件信息的组合格式验证
      *
-     * @param itemString 物品字符串（可能包含组件）
-     * @return boolean 有效返回true
+     * @param itemString 物品字符串（可能包含组件信息）
+     * @return 物品有效返回true，否则返回false
      */
     private boolean validateItemWithComponents(String itemString) {
         try {
@@ -289,10 +284,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 验证组件字符串格式
+     * 验证组件字符串的格式有效性
+     * 检查组件名称和值的基本格式是否正确
      *
-     * @param componentString 组件字符串
-     * @return boolean 格式有效返回true
+     * @param componentString 组件字符串，格式为"name=value"或"name1=value1,name2=value2"
+     * @return 格式有效返回true，否则返回false
      */
     private boolean validateComponentString(String componentString) {
         if (componentString == null || componentString.isEmpty()) {
@@ -343,7 +339,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     /**
      * 获取当前所有有效的兑换规则
      *
-     * @return List<ExchangeRule> 当前规则列表
+     * @return 当前规则列表的不可变视图
      */
     public static List<ExchangeRule> getRules() {
         return currentRules;
@@ -353,7 +349,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * 查找匹配给定物品列表的兑换规则
      *
      * @param availableStacks 可用物品列表
-     * @return ExchangeRule 匹配的规则，如果没有匹配则返回null
+     * @return 匹配的规则，如果没有匹配则返回null
      */
     public static ExchangeRule findMatchingRule(List<ItemStack> availableStacks) {
         for (ExchangeRule rule : currentRules) {
@@ -369,7 +365,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      *
      * @param rule 兑换规则
      * @param availableStacks 可用物品列表
-     * @return boolean 满足规则返回true，否则返回false
+     * @return 满足规则返回true，否则返回false
      */
     private static boolean matchesRule(ExchangeRule rule, List<ItemStack> availableStacks) {
         boolean[] matched = new boolean[rule.getInputs().size()];
@@ -398,7 +394,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      *
      * @param rule 兑换规则
      * @param availableStacks 可用物品列表
-     * @return List<ItemStack> 消耗后剩余的物品列表
+     * @return 消耗后剩余的物品列表
      */
     public static List<ItemStack> consumeInputs(ExchangeRule rule, List<ItemStack> availableStacks) {
         List<ItemStack> remaining = new ArrayList<>(availableStacks);

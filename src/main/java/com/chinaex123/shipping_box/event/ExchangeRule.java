@@ -13,22 +13,45 @@ public class ExchangeRule {
     private List<InputItem> inputs;
     private OutputItem output;
 
+    /**
+     * 获取输入物品列表
+     *
+     * @return 输入物品列表
+     */
     public List<InputItem> getInputs() {
         return inputs;
     }
 
+    /**
+     * 设置输入物品列表
+     *
+     * @param inputs 输入物品列表
+     */
     public void setInputs(List<InputItem> inputs) {
         this.inputs = inputs;
     }
 
+    /**
+     * 获取输出物品信息
+     *
+     * @return 输出物品对象
+     */
     public OutputItem getOutputItem() {
         return output;
     }
 
+    /**
+     * 设置输出物品信息
+     *
+     * @param output 输出物品对象
+     */
     public void setOutput(OutputItem output) {
         this.output = output;
     }
 
+    /**
+     * 输入物品类，定义兑换规则中的输入物品规格
+     */
     public static class InputItem {
         private String item;  // 物品ID
         private String tag;   // 标签ID
@@ -51,10 +74,6 @@ public class ExchangeRule {
             this.tag = tag;
         }
 
-        public String getComponents() {
-            return components;
-        }
-
         public void setComponents(String components) {
             this.components = components;
         }
@@ -70,6 +89,9 @@ public class ExchangeRule {
         /**
          * 检查物品堆是否匹配此输入要求
          * 支持物品ID、标签和组件匹配
+         *
+         * @param stack 要检查的物品堆
+         * @return 匹配返回true，否则返回false
          */
         public boolean matches(ItemStack stack) {
             if (stack.isEmpty() || stack.getCount() < count) {
@@ -85,6 +107,12 @@ public class ExchangeRule {
             return false;
         }
 
+        /**
+         * 检查物品是否匹配指定标签
+         *
+         * @param stack 要检查的物品堆
+         * @return 匹配返回true，否则返回false
+         */
         private boolean matchesTag(ItemStack stack) {
             try {
                 String tagIdStr = tag.startsWith("#") ? tag.substring(1) : tag;
@@ -99,6 +127,12 @@ public class ExchangeRule {
             return false;
         }
 
+        /**
+         * 检查物品是否匹配指定ID和组件要求
+         *
+         * @param stack 要检查的物品堆
+         * @return 匹配返回true，否则返回false
+         */
         private boolean matchesItem(ItemStack stack) {
             try {
                 String itemId = item;
@@ -135,6 +169,9 @@ public class ExchangeRule {
         }
     }
 
+    /**
+     * 输出物品类，定义兑换规则中的输出物品规格
+     */
     public static class OutputItem {
         private String item;
         private int count = 1;
@@ -156,16 +193,15 @@ public class ExchangeRule {
             this.count = count;
         }
 
-        public String getComponents() {
-            return components;
-        }
-
         public void setComponents(String components) {
             this.components = components;
         }
 
         /**
-         * 获取输出物品堆
+         * 根据配置生成结果物品堆
+         * 支持物品ID、数量和组件数据的完整构建
+         *
+         * @return 构建成功的物品堆，失败时返回空物品堆
          */
         public ItemStack getResultStack() {
             try {

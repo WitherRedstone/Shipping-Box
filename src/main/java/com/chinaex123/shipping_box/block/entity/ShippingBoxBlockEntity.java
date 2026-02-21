@@ -191,6 +191,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         setChanged();
     }
 
+    /**
+     * 每游戏刻执行的逻辑更新方法
+     * 负责检查是否满足物品兑换条件并在适当时间触发兑换流程
+     * 只在服务端执行，客户端忽略
+     */
     public void tick() {
         if (level == null || level.isClientSide) return;
 
@@ -198,6 +203,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         long timeOfDay = dayTime % 24000;
         long currentDay = dayTime / 24000;
 
+        // 检查容器中是否存在物品
         boolean hasItems = false;
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
@@ -206,6 +212,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             }
         }
 
+        // 在每日黎明时段(0-180tick)且当天尚未进行过兑换时执行兑换
         if (hasItems && timeOfDay >= 0 && timeOfDay <= 180 && lastExchangeDay < currentDay) {
             try {
                 performExchange(currentDay);
@@ -217,9 +224,16 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         }
     }
 
+    /**
+     * 执行物品兑换的核心逻辑方法
+     * 处理物品匹配、消耗输入、生成输出并重新填充容器
+     *
+     * @param currentDay 当前游戏天数，用于记录兑换时间
+     */
     private void performExchange(long currentDay) {
         if (!(level instanceof ServerLevel serverLevel)) return;
 
+        // 收集所有非空物品用于处理
         List<ItemStack> itemsToProcess = new ArrayList<>();
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
@@ -232,14 +246,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         }
 
         // 清空所有槽位
-        for (int i = 0; i < items.size(); i++) {
-            items.set(i, ItemStack.EMPTY);
-        }
+        items.replaceAll(ignored -> ItemStack.EMPTY);
 
         List<ItemStack> results = new ArrayList<>();
         boolean exchanged = false;
         boolean hadSuccessfulExchange = false;
 
+        // 循环匹配和执行兑换规则直到无法继续
         do {
             exchanged = false;
             ExchangeRule rule = ExchangeRecipeManager.findMatchingRule(itemsToProcess);
@@ -248,11 +261,12 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                 int maxExchanges = getMaxExchanges(rule, itemsToProcess);
 
                 if (maxExchanges > 0) {
+                    // 消耗指定次数的输入物品
                     for (int i = 0; i < maxExchanges; i++) {
                         itemsToProcess = ExchangeRecipeManager.consumeInputs(rule, itemsToProcess);
                     }
 
-                    // 修正：使用 OutputItem 的 getResultStack() 方法
+                    // 生成对应数量的输出物品
                     ItemStack output = rule.getOutputItem().getResultStack().copy();
                     output.setCount(rule.getOutputItem().getCount() * maxExchanges);
                     results.add(output);
@@ -263,9 +277,10 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             }
         } while (exchanged);
 
+        // 将未处理的物品添加到结果列表
         results.addAll(itemsToProcess);
 
-        // 新的放置策略：按最大堆叠数分割物品
+        // 按最大堆叠数重新分配物品到容器槽位
         int slotIndex = 0;
         for (ItemStack stack : results) {
             if (stack.isEmpty() || slotIndex >= 54) break;
@@ -288,8 +303,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         lastExchangeDay = currentDay;
         setChanged();
 
+        // 兑换成功时播放音效并通知相关玩家
         if (hadSuccessfulExchange) {
-            // 全局声音播放
             serverLevel.playSound(null, worldPosition,
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
@@ -300,7 +315,10 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     }
 
     /**
-     * 向放置物品的玩家发送成功通知
+     * 向参与物品放置的玩家发送兑换成功通知
+     * 包括播放音效和发送成功消息，并清理相关记录
+     *
+     * @param serverLevel 服务器世界实例，用于获取玩家列表
      */
     private void notifyPlayersOfSuccess(ServerLevel serverLevel) {
         Set<UUID> playerUUIDs = new HashSet<>(slotOwners.values());
@@ -309,6 +327,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             return;
         }
 
+        // 遍历所有参与玩家并发送通知
         for (UUID playerUUID : playerUUIDs) {
             ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
             if (player != null) {
@@ -330,17 +349,28 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         playerItemCounts.clear();
     }
 
+    /**
+     * 计算指定兑换规则可以执行的最大兑换次数
+     * 通过检查每种输入物品的可用数量来确定限制因素
+     *
+     * @param rule 兑换规则，包含所需的输入物品列表
+     * @param availableStacks 当前可用的物品堆列表
+     * @return 可以执行的最大兑换次数，如果无法兑换则返回0
+     */
     private int getMaxExchanges(ExchangeRule rule, List<ItemStack> availableStacks) {
         int maxExchanges = Integer.MAX_VALUE;
 
+        // 遍历每个必需的输入物品
         for (ExchangeRule.InputItem required : rule.getInputs()) {
             int totalCount = 0;
+            // 统计匹配该输入要求的物品总数
             for (ItemStack stack : availableStacks) {
                 if (required.matches(stack)) {
                     totalCount += stack.getCount();
                 }
             }
 
+            // 计算基于当前输入物品可进行的兑换次数
             int possibleExchanges = totalCount / required.getCount();
             if (possibleExchanges < maxExchanges) {
                 maxExchanges = possibleExchanges;
@@ -350,6 +380,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         return maxExchanges;
     }
 
+    /**
+     * 将方块实体的额外数据保存到NBT标签中
+     * 包括物品库存、上次兑换日期、槽位所有者信息和玩家物品计数
+     *
+     * @param tag NBT复合标签，用于存储序列化数据
+     * @param registries 数据组件注册表提供者
+     */
     @Override
     protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         super.saveAdditional(tag, registries);
@@ -371,6 +408,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         tag.put("PlayerCounts", countsTag);
     }
 
+    /**
+     * 从NBT标签中加载方块实体的额外数据
+     * 包括物品库存、上次兑换日期、槽位所有者信息和玩家物品计数
+     *
+     * @param tag 包含序列化数据的NBT复合标签
+     * @param registries 数据组件注册表提供者
+     */
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
         super.loadAdditional(tag, registries);

@@ -31,6 +31,12 @@ public class ShippingBoxMenu extends ChestMenu {
         storedLevel = blockEntity.getLevel();
     }
 
+    /**
+     * 处理菜单关闭时的清理逻辑
+     * 播放关闭音效并清除相关的玩家记录
+     *
+     * @param player 关闭菜单的玩家
+     */
     @Override
     public void removed(Player player) {
         super.removed(player);
@@ -51,7 +57,18 @@ public class ShippingBoxMenu extends ChestMenu {
         ShippingBoxBlockEntity.clearCurrentPlayer();
     }
 
+    /**
+     * 菜单工厂类，负责创建售货箱菜单实例
+     */
     public static class Factory implements IContainerFactory<ShippingBoxMenu> {
+        /**
+         * 从网络数据创建售货箱菜单
+         *
+         * @param windowId 窗口ID
+         * @param playerInventory 玩家物品栏
+         * @param data 网络数据缓冲区，包含方块位置信息
+         * @return 新创建的售货箱菜单实例
+         */
         @Override
         public ShippingBoxMenu create(int windowId, Inventory playerInventory, RegistryFriendlyByteBuf data) {
             BlockPos pos = data.readBlockPos();

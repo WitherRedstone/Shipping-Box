@@ -15,6 +15,12 @@ import java.util.List;
 @EventBusSubscriber
 public class TooltipEventHandler {
 
+    /**
+     * 物品工具提示事件处理器
+     * 为支持兑换的物品添加详细的兑换信息到工具提示中
+     *
+     * @param event 物品工具提示事件
+     */
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
         try {

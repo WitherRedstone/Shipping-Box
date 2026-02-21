@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.event;
 
+import com.google.gson.JsonElement;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
@@ -9,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.core.Holder;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +20,10 @@ public class ExchangeRuleComponents {
 
     /**
      * 解析组件字符串为键值对映射
+     * 支持格式："name1=value1,name2=value2" 或 "name1=\"value1\",name2=\"value2\""
+     *
+     * @param componentString 组件字符串
+     * @return 解析后的组件映射表
      */
     public static Map<String, String> parseComponentString(String componentString) {
         Map<String, String> components = new HashMap<>();
@@ -47,7 +53,11 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查物品堆栈是否匹配指定的组件要求
+     * 检查物品堆是否匹配指定的组件要求
+     *
+     * @param stack 要检查的物品堆
+     * @param componentString 组件要求字符串
+     * @return 所有组件都匹配返回true，否则返回false
      */
     public static boolean matchesComponents(ItemStack stack, String componentString) {
         try {
@@ -70,7 +80,12 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查单个组件是否匹配
+     * 检查物品堆的单个组件是否匹配指定要求
+     *
+     * @param stack 要检查的物品堆
+     * @param componentName 组件名称
+     * @param componentValue 期望的组件值
+     * @return 组件匹配返回true，否则返回false
      */
     private static boolean matchesSingleComponent(ItemStack stack, String componentName, String componentValue) {
         try {
@@ -100,7 +115,12 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 比较组件值
+     * 比较实际组件值与期望值是否匹配
+     * 支持字符串、数字、布尔值等基本类型比较
+     *
+     * @param actualValue 实际的组件值
+     * @param expectedValue 期望的组件值字符串
+     * @return 值匹配返回true，否则返回false
      */
     private static boolean compareComponentValues(Object actualValue, String expectedValue) {
         try {
@@ -118,7 +138,11 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 标准化组件ID
+     * 标准化组件ID格式
+     * 如果组件名称不包含命名空间，则自动添加"minecraft:"前缀
+     *
+     * @param componentName 组件名称
+     * @return 标准化的ResourceLocation对象，无效时返回null
      */
     public static ResourceLocation normalizeComponentId(String componentName) {
         // 标准化组件ID（添加minecraft:前缀如果需要）
@@ -129,7 +153,11 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 应用组件到物品堆栈
+     * 将组件字符串应用到物品堆上
+     * 支持JSON对象格式和键值对格式两种输入方式
+     *
+     * @param stack 目标物品堆
+     * @param componentString 组件配置字符串
      */
     public static void applyComponents(ItemStack stack, String componentString) {
         try {
@@ -160,7 +188,10 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON格式应用组件
+     * 从JSON格式字符串解析并应用组件到物品堆
+     *
+     * @param stack 目标物品堆
+     * @param jsonString JSON格式的组件配置字符串
      */
     private static void applyComponentsFromJson(ItemStack stack, String jsonString) {
         try {
@@ -185,9 +216,14 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON应用单个组件
+     * 从JSON元素解析并应用单个组件到物品堆
+     * 支持特殊组件（如附魔）和通用组件的处理
+     *
+     * @param stack 目标物品堆
+     * @param componentName 组件名称
+     * @param componentValue 组件值的JSON元素
      */
-    private static void applyComponentFromJson(ItemStack stack, String componentName, com.google.gson.JsonElement componentValue) {
+    private static void applyComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
             ResourceLocation componentId = normalizeComponentId(componentName);
             if (componentId == null) {
@@ -227,7 +263,10 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON应用附魔组件
+     * 从JSON元素解析并应用附魔组件到物品堆
+     *
+     * @param stack 目标物品堆
+     * @param jsonElement 附魔配置的JSON元素
      */
     private static void applyEnchantmentsFromJson(ItemStack stack, com.google.gson.JsonElement jsonElement) {
         try {
@@ -241,10 +280,9 @@ public class ExchangeRuleComponents {
             }
 
             var levelsObj = enchantmentsObj.getAsJsonObject("levels");
-            var mutableEnchants = new net.minecraft.world.item.enchantment.ItemEnchantments.Mutable(
-                    net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY
-            );
+            var mutableEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
+            // 遍历并设置每个附魔
             for (var entry : levelsObj.entrySet()) {
                 String enchId = entry.getKey();
                 var levelElement = entry.getValue();
@@ -267,7 +305,7 @@ public class ExchangeRuleComponents {
             stack.set(DataComponents.ENCHANTMENTS, finalEnchants);
 
         } catch (Exception e) {
-            // 删除日志输出
+            e.printStackTrace();
         }
     }
 
