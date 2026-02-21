@@ -17,8 +17,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -34,13 +32,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     private long lastExchangeDay = -1L;
 
     /** 记录每个槽位最后放置物品的玩家UUID */
-    private Map<Integer, UUID> slotOwners = new HashMap<>();
+    private final Map<Integer, UUID> slotOwners = new HashMap<>();
 
     /** 记录玩家放置的物品数量 */
-    private Map<UUID, Integer> playerItemCounts = new HashMap<>();
+    private final Map<UUID, Integer> playerItemCounts = new HashMap<>();
 
     // 添加静态变量记录当前操作玩家
-    private static ThreadLocal<ServerPlayer> currentPlayer = new ThreadLocal<>();
+    private static final ThreadLocal<ServerPlayer> currentPlayer = new ThreadLocal<>();
 
     /**
      * 设置当前操作玩家（由外部调用）
@@ -66,7 +64,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     }
 
     @Override
-    protected void setItems(NonNullList<ItemStack> items) {
+    protected void setItems(@NotNull NonNullList<ItemStack> items) {
         this.items = items;
         setChanged();
     }
@@ -77,20 +75,27 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     }
 
     /**
-     * 创建容器菜单 - 这是必须实现的抽象方法
+     * 创建容器菜单
      */
     @Override
     protected @NotNull AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory) {
-        // 使用自定义的ShippingBoxMenu而不是ChestMenu
+        // 使用自定义的GUI而不是原版GUI
         return new ShippingBoxMenu(id, inventory, this);
     }
 
     @Override
+    /**
+     * 获取容器的总槽数量
+     * @return 容器槽数，固定返回54（6行9列的标准大型箱子大小）
+     */
     public int getContainerSize() {
         return 54;
     }
 
-    @Override
+    /**
+     * 检查容器是否为空
+     * @return 如果容器中没有物品则返回true，否则返回false
+     */
     public boolean isEmpty() {
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
@@ -100,12 +105,21 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         return true;
     }
 
-    @Override
+    /**
+     * 获取指定槽位的物品
+     * @param slot 槽位索引
+     * @return 指定槽位的物品
+     */
     public @NotNull ItemStack getItem(int slot) {
         return items.get(slot);
     }
 
-    @Override
+    /**
+     * 从指定槽位移除指定数量的物品
+     * @param slot 槽位索引
+     * @param amount 移除的物品数量
+     * @return 移除的物品
+     */
     public @NotNull ItemStack removeItem(int slot, int amount) {
         ItemStack result = ContainerHelper.removeItem(items, slot, amount);
         if (!result.isEmpty()) {
@@ -115,18 +129,34 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         return result;
     }
 
-    @Override
+    /**
+     * 从指定槽位移除物品但不触发容器更新
+     * 与removeItem方法不同，此方法不会调用setChanged()来标记容器已更改
+     * 主要用于内部操作或批量处理时避免不必要的更新
+     *
+     * @param slot 要移除物品的槽位索引
+     * @return 从槽位中移除的物品堆栈，如果槽位为空则返回空堆栈
+     */
     public @NotNull ItemStack removeItemNoUpdate(int slot) {
         ItemStack result = ContainerHelper.takeItem(items, slot);
         slotOwners.remove(slot);
         return result;
     }
 
+    /**
+     * 在指定槽位设置物品堆栈
+     * 此方法会处理物品堆叠数量限制，并记录放置物品的玩家信息
+     * 当物品被修改时会标记容器需要保存
+     *
+     * @param slot 目标槽位索引
+     * @param stack 要设置的物品堆栈
+     */
     @Override
     public void setItem(int slot, @NotNull ItemStack stack) {
         ItemStack oldStack = items.get(slot);
         items.set(slot, stack);
 
+        // 确保物品数量不超过最大堆叠限制
         if (stack.getCount() > getMaxStackSize()) {
             stack.setCount(getMaxStackSize());
         }

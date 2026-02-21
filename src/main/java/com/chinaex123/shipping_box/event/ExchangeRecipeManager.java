@@ -26,6 +26,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.regex.Pattern;
 
 /**
  * 兑换配方管理器
@@ -33,7 +36,7 @@ import java.util.Optional;
  * 负责加载、解析和管理物品兑换规则
  * 通过资源重载系统动态加载配置文件
  * 提供配方匹配和物品消耗功能
- * 支持物品ID和标签两种方式定义输入物品
+ * 支持物品ID、标签和组件三种方式定义输入物品
  */
 @EventBusSubscriber(modid = ShippingBox.MOD_ID)
 public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<ExchangeRule>> {
@@ -45,6 +48,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     /** 当前生效的兑换规则列表 */
     private static List<ExchangeRule> currentRules = new ArrayList<>();
+
+    /** 组件模式匹配 */
+    private static final Pattern COMPONENT_PATTERN = Pattern.compile(".*\\[.*\\].*");
 
     /**
      * 准备阶段：从资源配置中加载并解析兑换规则
@@ -113,35 +119,13 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             // 多个输入物品
             for (JsonElement element : json.getAsJsonArray("input")) {
                 JsonObject inputObj = element.getAsJsonObject();
-                ExchangeRule.InputItem input = new ExchangeRule.InputItem();
-
-                // 支持标签和物品ID两种方式
-                if (inputObj.has("tag")) {
-                    input.setTag(inputObj.get("tag").getAsString());
-                } else if (inputObj.has("item")) {
-                    input.setItem(inputObj.get("item").getAsString());
-                }
-
-                if (inputObj.has("count")) {
-                    input.setCount(inputObj.get("count").getAsInt());
-                }
+                ExchangeRule.InputItem input = parseInputItem(inputObj);
                 inputs.add(input);
             }
         } else if (json.has("input") && json.get("input").isJsonObject()) {
             // 单个输入物品
             JsonObject inputObj = json.getAsJsonObject("input");
-            ExchangeRule.InputItem input = new ExchangeRule.InputItem();
-
-            // 支持标签和物品ID两种方式
-            if (inputObj.has("tag")) {
-                input.setTag(inputObj.get("tag").getAsString());
-            } else if (inputObj.has("item")) {
-                input.setItem(inputObj.get("item").getAsString());
-            }
-
-            if (inputObj.has("count")) {
-                input.setCount(inputObj.get("count").getAsInt());
-            }
+            ExchangeRule.InputItem input = parseInputItem(inputObj);
             inputs.add(input);
         }
 
@@ -149,14 +133,65 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
         // 解析输出物品
         JsonObject outputObj = json.getAsJsonObject("output");
-        ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
-        output.setItem(outputObj.get("item").getAsString());
-        if (outputObj.has("count")) {
-            output.setCount(outputObj.get("count").getAsInt());
-        }
+        ExchangeRule.OutputItem output = parseOutputItem(outputObj);
         rule.setOutput(output);
 
         return rule;
+    }
+
+    /**
+     * 解析输入物品JSON对象
+     *
+     * @param inputObj 输入物品JSON对象
+     * @return InputItem 解析后的输入物品
+     */
+    private ExchangeRule.InputItem parseInputItem(JsonObject inputObj) {
+        ExchangeRule.InputItem input = new ExchangeRule.InputItem();
+
+        // 支持标签
+        if (inputObj.has("tag")) {
+            input.setTag(inputObj.get("tag").getAsString());
+        }
+        // 支持物品ID（可能包含内联组件）
+        else if (inputObj.has("item")) {
+            input.setItem(inputObj.get("item").getAsString());
+        }
+
+        // 支持单独的components字段
+        if (inputObj.has("components")) {
+            input.setComponents(inputObj.get("components").getAsString());
+        }
+
+        if (inputObj.has("count")) {
+            input.setCount(inputObj.get("count").getAsInt());
+        }
+
+        return input;
+    }
+
+    /**
+     * 解析输出物品JSON对象
+     *
+     * @param outputObj 输出物品JSON对象
+     * @return OutputItem 解析后的输出物品
+     */
+    private ExchangeRule.OutputItem parseOutputItem(JsonObject outputObj) {
+        ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
+
+        if (outputObj.has("item")) {
+            output.setItem(outputObj.get("item").getAsString());
+        }
+
+        // 确保组件字段被正确解析
+        if (outputObj.has("components")) {
+            output.setComponents(outputObj.get("components").getAsString());
+        }
+
+        if (outputObj.has("count")) {
+            output.setCount(outputObj.get("count").getAsInt());
+        }
+
+        return output;
     }
 
     /**
@@ -169,37 +204,125 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     private boolean validateRule(ExchangeRule rule) {
         // 验证所有输入物品
         for (ExchangeRule.InputItem input : rule.getInputs()) {
-            // 如果是标签形式
-            if (input.getTag() != null && !input.getTag().isEmpty()) {
-                try {
-                    ResourceLocation tagId = ResourceLocation.tryParse(input.getTag().substring(1)); // 移除#前缀
-                    if (tagId == null) {
-                        return false;
-                    }
-                    // 验证标签是否存在（这里简化处理，实际可能需要更严格的验证）
-                    TagKey<Item> tagKey = TagKey.create(BuiltInRegistries.ITEM.key(), tagId);
-                    // 标签验证通过
-                } catch (Exception e) {
-                    return false;
-                }
-            }
-            // 如果是物品ID形式
-            else if (input.getItem() != null && !input.getItem().isEmpty()) {
-                ResourceLocation itemId = ResourceLocation.tryParse(input.getItem());
-                if (itemId == null || !BuiltInRegistries.ITEM.containsKey(itemId)) {
-                    return false;
-                }
-            }
-            // 既没有标签也没有物品ID
-            else {
+            if (!validateInputItem(input)) {
                 return false;
             }
         }
 
         // 验证输出物品
-        ResourceLocation outputId = ResourceLocation.tryParse(rule.getOutputItem().getItem());
-        if (outputId == null || !BuiltInRegistries.ITEM.containsKey(outputId)) {
+        return validateOutputItem(rule.getOutputItem());
+    }
+
+    /**
+     * 验证输入物品
+     *
+     * @param input 输入物品
+     * @return boolean 有效返回true
+     */
+    private boolean validateInputItem(ExchangeRule.InputItem input) {
+        // 如果是标签形式
+        if (input.getTag() != null && !input.getTag().isEmpty()) {
+            try {
+                String tagId = input.getTag().startsWith("#") ? input.getTag().substring(1) : input.getTag();
+                ResourceLocation tagResource = ResourceLocation.tryParse(tagId);
+                return tagResource != null;
+                // 标签验证通过
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        // 如果是物品ID形式
+        else if (input.getItem() != null && !input.getItem().isEmpty()) {
+            return validateItemWithComponents(input.getItem());
+        }
+
+        return false;
+    }
+
+    /**
+     * 验证输出物品
+     *
+     * @param output 输出物品
+     * @return boolean 有效返回true
+     */
+    private boolean validateOutputItem(ExchangeRule.OutputItem output) {
+        if (output.getItem() == null || output.getItem().isEmpty()) {
             return false;
+        }
+        return validateItemWithComponents(output.getItem());
+    }
+
+    /**
+     * 验证可能包含组件的物品ID
+     *
+     * @param itemString 物品字符串（可能包含组件）
+     * @return boolean 有效返回true
+     */
+    private boolean validateItemWithComponents(String itemString) {
+        try {
+            String itemId = itemString;
+
+            // 检查是否包含组件部分 [ ... ]
+            int componentStart = itemString.indexOf('[');
+            int componentEnd = itemString.lastIndexOf(']');
+
+            if (componentStart > 0 && componentEnd > componentStart) {
+                itemId = itemString.substring(0, componentStart);
+                String componentString = itemString.substring(componentStart + 1, componentEnd);
+
+                // 验证组件字符串格式
+                if (!validateComponentString(componentString)) {
+                    return false;
+                }
+            }
+
+            // 验证物品ID
+            ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
+            if (itemResource == null) {
+                return false;
+            }
+
+            return BuiltInRegistries.ITEM.containsKey(itemResource);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 验证组件字符串格式
+     *
+     * @param componentString 组件字符串
+     * @return boolean 格式有效返回true
+     */
+    private boolean validateComponentString(String componentString) {
+        if (componentString == null || componentString.isEmpty()) {
+            return true;
+        }
+
+        // 简单验证：确保有等号，并且格式基本正确
+        String[] components = componentString.split(",");
+        for (String comp : components) {
+            comp = comp.trim();
+            if (comp.isEmpty()) continue;
+
+            // 检查是否有等号
+            int equalsIndex = comp.indexOf('=');
+            if (equalsIndex <= 0) {
+                return false;
+            }
+
+            // 检查组件名称
+            String componentName = comp.substring(0, equalsIndex).trim();
+            ResourceLocation componentId = ResourceLocation.tryParse(componentName);
+            if (componentId == null) {
+                return false;
+            }
+
+            // 检查组件值（这里只做基本格式检查）
+            String componentValue = comp.substring(equalsIndex + 1).trim();
+            if (componentValue.isEmpty()) {
+                return false;
+            }
         }
 
         return true;
