@@ -4,6 +4,7 @@ import com.chinaex123.shipping_box.block.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.item.ModItems;
+import com.chinaex123.shipping_box.menu.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
 import org.slf4j.Logger;
@@ -36,12 +37,13 @@ public class ShippingBox {
         // 注册网络数据包处理器
         modEventBus.addListener(ShippingBoxNetworking::register);
 
-        // 将物品注册到游戏
         ModCreativeTabs.register(modEventBus); // 创造模式物品栏
 
         ModBlocks.register(modEventBus);      // 注册方块
         ModItems.register(modEventBus);        // 注册物品
         ModBlockEntities.register(modEventBus); // 注册方块实体
+
+        ModMenuTypes.register(modEventBus);    // 注册菜单类型
 
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class);
     }

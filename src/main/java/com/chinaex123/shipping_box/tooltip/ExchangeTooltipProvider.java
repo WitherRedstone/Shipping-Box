@@ -2,21 +2,13 @@ package com.chinaex123.shipping_box.tooltip;
 
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 兑换工具提示提供器
- * 负责生成物品的兑换信息提示
- */
 public class ExchangeTooltipProvider {
 
     /**
@@ -35,19 +27,24 @@ public class ExchangeTooltipProvider {
         for (ExchangeRule rule : rules) {
             // 检查该物品是否是某个兑换规则的输入物品
             for (ExchangeRule.InputItem input : rule.getInputs()) {
-                if (input.matches(stack)) {
-                    // 构建兑换信息文本
-                    Component info = buildExchangeInfo(input, rule.getOutputItem());
-                    exchangeInfo.add(info);
+                try {
+                    if (input.matches(stack)) {
+                        // 构建兑换信息文本
+                        Component info = buildExchangeInfo(input, rule.getOutputItem());
+                        exchangeInfo.add(info);
 
-                    // 返回第一个匹配的规则信息
-                    return new TooltipData(
-                            exchangeInfo,
-                            stack,
-                            rule.getResultStack(),
-                            input.getCount(),
-                            rule.getOutputItem().getCount()
-                    );
+                        // 返回第一个匹配的规则信息
+                        return new TooltipData(
+                                exchangeInfo,
+                                stack,
+                                rule.getOutputItem().getResultStack(),
+                                input.getCount(),
+                                rule.getOutputItem().getCount()
+                        );
+                    }
+                } catch (Exception e) {
+                    // 静默处理匹配过程中的异常，避免崩溃
+                    continue;
                 }
             }
         }
@@ -57,67 +54,79 @@ public class ExchangeTooltipProvider {
 
     /**
      * 构建兑换信息文本
-     * @param input 输入物品信息
-     * @param output 输出物品信息
-     * @return Component 格式化的兑换信息
      */
     private static Component buildExchangeInfo(ExchangeRule.InputItem input, ExchangeRule.OutputItem output) {
-        // 创建绿色样式的文本
-        Style greenStyle = Style.EMPTY.withColor(TextColor.fromRgb(0x55FF55));
+        try {
+            // 获取输入物品的本地化名称
+            Component inputName = getLocalizedItemName(input);
+            // 获取输出物品的本地化名称
+            Component outputName = getLocalizedItemName(output);
 
-        // 构建输入部分：数量 + 物品名称
-        Component inputPart = buildItemCountPair(input.getItem(), input.getCount());
-
-        // 构建输出部分：数量 + 物品名称
-        Component outputPart = buildItemCountPair(output.getItem(), output.getCount());
-
-        // 返回格式化文本："[2个铁锭 → 2个苹果]"
-        return Component.literal("[")
-                .append(inputPart)
-                .append(Component.translatable("tooltip.shipping_box.arrow"))
-                .append(outputPart)
-                .append(Component.literal("]"))
-                .withStyle(greenStyle);
-    }
-
-    /**
-     * 构建物品和数量的组合显示
-     * @param itemIdentifier 物品标识符
-     * @param count 数量
-     * @return Component 格式化的显示
-     */
-    private static Component buildItemCountPair(String itemIdentifier, int count) {
-        Component itemName = getLocalizedItemName(itemIdentifier);
-
-        if (count == 1) {
-            return itemName;
+            // 构建带方括号的格式："[输入数量 输入物品名称 → 输出数量 输出物品名称]"
+            return Component.translatable("tooltip.shipping_box.exchange_format",
+                    input.getCount(),
+                    inputName,
+                    output.getCount(),
+                    outputName)
+                    .withStyle(ChatFormatting.GOLD);
+        } catch (Exception e) {
+            // 如果构建失败，返回简单的带方括号文本
+            return Component.literal("[" + input.getCount() + " items → " + output.getCount() + " items]").withStyle(ChatFormatting.RED);
         }
-
-        // 使用本地化的格式字符串
-        return Component.translatable("tooltip.shipping_box.format",
-                String.valueOf(count),
-                itemName.getString());
     }
 
     /**
-     * 获取物品的本地化名称
-     * @param itemIdentifier 物品标识符 (namespace:id格式)
-     * @return Component 本地化的物品名称
+     * 获取输入物品的本地化名称（支持标签和物品ID）
+     */
+    private static Component getLocalizedItemName(ExchangeRule.InputItem input) {
+        try {
+            // 如果是标签
+            if (input.getTag() != null && !input.getTag().isEmpty()) {
+                // 对于标签，显示标签名称（可以进一步优化）
+                String tagName = input.getTag();
+                if (tagName.startsWith("#")) {
+                    tagName = tagName.substring(1);
+                }
+                return Component.literal("#" + tagName);
+            }
+            // 如果是物品ID
+            else if (input.getItem() != null && !input.getItem().isEmpty()) {
+                return getLocalizedItemName(input.getItem());
+            }
+        } catch (Exception e) {
+            // 异常处理
+        }
+        return Component.translatable("tooltip.shipping_box.unknown_item").withStyle(ChatFormatting.RED);
+    }
+
+    /**
+     * 获取输出物品的本地化名称
+     */
+    private static Component getLocalizedItemName(ExchangeRule.OutputItem output) {
+        try {
+            if (output.getItem() != null && !output.getItem().isEmpty()) {
+                return getLocalizedItemName(output.getItem());
+            }
+        } catch (Exception e) {
+            // 异常处理
+        }
+        return Component.translatable("tooltip.shipping_box.unknown_item").withStyle(ChatFormatting.RED);
+    }
+
+    /**
+     * 根据物品ID获取本地化名称
      */
     private static Component getLocalizedItemName(String itemIdentifier) {
         try {
-            ResourceLocation itemId = ResourceLocation.parse(itemIdentifier);
-            Item item = BuiltInRegistries.ITEM.get(itemId);
+            net.minecraft.resources.ResourceLocation itemId = net.minecraft.resources.ResourceLocation.parse(itemIdentifier);
+            net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemId);
 
             if (item != null) {
-                // 使用物品的getDescription方法获取本地化名称
                 return item.getDescription();
             } else {
-                // 如果物品不存在，返回原始标识符
                 return Component.literal(itemIdentifier);
             }
         } catch (Exception e) {
-            // 如果解析失败，返回原始标识符
             return Component.literal(itemIdentifier);
         }
     }

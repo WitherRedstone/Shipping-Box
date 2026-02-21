@@ -6,7 +6,7 @@
 
   "message.shipping_box.exchange_success": "§a§l出售成功！§r物品已放入售货箱",
   "tooltip.shipping_box.title": "§7[§a售货箱兑换§7]",
-  "tooltip.shipping_box.instruction": "§7放入售货箱可自动兑换",
-  "tooltip.shipping_box.format": "%sx%s",
-  "tooltip.shipping_box.arrow": " → "
+  "tooltip.shipping_box.instruction": "§7放入售货箱自动兑换",
+  "tooltip.shipping_box.exchange_format": "[%s个%s → %s个%s]",
+  "tooltip.shipping_box.unknown_item": "未知物品!"
 }

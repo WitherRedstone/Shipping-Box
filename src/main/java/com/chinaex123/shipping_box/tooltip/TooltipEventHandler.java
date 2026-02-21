@@ -17,31 +17,35 @@ public class TooltipEventHandler {
 
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
-        ItemStack stack = event.getItemStack();
-        if (stack.isEmpty()) {
-            return;
-        }
-
-        // 获取兑换信息
-        TooltipData tooltipData = ExchangeTooltipProvider.getExchangeTooltip(stack);
-
-        if (tooltipData != null && tooltipData.hasExchangeInfo()) {
-            List<Component> tooltip = event.getToolTip();
-
-            // 在工具提示中添加分隔线
-            tooltip.add(Component.empty());
-
-            // 添加标题 - 使用本地化键
-            tooltip.add(Component.translatable("tooltip.shipping_box.title"));
-
-            // 添加具体的兑换信息
-            for (Component info : tooltipData.getExchangeInfo()) {
-                tooltip.add(Component.literal("  ").append(info));
+        try {
+            ItemStack stack = event.getItemStack();
+            if (stack.isEmpty()) {
+                return;
             }
 
-            // 添加说明文字 - 使用本地化键
-            tooltip.add(Component.empty());
-            tooltip.add(Component.translatable("tooltip.shipping_box.instruction"));
+            // 获取兑换信息
+            TooltipData tooltipData = ExchangeTooltipProvider.getExchangeTooltip(stack);
+
+            if (tooltipData != null && tooltipData.hasExchangeInfo()) {
+                List<Component> tooltip = event.getToolTip();
+
+                // 在工具提示中添加分隔线
+                tooltip.add(Component.empty());
+
+                // 添加标题
+                tooltip.add(Component.translatable("tooltip.shipping_box.title"));
+
+                // 添加具体的兑换信息
+                for (Component info : tooltipData.getExchangeInfo()) {
+                    tooltip.add(Component.literal("  ").append(info));
+                }
+
+                // 添加说明文字
+                tooltip.add(Component.empty());
+                tooltip.add(Component.translatable("tooltip.shipping_box.instruction"));
+            }
+        } catch (Exception e) {
+            // 静默处理异常，避免游戏崩溃
         }
     }
 }

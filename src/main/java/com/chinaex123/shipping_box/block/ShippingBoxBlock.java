@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
@@ -49,11 +50,11 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      */
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-        // 播放声音效果
+        // 播放木桶开启声音
         level.playSound(
                 player,
                 pos,
-                SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.chest.open")),
+                SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
                 SoundSource.BLOCKS,
                 0.5F,
                 level.random.nextFloat() * 0.1F + 0.9F
@@ -62,6 +63,8 @@ public class ShippingBoxBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ShippingBoxBlockEntity shippingBox) {
+                // 设置当前操作玩家
+                ShippingBoxBlockEntity.setCurrentPlayer((ServerPlayer) player);
                 // 打开菜单
                 player.openMenu(shippingBox);
             }

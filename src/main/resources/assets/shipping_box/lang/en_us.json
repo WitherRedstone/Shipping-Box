@@ -7,6 +7,6 @@
   "message.shipping_box.exchange_success": "§a§lExchange Successful! §rReceived items in shipping box.",
   "tooltip.shipping_box.title": "§7[§aShipping Box Exchange§7]",
   "tooltip.shipping_box.instruction": "§7Place in shipping box for automatic exchange",
-  "tooltip.shipping_box.format": "%sx%s",
-  "tooltip.shipping_box.arrow": " → "
+  "tooltip.shipping_box.exchange_format": "[%sx %s → %sx %s]",
+  "tooltip.shipping_box.unknown_item": "Unknown Item"
 }
