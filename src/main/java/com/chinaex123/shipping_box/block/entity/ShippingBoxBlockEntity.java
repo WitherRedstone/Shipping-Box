@@ -199,6 +199,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             return;
         }
 
+        // 清空所有槽位
         for (int i = 0; i < items.size(); i++) {
             items.set(i, ItemStack.EMPTY);
         }
@@ -232,15 +233,31 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
 
         results.addAll(itemsToProcess);
 
-        for (int i = 0; i < Math.min(results.size(), 54); i++) {
-            items.set(i, results.get(i));
+        // 新的放置策略：按最大堆叠数分割物品
+        int slotIndex = 0;
+        for (ItemStack stack : results) {
+            if (stack.isEmpty() || slotIndex >= 54) break;
+
+            int maxStackSize = stack.getMaxStackSize();
+            int remainingCount = stack.getCount();
+
+            // 将大堆叠分割成多个标准堆叠
+            while (remainingCount > 0 && slotIndex < 54) {
+                int stackSize = Math.min(remainingCount, maxStackSize);
+                ItemStack newStack = stack.copy();
+                newStack.setCount(stackSize);
+                items.set(slotIndex, newStack);
+
+                remainingCount -= stackSize;
+                slotIndex++;
+            }
         }
 
         lastExchangeDay = currentDay;
         setChanged();
 
         if (hadSuccessfulExchange) {
-            // 全局声音播放（如果需要的话）
+            // 全局声音播放
             serverLevel.playSound(null, worldPosition,
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
