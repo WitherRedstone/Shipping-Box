@@ -5,6 +5,7 @@ import com.chinaex123.shipping_box.item.ModItems;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
@@ -21,7 +22,7 @@ public class ModBlocks {
 
     public static final DeferredBlock<Block> SHIPPING_BOX =
             registerBlocks("shipping_box", () -> new ShippingBoxBlock(BlockBehaviour.Properties.of()
-                    .mapColor(MapColor.WOOD).strength(2.5f).noOcclusion()));
+                    .mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(2.5f, 6.0f).noOcclusion()));
 
     /**
      * 为指定方块注册对应的物品形式

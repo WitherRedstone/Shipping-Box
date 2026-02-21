@@ -3,10 +3,12 @@ package com.chinaex123.shipping_box;
 import com.chinaex123.shipping_box.block.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
+import com.chinaex123.shipping_box.event.ExchangeRuleComponents;
 import com.chinaex123.shipping_box.item.ModItems;
 import com.chinaex123.shipping_box.menu.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
+import net.minecraft.core.RegistryAccess;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -55,7 +57,8 @@ public class ShippingBox {
     // 可以使用 @SubscribeEvent 并让事件总线自动发现要调用的方法
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        // 服务器启动时执行某些操作
-        LOGGER.info("HELLO from server starting");
+        // 初始化附魔注册表
+        RegistryAccess registryAccess = event.getServer().registryAccess();
+        ExchangeRuleComponents.initEnchantmentRegistry(registryAccess);
     }
 }

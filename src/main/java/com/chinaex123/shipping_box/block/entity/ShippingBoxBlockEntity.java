@@ -231,7 +231,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
      * @param currentDay 当前游戏天数，用于记录兑换时间
      */
     private void performExchange(long currentDay) {
-        if (!(level instanceof ServerLevel serverLevel)) return;
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
 
         // 收集所有非空物品用于处理
         List<ItemStack> itemsToProcess = new ArrayList<>();

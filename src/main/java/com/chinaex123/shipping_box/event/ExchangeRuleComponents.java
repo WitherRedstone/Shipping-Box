@@ -1,22 +1,72 @@
 package com.chinaex123.shipping_box.event;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.core.Holder;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.core.RegistryAccess;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.Optional;
 
 public class ExchangeRuleComponents {
+
+    // 缓存附魔注册表，避免重复查找
+    private static Registry<Enchantment> enchantmentRegistry = null;
+
+    // 静态初始化块 - 类加载时尝试初始化
+    static {
+        try {
+            ResourceLocation key = Registries.ENCHANTMENT.location();
+            Registry<?> registry = BuiltInRegistries.REGISTRY.get(key);
+
+            if (registry == null) {
+                // 备选键名
+                registry = BuiltInRegistries.REGISTRY.get(ResourceLocation.tryParse("enchantment"));
+            }
+
+            if (registry != null) {
+                @SuppressWarnings("unchecked")
+                Registry<Enchantment> typedRegistry = (Registry<Enchantment>) registry;
+                enchantmentRegistry = typedRegistry;
+            }
+        } catch (Exception e) {
+            // 初始化失败时静默处理
+        }
+    }
+
+    /**
+     * 初始化附魔注册表
+     * 在 onServerStarting 事件中调用
+     *
+     * @param registryAccess 注册表访问对象
+     */
+    public static void initEnchantmentRegistry(RegistryAccess registryAccess) {
+        try {
+            enchantmentRegistry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        } catch (Exception e) {
+            // 初始化失败时静默处理
+        }
+    }
+
+    /**
+     * 辅助方法：安全地获取附魔注册表
+     */
+    private static Registry<Enchantment> getEnchantmentRegistry() {
+        return enchantmentRegistry;
+    }
 
     /**
      * 解析组件字符串为键值对映射
@@ -183,7 +233,7 @@ public class ExchangeRuleComponents {
                 stack.applyComponents(patch);
             }
         } catch (Exception e) {
-            // 删除日志输出
+            // 应用失败时静默处理
         }
     }
 
@@ -211,7 +261,7 @@ public class ExchangeRuleComponents {
                 applyComponentFromJson(stack, componentName, componentValue);
             }
         } catch (Exception e) {
-            // 删除日志输出
+            // 解析失败时静默处理
         }
     }
 
@@ -223,6 +273,7 @@ public class ExchangeRuleComponents {
      * @param componentName 组件名称
      * @param componentValue 组件值的JSON元素
      */
+    @SuppressWarnings("unchecked")
     private static void applyComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
             ResourceLocation componentId = normalizeComponentId(componentName);
@@ -253,12 +304,14 @@ public class ExchangeRuleComponents {
             if (result.isSuccess()) {
                 Object parsedValue = result.result().orElse(null);
                 if (parsedValue != null) {
-                    stack.set((DataComponentType) componentType, parsedValue);
+                    // 安全地转换类型
+                    DataComponentType<Object> rawType = (DataComponentType<Object>) componentType;
+                    stack.set(rawType, parsedValue);
                 }
             }
 
         } catch (Exception e) {
-            // 删除日志输出
+            // 应用失败时静默处理
         }
     }
 
@@ -270,34 +323,26 @@ public class ExchangeRuleComponents {
      */
     private static void applyEnchantmentsFromJson(ItemStack stack, com.google.gson.JsonElement jsonElement) {
         try {
-            if (!jsonElement.isJsonObject()) {
-                return;
-            }
-
             var enchantmentsObj = jsonElement.getAsJsonObject();
-            if (!enchantmentsObj.has("levels") || !enchantmentsObj.get("levels").isJsonObject()) {
-                return;
-            }
-
             var levelsObj = enchantmentsObj.getAsJsonObject("levels");
             var mutableEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
-            // 遍历并设置每个附魔
+            // 获取附魔注册表
+            Registry<Enchantment> enchantmentRegistry = getEnchantmentRegistry();
+
+            if (enchantmentRegistry == null) {
+                return;
+            }
+
             for (var entry : levelsObj.entrySet()) {
                 String enchId = entry.getKey();
                 var levelElement = entry.getValue();
+                int level = levelElement.getAsInt();
+                ResourceLocation enchLoc = ResourceLocation.tryParse(enchId);
 
-                if (levelElement.isJsonPrimitive() && levelElement.getAsJsonPrimitive().isNumber()) {
-                    int level = levelElement.getAsInt();
-                    ResourceLocation enchLoc = ResourceLocation.tryParse(enchId);
-
-                    if (enchLoc != null) {
-                        // 检查是否有其他的附魔注册表访问方式
-                        var enchantment = BuiltInRegistries.REGISTRY.get(ResourceLocation.withDefaultNamespace("enchantment")).get(enchLoc);
-                        if (enchantment != null) {
-                            mutableEnchants.set((Holder<Enchantment>) enchantment, level);
-                        }
-                    }
+                if (enchLoc != null) {
+                    Optional<Holder.Reference<Enchantment>> enchantment = enchantmentRegistry.getHolder(enchLoc);
+                    enchantment.ifPresent(enchantmentReference -> mutableEnchants.set(enchantmentReference, level));
                 }
             }
 
@@ -305,12 +350,15 @@ public class ExchangeRuleComponents {
             stack.set(DataComponents.ENCHANTMENTS, finalEnchants);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            // 应用失败时静默处理
         }
     }
 
     /**
      * 从JSON应用存储的附魔组件
+     *
+     * @param stack 目标物品堆
+     * @param jsonElement 附魔配置的JSON元素
      */
     private static void applyStoredEnchantmentsFromJson(ItemStack stack, com.google.gson.JsonElement jsonElement) {
         try {
@@ -328,6 +376,12 @@ public class ExchangeRuleComponents {
                     net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY
             );
 
+            // 获取附魔注册表
+            Registry<Enchantment> enchantmentRegistry = getEnchantmentRegistry();
+            if (enchantmentRegistry == null) {
+                return;
+            }
+
             for (var entry : levelsObj.entrySet()) {
                 String enchId = entry.getKey();
                 var levelElement = entry.getValue();
@@ -337,11 +391,8 @@ public class ExchangeRuleComponents {
                     ResourceLocation enchLoc = ResourceLocation.tryParse(enchId);
 
                     if (enchLoc != null) {
-                        // 检查是否有其他的附魔注册表访问方式
-                        var enchantment = BuiltInRegistries.REGISTRY.get(ResourceLocation.withDefaultNamespace("enchantment")).get(enchLoc);
-                        if (enchantment != null) {
-                            mutableEnchants.set((Holder<Enchantment>) enchantment, level);
-                        }
+                        Optional<Holder.Reference<Enchantment>> enchantment = enchantmentRegistry.getHolder(enchLoc);
+                        enchantment.ifPresent(enchantmentReference -> mutableEnchants.set(enchantmentReference, level));
                     }
                 }
             }
@@ -350,12 +401,16 @@ public class ExchangeRuleComponents {
             stack.set(DataComponents.STORED_ENCHANTMENTS, finalEnchants);
 
         } catch (Exception e) {
-            // 删除日志输出
+            // 应用失败时静默处理
         }
     }
 
     /**
      * 应用单个组件到补丁构建器
+     *
+     * @param patchBuilder 补丁构建器
+     * @param componentName 组件名称
+     * @param componentValue 组件值字符串
      */
     private static void applySingleComponent(DataComponentPatch.Builder patchBuilder, String componentName, String componentValue) {
         try {
@@ -376,12 +431,17 @@ public class ExchangeRuleComponents {
             }
 
         } catch (Exception e) {
-            // 删除日志输出
+            // 应用失败时静默处理
         }
     }
 
+
     /**
      * 动态解析组件值
+     *
+     * @param componentType 组件类型
+     * @param rawValue 原始值字符串
+     * @return 解析后的对象，失败返回null
      */
     private static Object parseComponentValueDynamically(DataComponentType<?> componentType, String rawValue) {
         try {
@@ -392,6 +452,9 @@ public class ExchangeRuleComponents {
 
             // 将原始值转换为合适的JSON格式
             String jsonValue = convertToProperJson(rawValue);
+            if (jsonValue == null) {
+                return null;
+            }
 
             // 使用组件的codec进行解析
             var jsonElement = com.google.gson.JsonParser.parseString(jsonValue);
@@ -406,64 +469,88 @@ public class ExchangeRuleComponents {
 
     /**
      * 转换为适当的JSON格式
+     *
+     * @param value 原始值字符串
+     * @return JSON格式字符串
      */
     private static String convertToProperJson(String value) {
-        // 智能JSON格式化
         if (value == null || value.isEmpty()) {
-            return "null";
+            return null;
         }
 
-        // 特殊处理：如果值已经是完整的JSON对象或数组
+        // 移除首尾空白字符
+        value = value.trim();
+
+        // 如果已经是有效的JSON对象或数组，直接返回
         if ((value.startsWith("{") && value.endsWith("}")) ||
                 (value.startsWith("[") && value.endsWith("]"))) {
-            try {
-                // 验证是否为有效JSON
-                com.google.gson.JsonParser.parseString(value);
-                return value;
-            } catch (Exception e) {
-                // 保持原有逻辑但移除日志
-            }
-        }
-
-        // 处理组件赋值格式：component={structure}
-        if (value.contains("=") && value.contains("{")) {
-            int equalsIndex = value.indexOf('=');
-            String componentName = value.substring(0, equalsIndex).trim();
-            String componentValue = value.substring(equalsIndex + 1).trim();
-
-            // 如果右侧是JSON结构，直接返回
-            if ((componentValue.startsWith("{") && componentValue.endsWith("}")) ||
-                    (componentValue.startsWith("[") && componentValue.endsWith("]"))) {
-                try {
-                    com.google.gson.JsonParser.parseString(componentValue);
-                    return componentValue;
-                } catch (Exception e) {
-                    return componentValue;
-                }
-            }
-        }
-
-        // 字符串值
-        if (value.startsWith("\"") && value.endsWith("\"")) {
             return value;
         }
 
-        // 数字值
-        if (value.matches("-?\\d+(\\.\\d+)?")) {
+        // 处理数字值
+        try {
+            Double.parseDouble(value);
+            return value;
+        } catch (NumberFormatException e) {
+            // 不是数字，继续处理
+        }
+
+        // 处理布尔值
+        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
             return value;
         }
 
-        // 布尔值
-        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
-            return value.toLowerCase();
+        // 处理看起来像JSON但缺少结尾的情况
+        if (value.contains("{") && !value.endsWith("}")) {
+            // 尝试补全JSON对象
+            String fixedValue = fixIncompleteJsonObject(value);
+            if (fixedValue != null) {
+                return fixedValue;
+            }
         }
 
-        // 其他情况包装为字符串
+        // 如果以上都不匹配，将其作为字符串处理（添加引号）
         return "\"" + value + "\"";
     }
 
     /**
+     * 补全不完整的JSON对象字符串
+     *
+     * @param incompleteJson 不完整的JSON字符串
+     * @return 修复后的JSON字符串，如果无法修复则返回null
+     */
+    private static String fixIncompleteJsonObject(String incompleteJson) {
+        // 简单的修复策略：计算花括号是否匹配
+        int openBraces = 0;
+        int closeBraces = 0;
+
+        for (char c : incompleteJson.toCharArray()) {
+            if (c == '{') openBraces++;
+            else if (c == '}') closeBraces++;
+        }
+
+        // 如果开括号比闭括号多，尝试补全
+        if (openBraces > closeBraces) {
+            String result = incompleteJson + "}".repeat(Math.max(0, openBraces - closeBraces));
+
+            // 验证修复后的JSON是否有效
+            try {
+                JsonParser.parseString(result);
+                return result;
+            } catch (JsonSyntaxException e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * 安全地设置组件值
+     *
+     * @param builder 补丁构建器
+     * @param type 组件类型
+     * @param value 组件值
      */
     @SuppressWarnings("unchecked")
     private static <T> void setComponentValueSafely(DataComponentPatch.Builder builder,
@@ -474,7 +561,7 @@ public class ExchangeRuleComponents {
                 builder.set(type, (T) value);
             }
         } catch (Exception e) {
-            // 删除日志输出
+            // 设置失败时静默处理
         }
     }
 }
