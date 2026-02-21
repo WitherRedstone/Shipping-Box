@@ -49,10 +49,6 @@ public class ShippingBoxMenu extends ChestMenu {
 
         // 清除当前玩家记录
         ShippingBoxBlockEntity.clearCurrentPlayer();
-
-        // 清除存储的位置信息
-        storedPos = null;
-        storedLevel = null;
     }
 
     public static class Factory implements IContainerFactory<ShippingBoxMenu> {

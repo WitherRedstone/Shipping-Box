@@ -2,6 +2,7 @@ package com.chinaex123.shipping_box.block.entity;
 
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
+import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -80,7 +81,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
      */
     @Override
     protected @NotNull AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory) {
-        return new ChestMenu(MenuType.GENERIC_9x6, id, inventory, this, 6);
+        // 使用自定义的ShippingBoxMenu而不是ChestMenu
+        return new ShippingBoxMenu(id, inventory, this);
     }
 
     @Override
