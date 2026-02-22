@@ -86,7 +86,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     @Override
     /**
      * 获取容器的总槽数量
-     * @return 容器槽数，固定返回54（6行9列的标准大型箱子大小）
+     * @return 容器槽数，固定返回54格
      */
     public int getContainerSize() {
         return 54;
@@ -183,6 +183,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         }
     }
 
+    /**
+     * 清空容器内的所有内容和相关数据
+     * 重置物品存储、槽位所有者记录和玩家物品计数信息
+     * 调用后标记方块实体需要保存到磁盘
+     */
     @Override
     public void clearContent() {
         items.clear();
@@ -199,7 +204,6 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
      * 通过直接计算时间差来判断是否应该执行兑换
      */
     public void tick() {
-        // 使用局部变量和计算来替代成员变量
         long currentDayTime = level != null ? level.getDayTime() : 0;
         long currentTimeOfDay = currentDayTime % 24000;
 
