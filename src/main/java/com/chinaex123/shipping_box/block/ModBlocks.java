@@ -22,7 +22,12 @@ public class ModBlocks {
 
     public static final DeferredBlock<Block> SHIPPING_BOX =
             registerBlocks("shipping_box", () -> new ShippingBoxBlock(BlockBehaviour.Properties.of()
-                    .mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(2.5f, 6.0f).noOcclusion()));
+                    .mapColor(MapColor.WOOD)
+                    .sound(SoundType.WOOD)
+                    .strength(2.5f, 6.0f)
+                    .noOcclusion()
+                    .requiresCorrectToolForDrops()
+            ));
 
     /**
      * 为指定方块注册对应的物品形式
@@ -32,7 +37,7 @@ public class ModBlocks {
      * @param block 延迟方块对象
      */
     private static <T extends Block> void registerBlockItems(String name, DeferredBlock<T> block) {
-        ModItems.ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
+        ModItems.ITEMS_REGISTER.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
     }
 
     /**

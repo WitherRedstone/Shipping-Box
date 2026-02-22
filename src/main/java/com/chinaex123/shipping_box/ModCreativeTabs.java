@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box;
 
 import com.chinaex123.shipping_box.block.ModBlocks;
+import com.chinaex123.shipping_box.item.ModItems;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -21,6 +22,13 @@ public class ModCreativeTabs {
                     .displayItems((parameters, output) -> {
 
                         output.accept(ModBlocks.SHIPPING_BOX.get());
+                        output.accept(ModItems.COPPER_CREEPER_COIN.get());
+                        output.accept(ModItems.IRON_CREEPER_COIN.get());
+                        output.accept(ModItems.GOLD_CREEPER_COIN.get());
+                        output.accept(ModItems.DIAMOND_CREEPER_COIN.get());
+                        output.accept(ModItems.NETHERITE_CREEPER_COIN.get());
+                        output.accept(ModItems.EMERALD_CREEPER_COIN.get());
+                        output.accept(ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get());
 
                     })
                     .build());

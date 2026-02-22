@@ -1,9 +1,16 @@
 {
   "itemGroup.shipping_box_tab": "Shipping Box",
 
-  "container.shipping_box.shipping_box": "Shipping Box",
+  "item.shipping_box.copper_creeper_coin": "Copper Creeper Coin",
+  "item.shipping_box.iron_creeper_coin": "Iron Creeper Coin",
+  "item.shipping_box.gold_creeper_coin": "Gold Creeper Coin",
+  "item.shipping_box.diamond_creeper_coin": "Diamond Creeper Coin",
+  "item.shipping_box.netherite_creeper_coin": "Netherite Creeper Coin",
+  "item.shipping_box.emerald_creeper_coin": "Emerald Creeper Coin",
+  "item.shipping_box.symbols_chaos_creeper_coin": "Symbols Chaos Creeper Coin",
   "block.shipping_box.shipping_box": "Shipping Box",
 
+  "container.shipping_box.shipping_box": "Shipping Box",
   "message.shipping_box.exchange_success": "§a§lExchange Successful! §rReceived items in shipping box.",
   "tooltip.shipping_box.title": "§7[§aShipping Box Exchange§7]",
   "tooltip.shipping_box.instruction": "§7Place in shipping box for automatic exchange",
