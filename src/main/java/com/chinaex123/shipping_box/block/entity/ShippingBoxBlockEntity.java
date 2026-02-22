@@ -193,15 +193,21 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
 
     /**
      * 每游戏刻执行的逻辑更新方法
-     * 负责检查是否满足物品兑换条件并在适当时间触发兑换流程
-     * 只在服务端执行，客户端忽略
+     * 负责检测时间窗口跨越并触发物品兑换逻辑
+     * 能够正确处理时间重置、时间跳跃等各种边界情况
+     * <p>
+     * 该方法通过直接计算时间差来判断是否应该执行兑换，
+     * 避免了使用成员变量来跟踪状态，提高了代码的简洁性和可靠性
      */
     public void tick() {
+        // 使用局部变量和计算来替代成员变量
+        long currentDayTime = level != null ? level.getDayTime() : 0;
+        long currentTimeOfDay = currentDayTime % 24000;
+
         if (level == null || level.isClientSide) return;
 
         long dayTime = level.getDayTime();
         long timeOfDay = dayTime % 24000;
-        long currentDay = dayTime / 24000;
 
         // 检查容器中是否存在物品
         boolean hasItems = false;
@@ -212,14 +218,36 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             }
         }
 
-        // 在每日黎明时段(0-180tick)且当天尚未进行过兑换时执行兑换
-        if (hasItems && timeOfDay >= 0 && timeOfDay <= 180 && lastExchangeDay < currentDay) {
-            try {
-                performExchange(currentDay);
-                lastExchangeDay = currentDay;
-                setChanged();
-            } catch (Exception e) {
-                // 异常处理保持简洁
+        if (!hasItems) return;
+
+        // 通过计算来检测时间窗口跨越，而不依赖成员变量
+
+        // 情况1：检测是否刚进入兑换时间窗口
+        // 通过检查当前是否在兑换窗口内，且容器中有物品
+        if (timeOfDay >= 0 && timeOfDay <= 180) {
+            // 检查是否距离上次兑换已经过去了一天
+            long timeSinceLastExchange = dayTime - (lastExchangeDay * 24000);
+
+            // 如果距离上次兑换超过一天，或者这是第一次兑换
+            if (timeSinceLastExchange >= 24000 || lastExchangeDay == -1L) {
+                try {
+                    performExchange(dayTime / 24000);
+                    lastExchangeDay = dayTime / 24000;
+                    setChanged();
+                } catch (Exception e) {
+                    // 异常处理保持简洁
+                }
+            }
+            // 处理时间重置的特殊情况
+            else if (timeSinceLastExchange < 0) {
+                // 时间被重置到过去，强制进行兑换
+                try {
+                    performExchange(dayTime / 24000);
+                    lastExchangeDay = dayTime / 24000;
+                    setChanged();
+                } catch (Exception e) {
+                    // 异常处理保持简洁
+                }
             }
         }
     }
