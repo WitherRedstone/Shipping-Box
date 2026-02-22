@@ -1,13 +1,13 @@
 {
   "itemGroup.shipping_box_tab": "售货箱",
 
-  "item.shipping_box.copper_creeper_coin": "铜怕怕币",
-  "item.shipping_box.iron_creeper_coin": "铁怕怕币",
-  "item.shipping_box.gold_creeper_coin": "金怕怕币",
-  "item.shipping_box.diamond_creeper_coin": "钻石怕怕币",
-  "item.shipping_box.netherite_creeper_coin": "下界合金怕怕币",
-  "item.shipping_box.emerald_creeper_coin": "绿宝石怕怕币",
-  "item.shipping_box.symbols_chaos_creeper_coin": "混沌立方怕怕币",
+  "item.shipping_box.copper_creeper_coin": "铜爬爬币",
+  "item.shipping_box.iron_creeper_coin": "铁爬爬币",
+  "item.shipping_box.gold_creeper_coin": "金爬爬币",
+  "item.shipping_box.diamond_creeper_coin": "钻石爬爬币",
+  "item.shipping_box.netherite_creeper_coin": "下界合金爬爬币",
+  "item.shipping_box.emerald_creeper_coin": "绿宝石爬爬币",
+  "item.shipping_box.symbols_chaos_creeper_coin": "混沌立方爬爬币",
   "block.shipping_box.shipping_box": "售货箱",
 
   "container.shipping_box.shipping_box": "售货箱",
@@ -15,5 +15,15 @@
   "tooltip.shipping_box.title": "§7[§a售货箱兑换§7]",
   "tooltip.shipping_box.instruction": "§7放入售货箱自动兑换",
   "tooltip.shipping_box.exchange_format": "[%s个%s → %s个%s]",
-  "tooltip.shipping_box.unknown_item": "未知物品!"
+  "tooltip.shipping_box.unknown_item": "未知物品!",
+  "tooltip.item.shipping_box.coin.1": "§b转换规则",
+  "tooltip.item.shipping_box.coin.2": "§e  ·单击右键：换取一次",
+  "tooltip.item.shipping_box.coin.3": "§e  ·潜行+右击：换取一组",
+  "tooltip.item.shipping_box.copper_creeper_coin": "§a价值§f：§d1",
+  "tooltip.item.shipping_box.iron_creeper_coin": "§a价值§f：§d8",
+  "tooltip.item.shipping_box.gold_creeper_coin": "§a价值§f：§d16",
+  "tooltip.item.shipping_box.diamond_creeper_coin": "§a价值§f：§d64",
+  "tooltip.item.shipping_box.netherite_creeper_coin": "§a价值§f：§d512",
+  "tooltip.item.shipping_box.emerald_creeper_coin": "§a价值§f：§d256",
+  "tooltip.item.shipping_box.symbols_chaos_creeper_coin": "§a价值§f：§d4096"
 }

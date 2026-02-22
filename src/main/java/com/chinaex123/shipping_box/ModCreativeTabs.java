@@ -27,8 +27,8 @@ public class ModCreativeTabs {
                         output.accept(ModItems.GOLD_CREEPER_COIN.get());
                         output.accept(ModItems.DIAMOND_CREEPER_COIN.get());
                         output.accept(ModItems.NETHERITE_CREEPER_COIN.get());
-                        output.accept(ModItems.EMERALD_CREEPER_COIN.get());
                         output.accept(ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get());
+                        output.accept(ModItems.EMERALD_CREEPER_COIN.get());
 
                     })
                     .build());
