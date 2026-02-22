@@ -196,8 +196,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
      * 负责检测时间窗口跨越并触发物品兑换逻辑
      * 能够正确处理时间重置、时间跳跃等各种边界情况
      * <p>
-     * 该方法通过直接计算时间差来判断是否应该执行兑换，
-     * 避免了使用成员变量来跟踪状态，提高了代码的简洁性和可靠性
+     * 通过直接计算时间差来判断是否应该执行兑换
      */
     public void tick() {
         // 使用局部变量和计算来替代成员变量
@@ -220,10 +219,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
 
         if (!hasItems) return;
 
-        // 通过计算来检测时间窗口跨越，而不依赖成员变量
-
-        // 情况1：检测是否刚进入兑换时间窗口
-        // 通过检查当前是否在兑换窗口内，且容器中有物品
+        // 检测是否刚进入兑换时间窗口，且容器中有物品
         if (timeOfDay >= 0 && timeOfDay <= 180) {
             // 检查是否距离上次兑换已经过去了一天
             long timeSinceLastExchange = dayTime - (lastExchangeDay * 24000);
@@ -235,7 +231,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                     lastExchangeDay = dayTime / 24000;
                     setChanged();
                 } catch (Exception e) {
-                    // 异常处理保持简洁
+                    // 异常处理
                 }
             }
             // 处理时间重置的特殊情况
@@ -246,7 +242,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                     lastExchangeDay = dayTime / 24000;
                     setChanged();
                 } catch (Exception e) {
-                    // 异常处理保持简洁
+                    // 异常处理
                 }
             }
         }
