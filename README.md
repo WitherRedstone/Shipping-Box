@@ -26,114 +26,121 @@
 
 ======================================================================
 # 代码/code
-`{
-  "rules": [
-    // 物品 → 物品
-    // Item → Item
+1.物品 → 物品/Item → Item
+```
+{
+  "input": {
+    "item": "minecraft:stone",
+    "count": 1
+  },
+  "output": {
+    "item": "shipping_box:copper_creeper_coin",
+    "count": 1
+  }
+}
+```
+
+2.多物品 → 物品/Multiple Items → Item
+```
+{
+  "input": [
     {
-      "input": {
-        "item": "minecraft:stone",
-        "count": 1
-      },
-      "output": {
-        "item": "shipping_box:copper_creeper_coin",
-        "count": 1
-      }
+      "item": "minecraft:emerald",
+      "count": 1
     },
-    // 多物品 → 物品
-    // Multiple Items → Item
     {
-      "input": [
-        {
-          "item": "minecraft:emerald",
-          "count": 1
-        },
-        {
-          "item": "minecraft:diamond",
-          "count": 2
-        }
-      ],
-      "output": {
-        "item": "shipping_box:copper_creeper_coin",
-        "count": 1
-      }
-    },
-    // 标签 → 物品，输出不支持标签
-    // Tag → item, tags are not supported for output
-    {
-      "input": {
-        "tag": "#minecraft:logs",
-        "count": 1
-      },
-      "output": {
-        "item": "shipping_box:copper_creeper_coin",
-        "count": 2
-      }
-    },
-    // 物品 → 简单组件物品
-    // Item → Simple Component Item
-    {
-      "input": {
-        "item": "minecraft:iron_ingot",
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:iron_sword",
-        "count": 1,
-        "components": "damage=100"
-      }
-    },
-    // 物品 → 药水物品
-    // Item → Potion Item
-    {
-      "input": {
-        "item": "minecraft:glass_bottle",
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:potion",
-        "components": "{\"potion_contents\":{\"potion\":\"minecraft:night_vision\"}}",
-        "count": 1
-      }
-    },
-    // 物品 → 附魔物品
-    // Item → Enchanted Item
-    {
-      "input": {
-        "item": "minecraft:golden_sword",
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:golden_sword",
-        "components": "{\"enchantments\":{\"levels\":{\"minecraft:unbreaking\":1}}}",
-        "count": 1
-      }
-    },
-    // 物品 → 多附魔物品
-    // Item → Multiple Enchanted Items
-    {
-      "input": {
-        "item": "minecraft:diamond_sword",
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:diamond_sword",
-        "components": "{\"enchantments\":{\"levels\":{\"minecraft:sharpness\":5,\"minecraft:unbreaking\":1}}}",
-        "count": 1
-      }
-    },
-    // 物品 → 附魔书
-    // Item → Enchanted Book
-    {
-      "input": {
-        "item": "minecraft:book",
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:enchanted_book",
-        "components": "{\"stored_enchantments\":{\"levels\":{\"minecraft:sharpness\":5}}}",
-        "count": 1
-      }
+      "item": "minecraft:diamond",
+      "count": 2
     }
-  ]
-}`
+  ],
+  "output": {
+    "item": "shipping_box:copper_creeper_coin",
+    "count": 1
+  }
+}
+```
+
+3.标签 → 物品，输出不支持标签/Tag → item, tags are not supported for output
+```
+{
+  "input": {
+    "tag": "#minecraft:logs",
+    "count": 1
+  },
+  "output": {
+    "item": "shipping_box:copper_creeper_coin",
+    "count": 2
+  }
+}
+```
+
+4.物品 → 简单组件物品/Item → Simple Component Item
+```
+{
+  "input": {
+    "item": "minecraft:iron_ingot",
+    "count": 1
+  },
+  "output": {
+    "item": "minecraft:iron_sword",
+    "count": 1,
+    "components": "damage=100"
+  }
+}
+```
+
+5.物品 → 药水物品/Item → Potion Item
+```
+{
+  "input": {
+    "item": "minecraft:glass_bottle",
+    "count": 1
+  },
+  "output": {
+    "item": "minecraft:potion",
+    "components": "{\"potion_contents\":{\"potion\":\"minecraft:night_vision\"}}",
+    "count": 1
+  }
+}
+```
+
+6.物品 → 附魔物品/Item → Enchanted Item
+```
+{
+  "input": {
+    "item": "minecraft:golden_sword",
+    "count": 1
+  },
+  "output": {
+    "item": "minecraft:golden_sword",
+    "components": "{\"enchantments\":{\"levels\":{\"minecraft:unbreaking\":1}}}",
+    "count": 1
+  }
+},
+{
+  "input": {
+    "item": "minecraft:diamond_sword",
+    "count": 1
+  },
+  "output": {
+    "item": "minecraft:diamond_sword",
+    "components": "{\"enchantments\":{\"levels\":{\"minecraft:sharpness\":5,\"minecraft:unbreaking\":1}}}",
+    "count": 1
+  }
+}
+```
+
+7.物品 → 附魔书/Item → Enchanted Book
+```
+{
+  "input": {
+    "item": "minecraft:book",
+    "count": 1
+  },
+  "output": {
+    "item": "minecraft:enchanted_book",
+    "components": "{\"stored_enchantments\":{\"levels\":{\"minecraft:sharpness\":5}}}",
+    "count": 1
+  }
+}
+```
