@@ -26,7 +26,7 @@
 
 ======================================================================
 # 文件格式/File Format
-1.物品 → 物品/Item → Item
+1.物品 ↔ 物品/Item → Item
 ```
 "rules": [
   {
@@ -80,7 +80,7 @@
 }
 ```
 
-4.物品 → 简单组件物品/Item → Simple Component Item
+4.物品 ↔ 简单组件物品/Item → Simple Component Item
 ```
 "rules": [
   {
@@ -97,7 +97,7 @@
 }
 ```
 
-5.物品 → 药水物品/Item → Potion Item
+5.物品 ↔ 药水物品/Item → Potion Item
 ```
 "rules": [
   {
@@ -114,7 +114,7 @@
 }
 ```
 
-6.物品 → 附魔物品/Item → Enchanted Item
+6.物品 ↔ 附魔物品/Item → Enchanted Item
 ```
 "rules": [
   {
@@ -142,7 +142,7 @@
 }
 ```
 
-7.物品 → 附魔书/Item → Enchanted Book
+7.物品 ↔ 附魔书/Item → Enchanted Book
 ```
 "rules": [
   {
