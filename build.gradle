@@ -119,14 +119,12 @@ configurations {
 }
 
 dependencies {
-    // jei
+    // 联动 - ViScriptShop
+    implementation "curse.maven:ldlib-626676:7658151"
+    implementation "curse.maven:viscriptshop-1408178:7594435"
+
+    // 辅助
     localRuntime "curse.maven:jei-238222:7420587"
-
-    implementation "curse.maven:kubejs-238086:7278501"
-    implementation "curse.maven:rhino-416294:7104526"
-
-    implementation "curse.maven:placebo-283644:6926281"
-    implementation "curse.maven:apothic-attributes-898963:7445079"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
