@@ -34,14 +34,29 @@ public class ViScriptCoinItemServer extends TooltipItems {
     // 存储玩家的动画状态
     private static final Map<UUID, AnimationState> animationStates = new HashMap<>();
 
-    // 动画状态类
+    /**
+     * 动画状态数据类
+     * 用于跟踪虚拟货币兑换过程中的动画进度和相关数值
+     */
     private static class AnimationState {
+        /** 兑换开始时的余额 */
         final int startBalance;
+        /** 兑换物品的总价值 */
         final int totalValue;
+        /** 实际兑换金额 */
         final int exchangeAmount;
+        /** 当前动画步数 */
         int currentStep = 0;
+        /** 最大动画步数 */
         final int maxSteps = 20;
 
+        /**
+         * 构造函数
+         *
+         * @param startBalance 兑换开始时的余额
+         * @param totalValue 兑换物品的总价值
+         * @param exchangeAmount 实际兑换金额
+         */
         AnimationState(int startBalance, int totalValue, int exchangeAmount) {
             this.startBalance = startBalance;
             this.totalValue = totalValue;

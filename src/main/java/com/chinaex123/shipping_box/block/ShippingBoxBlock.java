@@ -1,8 +1,10 @@
 package com.chinaex123.shipping_box.block;
 
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
+import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,6 +12,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -71,31 +74,35 @@ public class ShippingBoxBlock extends BaseEntityBlock {
      * @param level 游戏世界实例
      * @param pos 方块位置坐标
      * @param player 交互的玩家
-     * @param hitResult 点击结果信息
      * @return 交互结果，成功时返回sidedSuccess
      */
     @Override
-    protected @NotNull InteractionResult useWithoutItem(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull BlockHitResult hitResult) {
-        // 播放木桶开启声音
-        level.playSound(
-                player,
-                pos,
-                SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
-                SoundSource.BLOCKS,
-                0.5F,
-                level.random.nextFloat() * 0.1F + 0.9F
-        );
-
-        if (!level.isClientSide) {
-            BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof ShippingBoxBlockEntity shippingBox) {
-                // 设置当前操作玩家
-                ShippingBoxBlockEntity.setCurrentPlayer((ServerPlayer) player);
-                // 打开菜单
-                player.openMenu(shippingBox);
-            }
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
         }
-        return InteractionResult.sidedSuccess(level.isClientSide);
+
+        if (player instanceof ServerPlayer serverPlayer) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof ShippingBoxBlockEntity shippingBox) {
+                serverPlayer.openMenu(new SimpleMenuProvider(
+                        (windowId, playerInventory, playerEntity) ->
+                                new ShippingBoxMenu(windowId, playerInventory, shippingBox, serverPlayer.getUUID()),
+                        Component.translatable("container.shipping_box.shipping_box")
+                ));
+            }
+            // 播放打开音效
+            level.playSound(
+                    null,
+                    pos,
+                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
+                    SoundSource.BLOCKS,
+                    0.5F,
+                    level.random.nextFloat() * 0.1F + 0.9F
+            );
+        }
+
+        return InteractionResult.CONSUME;
     }
 
     /**

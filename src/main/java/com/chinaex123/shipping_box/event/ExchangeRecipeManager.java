@@ -429,7 +429,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 // 序列化输入物品
                 if (rule.getInputs().size() == 1) {
                     // 单个输入
-                    ruleObj.add("input", serializeInputItem(rule.getInputs().get(0)));
+                    ruleObj.add("input", serializeInputItem(rule.getInputs().getFirst()));
                 } else {
                     // 多个输入
                     JsonArray inputsArray = new JsonArray();

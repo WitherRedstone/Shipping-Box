@@ -5,7 +5,6 @@ import com.chinaex123.shipping_box.block.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
 import com.chinaex123.shipping_box.event.ExchangeRuleComponents;
 import com.chinaex123.shipping_box.item.ModItems;
-import com.chinaex123.shipping_box.menu.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.tooltip.TooltipEventHandler;
 import net.minecraft.core.RegistryAccess;
@@ -47,7 +46,7 @@ public class ShippingBox {
         ModItems.register(modEventBus);        // 注册物品
         ModBlockEntities.register(modEventBus); // 注册方块实体
 
-        ModMenuTypes.register(modEventBus);    // 注册菜单类型
+        //ModMenuTypes.MENU_TYPES.register(modEventBus);   // 注册菜单类型
 
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册属性
 
