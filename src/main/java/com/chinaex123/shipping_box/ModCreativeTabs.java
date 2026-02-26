@@ -22,6 +22,7 @@ public class ModCreativeTabs {
                     .displayItems((parameters, output) -> {
 
                         output.accept(ModBlocks.SHIPPING_BOX.get());
+                        output.accept(ModBlocks.AUTO_SHIPPING_BOX.get());
 
                         output.accept(ModItems.DIMENSIONAL_POUCH.get());
                         output.accept(ModItems.COPPER_CREEPER_COIN.get());

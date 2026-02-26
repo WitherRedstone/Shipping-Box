@@ -14,6 +14,7 @@ public class ModBlockStatesProvider extends BlockStateProvider {
     @Override
     protected void registerStatesAndModels() {
         simpleBlockWithItem(ModBlocks.SHIPPING_BOX.get(), cubeAll(ModBlocks.SHIPPING_BOX.get()));
+        simpleBlockWithItem(ModBlocks.AUTO_SHIPPING_BOX.get(), cubeAll(ModBlocks.AUTO_SHIPPING_BOX.get()));
 
     }
 }

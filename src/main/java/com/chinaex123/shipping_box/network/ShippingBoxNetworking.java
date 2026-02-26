@@ -181,7 +181,7 @@ public class ShippingBoxNetworking {
                 player.openMenu(new SimpleMenuProvider(
                         (windowId, playerInventory, playerEntity) ->
                                 new ShippingBoxMenu(windowId, playerInventory, box, packet.playerUUID()),
-                        Component.translatable("container.shipping_box.shipping_box")
+                        Component.translatable("block.shipping_box.shipping_box")
                 ), buf -> {
                     buf.writeBlockPos(packet.pos());
                     buf.writeUUID(packet.playerUUID());

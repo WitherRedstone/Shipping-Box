@@ -35,10 +35,12 @@ public class ModBlockTagsProvider extends BlockTagsProvider {
     protected void addTags(HolderLookup.@NotNull Provider provider) {
         // 为添加到可被斧头挖掘标签中
         tag(BlockTags.MINEABLE_WITH_AXE)
-                .add(ModBlocks.SHIPPING_BOX.get());
+                .add(ModBlocks.SHIPPING_BOX.get())
+                .add(ModBlocks.AUTO_SHIPPING_BOX.get());
 
         // 为添加需要铁等级的标签
         tag(BlockTags.NEEDS_IRON_TOOL)
-                .add(ModBlocks.SHIPPING_BOX.get());
+                .add(ModBlocks.SHIPPING_BOX.get())
+                .add(ModBlocks.AUTO_SHIPPING_BOX.get());
     }
 }

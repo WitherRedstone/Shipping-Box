@@ -7,6 +7,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.*;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.common.conditions.IConditionBuilder;
@@ -24,15 +25,26 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
         // 售货箱
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
                         ModBlocks.SHIPPING_BOX.get())
-                .pattern("CBC")
-                .pattern("BAB")
-                .pattern("CBC")
-                .define('A', Items.CRAFTING_TABLE)
-                .define('B', Tags.Items.DUSTS_REDSTONE)
-                .define('C', Tags.Items.GEMS_DIAMOND)
+                .pattern("DBD")
+                .pattern("CAC")
+                .pattern("DBD")
+                .define('A', ItemTags.LOGS)
+                .define('B', Tags.Items.GEMS_DIAMOND)
+                .define('C', Items.CRAFTING_TABLE)
+                .define('D', Tags.Items.GEMS_EMERALD)
                 .unlockedBy("has_shipping_box", has(Items.DIAMOND))
                 .save(recipeOutput);
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
+                        ModBlocks.AUTO_SHIPPING_BOX.get())
+                .pattern("BBB")
+                .pattern("BAB")
+                .pattern("BBB")
+                .define('A', ModBlocks.SHIPPING_BOX)
+                .define('B', Tags.Items.DUSTS_REDSTONE)
+                .unlockedBy("has_auto_shipping_box", has(ModBlocks.SHIPPING_BOX))
+                .save(recipeOutput);
 
+        // 次元钱袋
         ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
                         ModItems.DIMENSIONAL_POUCH.get())
                 .pattern("BCB")

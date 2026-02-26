@@ -88,7 +88,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
                 serverPlayer.openMenu(new SimpleMenuProvider(
                         (windowId, playerInventory, playerEntity) ->
                                 new ShippingBoxMenu(windowId, playerInventory, shippingBox, serverPlayer.getUUID()),
-                        Component.translatable("container.shipping_box.shipping_box")
+                        Component.translatable("block.shipping_box.shipping_box")
                 ));
             }
             // 播放打开音效

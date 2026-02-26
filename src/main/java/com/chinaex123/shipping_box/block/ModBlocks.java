@@ -4,6 +4,7 @@ import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.item.ModItems;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -27,7 +28,15 @@ public class ModBlocks {
                     .strength(2.5f, 6.0f)
                     .noOcclusion()
                     .requiresCorrectToolForDrops()
-            ));
+            ), Rarity.UNCOMMON);
+    public static final DeferredBlock<Block> AUTO_SHIPPING_BOX =
+            registerBlocks("auto_shipping_box", () -> new AutoShippingBoxBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.WOOD)
+                    .sound(SoundType.WOOD)
+                    .strength(2.5f, 6.0f)
+                    .noOcclusion()
+                    .requiresCorrectToolForDrops()
+            ), Rarity.RARE);
 
     /**
      * 为指定方块注册对应的物品形式
@@ -35,23 +44,35 @@ public class ModBlocks {
      * @param <T> 方块类型参数
      * @param name 方块名称，用于物品注册
      * @param block 延迟方块对象
+     * @param rarity 物品稀有度
      */
+    private static <T extends Block> void registerBlockItems(String name, DeferredBlock<T> block, Rarity rarity) {
+        ModItems.ITEMS_REGISTER.register(name, () -> new BlockItem(block.get(), new Item.Properties().rarity(rarity)));
+    }
+
+    // 为不需要特殊稀有度的方块保留原有方法
     private static <T extends Block> void registerBlockItems(String name, DeferredBlock<T> block) {
-        ModItems.ITEMS_REGISTER.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
+        registerBlockItems(name, block, Rarity.COMMON); // 默认普通稀有度
     }
 
     /**
-     * 注册方块及其对应的物品形式
+     * 注册方块及其对应的物品形式（带稀有度）
      *
      * @param <T> 方块类型参数
      * @param name 方块的注册名称
      * @param block 方块供应器
+     * @param rarity 物品稀有度
      * @return 注册的延迟方块对象
      */
-    private static <T extends Block> DeferredBlock<T> registerBlocks(String name, Supplier<T> block) {
+    private static <T extends Block> DeferredBlock<T> registerBlocks(String name, Supplier<T> block, Rarity rarity) {
         DeferredBlock<T> blocks = BLOCK_REGISTER.register(name, block);
-        registerBlockItems(name, blocks);
+        registerBlockItems(name, blocks, rarity);
         return blocks;
+    }
+
+    // 为普通方块保留原有方法
+    private static <T extends Block> DeferredBlock<T> registerBlocks(String name, Supplier<T> block) {
+        return registerBlocks(name, block, Rarity.COMMON);
     }
 
     // 向指定事件总线注册所有物品

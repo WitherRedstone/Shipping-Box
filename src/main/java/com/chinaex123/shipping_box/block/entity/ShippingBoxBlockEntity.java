@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.block.entity;
 
 import com.chinaex123.shipping_box.attribute.ModAttributes;
-import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
+import com.chinaex123.shipping_box.event.ExchangeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
 import com.chinaex123.shipping_box.event.PlayerStorageManager;
 import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
@@ -137,7 +137,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
      */
     @Override
     protected @NotNull Component getDefaultName() {
-        return Component.translatable("container.shipping_box.shipping_box");
+        return Component.translatable("block.shipping_box.shipping_box");
     }
 
     /**
@@ -292,17 +292,6 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                     // 异常处理
                 }
             }
-            // 处理时间重置的特殊情况
-            else if (timeSinceLastExchange < 0) {
-                // 时间被重置到过去，强制进行兑换
-                try {
-                    performExchange(dayTime / 24000);
-                    lastExchangeDay = dayTime / 24000;
-                    setChanged();
-                } catch (Exception e) {
-                    // 异常处理
-                }
-            }
         }
     }
 
@@ -353,57 +342,32 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
 
         // 为每个玩家单独执行兑换
         Map<UUID, List<ItemStack>> playerResults = new HashMap<>();
-        Set<UUID> successfulPlayers = new HashSet<>(); // 记录成功兑换的玩家
+        Set<UUID> successfulPlayers = new HashSet<>();
 
         for (Map.Entry<UUID, List<ItemStack>> entry : playerItemsToProcess.entrySet()) {
             UUID playerUUID = entry.getKey();
             List<ItemStack> items = entry.getValue();
 
-            List<ItemStack> playerSpecificResults = new ArrayList<>();
-            List<ItemStack> currentItems = new ArrayList<>(items);
-            boolean exchanged;
-            boolean playerHadSuccessfulExchange = false;
-
-            // 循环执行兑换逻辑直到没有更多匹配规则
-            do {
-                exchanged = false;
-                // 查找匹配的兑换规则
-                ExchangeRule rule = ExchangeRecipeManager.findMatchingRule(currentItems);
-
-                if (rule != null) {
-                    // 计算最大可执行兑换次数
-                    int maxExchanges = getMaxExchanges(rule, currentItems);
-
-                    if (maxExchanges > 0) {
-                        // 消耗指定次数的输入物品
-                        for (int i = 0; i < maxExchanges; i++) {
-                            currentItems = ExchangeRecipeManager.consumeInputs(rule, currentItems);
-                        }
-
-                        // 生成兑换输出物品
-                        ItemStack output = rule.getOutputItem().getResultStack().copy();
-                        int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-                        // 为每个玩家单独应用属性加成
-                        int enhancedCount = applySellingPriceBoostForPlayer(baseCount, playerUUID);
-                        output.setCount(enhancedCount);
-                        playerSpecificResults.add(output);
-
-                        // 标记本次循环有成功兑换
-                        exchanged = true;
-                        playerHadSuccessfulExchange = true;
-                    }
-                }
-            } while (exchanged);
-
-            // 添加未处理的物品
-            playerSpecificResults.addAll(currentItems);
-
-            if (!playerSpecificResults.isEmpty()) {
-                playerResults.put(playerUUID, playerSpecificResults);
+            // 使用共享的兑换逻辑
+            NonNullList<ItemStack> tempStorage = NonNullList.withSize(54, ItemStack.EMPTY);
+            // 将物品复制到临时存储
+            for (int i = 0; i < Math.min(items.size(), tempStorage.size()); i++) {
+                tempStorage.set(i, items.get(i).copy());
             }
 
-            // 记录成功兑换的玩家
-            if (playerHadSuccessfulExchange) {
+            // 执行兑换
+            ExchangeManager.performExchange(tempStorage, level, worldPosition, playerUUID);
+
+            // 收集结果
+            List<ItemStack> results = new ArrayList<>();
+            for (ItemStack stack : tempStorage) {
+                if (!stack.isEmpty()) {
+                    results.add(stack.copy());
+                }
+            }
+
+            if (!results.isEmpty()) {
+                playerResults.put(playerUUID, results);
                 successfulPlayers.add(playerUUID);
             }
         }
@@ -583,7 +547,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         }
         tag.put("PlayerCounts", countsTag);
 
-        // 保存玩家独立存储（使用新的管理器）
+        // 保存玩家独立存储
         playerStorageManager.saveToNBT(tag, registries);
     }
 
