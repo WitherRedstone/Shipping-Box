@@ -46,8 +46,6 @@ public class ShippingBox {
         ModItems.register(modEventBus);        // 注册物品
         ModBlockEntities.register(modEventBus); // 注册方块实体
 
-        //ModMenuTypes.MENU_TYPES.register(modEventBus);   // 注册菜单类型
-
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册属性
 
         NeoForge.EVENT_BUS.register(TooltipEventHandler.class);

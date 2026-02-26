@@ -24,6 +24,7 @@
   "message.shipping_box.access_denied": "You don't have permission to access this Auto Shipping Box!",
   "message.shipping_box.auto_box_bound": "Auto Shipping Box bound to player: [%s§a]",
   "message.shipping_box.auto_box_already_bound": "§aThis Auto Shipping Box is bound to a player：[%s§a]",
+  "message.shipping_box.binding_cleared": "§abinding cleared",
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6Wow! what's this",
   "tooltip.item.shipping_box.dimensional_pouch.use": "Right-click to convert physical coins or check balance",
@@ -40,6 +41,7 @@
   "tooltip.item.shipping_box.viscriptshop.rule": "§bConversion Rules",
   "tooltip.item.shipping_box.viscriptshop.right_click": "§e  ·Right Click: Exchange one",
   "tooltip.item.shipping_box.viscriptshop.sneak_click": "§e  ·Sneak + Right Click: Exchange one stack",
+  "tooltip.shipping_box.bound_to_player_formatted": "§6This item belongs to: %s",
 
   "tooltip.shipping_box.title": "§7[§aShipping Box Exchange§7]",
   "tooltip.shipping_box.instruction": "§7Place in shipping box for automatic exchange",

@@ -24,7 +24,7 @@ public class ModBlockLootTablesProvider extends BlockLootSubProvider {
     @Override
     protected void generate() {
         dropSelf(ModBlocks.SHIPPING_BOX.get());
-        dropSelf(ModBlocks.AUTO_SHIPPING_BOX.get());
+        add(ModBlocks.AUTO_SHIPPING_BOX.get(), noDrop());
     }
 
 

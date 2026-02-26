@@ -24,6 +24,7 @@
   "message.shipping_box.access_denied": "§c你没有权限访问这个自动售货箱！",
   "message.shipping_box.auto_box_bound": "§a自动售货箱已绑定玩家：[%s§a]",
   "message.shipping_box.auto_box_already_bound": "§a此自动售货箱已绑定玩家：[%s§a]",
+  "message.shipping_box.binding_cleared": "§a绑定信息已清除",
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6哇哦！这是什么",
   "tooltip.item.shipping_box.dimensional_pouch.use": "右键转换实体货币或查询余额",
@@ -40,6 +41,7 @@
   "tooltip.item.shipping_box.viscriptshop.rule": "§b转换规则",
   "tooltip.item.shipping_box.viscriptshop.right_click": "§e  ·单击右键：换取一次",
   "tooltip.item.shipping_box.viscriptshop.sneak_click": "§e  ·潜行+右击：换取一组",
+  "tooltip.shipping_box.bound_to_player_formatted": "§6此物品属于：%s",
 
   "tooltip.shipping_box.title": "§7[§a售货箱兑换§7]",
   "tooltip.shipping_box.instruction": "§7放入售货箱自动兑换",

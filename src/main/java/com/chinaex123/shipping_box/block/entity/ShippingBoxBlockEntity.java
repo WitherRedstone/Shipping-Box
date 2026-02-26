@@ -232,6 +232,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         }
     }
 
+    /**
+     * 清空运输箱的所有存储内容。
+     * <p>
+     * 此方法会彻底清空运输箱实体中的所有数据，包括共享存储、
+     * 所有玩家的独立存储、槽位所有者映射以及玩家物品计数信息。
+     * 执行清理操作后会标记方块实体为已更改状态。
+     */
     @Override
     public void clearContent() {
         // 清空共享存储
