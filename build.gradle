@@ -123,6 +123,8 @@ dependencies {
     implementation "curse.maven:ldlib-626676:7658151"
     implementation "curse.maven:viscriptshop-1408178:7594435"
 
+    implementation "curse.maven:apothic-attributes-898963:7445079"
+    implementation "curse.maven:placebo-283644:6926281"
     // 辅助
     localRuntime "curse.maven:jei-238222:7420587"
 
