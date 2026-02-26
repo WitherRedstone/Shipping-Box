@@ -107,7 +107,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
 
     /**
      * 处理方块被移除时的逻辑
-     * 当方块被替换或破坏时，掉落其中存储的物品
+     * 当方块被替换或破坏时，掉落破坏玩家的个人存储物品
      *
      * @param state 当前方块状态
      * @param level 游戏世界实例
@@ -120,8 +120,26 @@ public class ShippingBoxBlock extends BaseEntityBlock {
         if (!state.is(newState.getBlock())) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ShippingBoxBlockEntity shippingBox) {
-                if (level instanceof ServerLevel) {
-                    Containers.dropContents(level, pos, shippingBox);
+                if (level instanceof ServerLevel serverLevel) {
+                    // 获取附近的玩家作为破坏者（简单近似检测）
+                    Player breaker = null;
+                    double closestDistance = 16.0; // 4格范围
+
+                    for (Player player : level.players()) {
+                        double distance = player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            breaker = player;
+                        }
+                    }
+
+                    if (breaker != null) {
+                        // 掉落指定玩家的物品
+                        shippingBox.dropPlayerItems(breaker.getUUID());
+                    }
+
+                    // 掉落共享存储的物品
+                    Containers.dropContents(level, pos, shippingBox.getSharedItems());
                 }
             }
             super.onRemove(state, level, pos, newState, isMoving);

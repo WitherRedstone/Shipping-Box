@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
@@ -248,6 +249,38 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
         slotOwners.clear();
         playerItemCounts.clear();
         setChanged();
+    }
+
+    /**
+     * 掉落指定玩家的个人存储物品
+     *
+     * @param playerUUID 玩家UUID
+     */
+    public void dropPlayerItems(UUID playerUUID) {
+        if (level instanceof ServerLevel serverLevel) {
+            // 获取玩家的个人存储
+            NonNullList<ItemStack> playerItems = playerStorageManager.getPlayerStorage(playerUUID);
+
+            if (playerItems != null && !playerItems.isEmpty()) {
+                // 掉落玩家物品到世界
+                for (ItemStack stack : playerItems) {
+                    if (!stack.isEmpty()) {
+                        Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(), stack);
+                    }
+                }
+                // 清空该玩家的存储
+                playerStorageManager.clearPlayerStorage(playerUUID);
+            }
+        }
+    }
+
+    /**
+     * 获取共享存储的物品列表
+     *
+     * @return 共享物品列表
+     */
+    public NonNullList<ItemStack> getSharedItems() {
+        return sharedItems;
     }
 
     /**
