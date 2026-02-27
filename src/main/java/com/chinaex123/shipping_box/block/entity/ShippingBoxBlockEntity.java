@@ -31,7 +31,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
     private NonNullList<ItemStack> sharedItems;
 
     /** 玩家独立存储管理器 */
-    private final PlayerStorageManager playerStorageManager = new PlayerStorageManager();
+    private final PlayerStorageManager playerStorageManager = PlayerStorageManager.getInstance();
 
     /** 上次兑换日期 */
     private long lastExchangeDay = -1L;

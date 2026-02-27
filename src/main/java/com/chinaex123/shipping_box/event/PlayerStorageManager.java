@@ -20,6 +20,22 @@ public class PlayerStorageManager {
     /** 默认存储大小 */
     private static final int DEFAULT_STORAGE_SIZE = 54;
 
+    /** 单例实例 */
+    private static PlayerStorageManager INSTANCE;
+
+    /** 私有构造函数防止外部实例化 */
+    private PlayerStorageManager() {}
+
+    /**
+     * 获取全局存储管理器实例（单例模式）
+     */
+    public static PlayerStorageManager getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new PlayerStorageManager();
+        }
+        return INSTANCE;
+    }
+
     /**
      * 获取指定玩家的物品存储列表
      * 如果该玩家尚无存储列表，则创建一个新的空存储列表
@@ -126,13 +142,42 @@ public class PlayerStorageManager {
         CompoundTag playerStoragesTag = new CompoundTag();
 
         for (Map.Entry<UUID, NonNullList<ItemStack>> entry : playerStorageMap.entrySet()) {
-            CompoundTag playerTag = new CompoundTag();
-            ContainerHelper.saveAllItems(playerTag, entry.getValue(), registries);
-            playerStoragesTag.put(entry.getKey().toString(), playerTag);
+            // 只保存非空的存储
+            if (!isPlayerStorageEmpty(entry.getKey())) {
+                CompoundTag playerTag = new CompoundTag();
+                ContainerHelper.saveAllItems(playerTag, entry.getValue(), registries);
+                playerStoragesTag.put(entry.getKey().toString(), playerTag);
+            }
         }
 
-        tag.put("PlayerStorages", playerStoragesTag);
+        // 只有当有数据时才保存标签
+        if (!playerStoragesTag.isEmpty()) {
+            tag.put("GlobalPlayerStorages", playerStoragesTag);
+        }
     }
+
+    /** 获取存储使用统计 */
+    public StorageStats getStorageStats() {
+        int totalPlayers = playerStorageMap.size();
+        int nonEmptyPlayers = 0;
+        int totalItems = 0;
+
+        for (UUID playerUUID : playerStorageMap.keySet()) {
+            if (!isPlayerStorageEmpty(playerUUID)) {
+                nonEmptyPlayers++;
+                // 统计物品数量
+                for (ItemStack stack : getPlayerStorage(playerUUID)) {
+                    if (!stack.isEmpty()) {
+                        totalItems += stack.getCount();
+                    }
+                }
+            }
+        }
+
+        return new StorageStats(totalPlayers, nonEmptyPlayers, totalItems);
+    }
+
+    public record StorageStats(int totalPlayers, int nonEmptyPlayers, int totalItems) { }
 
     /**
      * 从NBT标签加载所有玩家存储数据
@@ -143,8 +188,8 @@ public class PlayerStorageManager {
     public void loadFromNBT(CompoundTag tag, @NotNull Provider registries) {
         playerStorageMap.clear();
 
-        if (tag.contains("PlayerStorages")) {
-            CompoundTag playerStoragesTag = tag.getCompound("PlayerStorages");
+        if (tag.contains("GlobalPlayerStorages")) {
+            CompoundTag playerStoragesTag = tag.getCompound("GlobalPlayerStorages");
 
             for (String playerUUIDStr : playerStoragesTag.getAllKeys()) {
                 try {

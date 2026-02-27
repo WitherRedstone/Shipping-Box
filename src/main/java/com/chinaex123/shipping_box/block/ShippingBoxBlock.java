@@ -133,10 +133,10 @@ public class ShippingBoxBlock extends BaseEntityBlock {
                         }
                     }
 
-                    if (breaker != null) {
-                        // 掉落指定玩家的物品
-                        shippingBox.dropPlayerItems(breaker.getUUID());
-                    }
+//                    if (breaker != null) {
+//                        // 掉落指定玩家的物品
+//                        shippingBox.dropPlayerItems(breaker.getUUID());
+//                    }
 
                     // 掉落共享存储的物品
                     Containers.dropContents(level, pos, shippingBox.getSharedItems());
