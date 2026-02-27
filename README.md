@@ -18,7 +18,7 @@
   - Right-click with "Secondary Currency Pouch" to convert physical currency or check balance; sneak right-click to exchange physical currency from containers
 
 ### Usage Instructions
-- Place "exchange rules" in the data/shipping_box/recipe_manager folder
+- Place "exchange rules" in the data/shipping_box/recipe/recipe_manager/ folder
 - Supports any item as input/output with customizable quantities. Files must be in JSON format, multiple JSON files allowed
 - Supports input/output data components, with input components supporting NBT ranges
 - Components have two formats: string format and JSON object format; JSON object format is recommended
@@ -40,7 +40,7 @@
   - 手持"次元钱袋"右键转换实体货币或查询余额，潜行右键兑换容器内的实体货币
 
 ### 使用方法
-- 需要将“兑换规则”放入到data/shipping\_box/recipe\_manager文件夹内
+- 需要将“兑换规则”放入到data/shipping_box/recipe/recipe_manager/文件夹内
 - 支持任意物品作为输入/输出，且数量可自定义。 文件必须是json，可以有多个json
 - 支持输入/输出数据组件，输入组件支持nbt区间
 - 组件有两种格式，字符串格式和JSON对象格式，推荐用JSON对象格式

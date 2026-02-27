@@ -31,8 +31,7 @@
   "message.shipping_box.resource_load_error": "Error loading resource file: %s - %s",
   "message.shipping_box.scan_error": "Error scanning configuration files: %s",
   "message.shipping_box.recipe_error_title": "§c§l[Shipping Box] Recipe Configuration Error!",
-  "message.shipping_box.recipe_error_help": "§7Please check the JSON configuration files in data/shipping_box/recipe_manager/",
-
+  "message.shipping_box.recipe_error_help": "§7Please check the JSON configuration files in data/shipping_box/recipe/recipe_manager/",
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6Wow! what's this",
   "tooltip.item.shipping_box.dimensional_pouch.use": "Right-click to convert physical coins or check balance",

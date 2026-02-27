@@ -39,7 +39,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     /** 配置文件夹路径 */
-    private static final String CONFIG_FOLDER = "recipe_manager";
+    private static final String CONFIG_FOLDER = "recipe/recipe_manager";
 
     /** 当前生效的兑换规则列表 */
     private static List<ExchangeRule> currentRules = new ArrayList<>();
@@ -138,7 +138,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 // 只有当有玩家在线时才发送消息
                 if (ServerLifecycleHooks.getCurrentServer() != null && !ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers().isEmpty()) {
                     for (ServerPlayer player : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers()) {
-                        // 发送标题提示（使用本地化）
+                        // 发送标题提示
                         player.displayClientMessage(Component.translatable("message.shipping_box.recipe_error_title"), false);
 
                         // 发送具体错误信息
@@ -146,7 +146,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                             player.displayClientMessage(Component.literal("§c" + errorMsg), false);
                         }
 
-                        // 发送帮助信息（使用本地化）
+                        // 发送帮助信息
                         player.displayClientMessage(Component.translatable("message.shipping_box.recipe_error_help"), false);
                     }
                     // 清空已发送的错误信息

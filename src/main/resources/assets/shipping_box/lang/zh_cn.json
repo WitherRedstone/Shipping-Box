@@ -31,7 +31,7 @@
   "message.shipping_box.resource_load_error": "加载资源配置文件时出错: %s - %s",
   "message.shipping_box.scan_error": "扫描配置文件时出错: %s",
   "message.shipping_box.recipe_error_title": "§c§l[运输箱] 配方配置错误!",
-  "message.shipping_box.recipe_error_help": "§7请检查 data/shipping_box/recipe_manager/ 目录下的JSON文件",
+  "message.shipping_box.recipe_error_help": "§7请检查 data/shipping_box/recipe/recipe_manager/ 目录下的JSON文件",
 
   "tooltip.item.shipping_box.dimensional_pouch.oh": "§6哇哦！这是什么",
   "tooltip.item.shipping_box.dimensional_pouch.use": "右键转换实体货币或查询余额",
