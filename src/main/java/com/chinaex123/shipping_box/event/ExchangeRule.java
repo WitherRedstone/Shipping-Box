@@ -1,5 +1,7 @@
 package com.chinaex123.shipping_box.event;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -55,7 +57,7 @@ public class ExchangeRule {
     public static class InputItem {
         private String item;  // 物品ID
         private String tag;   // 标签ID
-        private String components;  // 组件数据
+        private Object components;  // 改为Object类型以支持JsonObject和String
         private int count = 1;
 
         public String getItem() {
@@ -74,7 +76,8 @@ public class ExchangeRule {
             this.tag = tag;
         }
 
-        public void setComponents(String components) {
+        // 修改setter方法
+        public void setComponents(Object components) {
             this.components = components;
         }
 
@@ -86,8 +89,14 @@ public class ExchangeRule {
             this.count = count;
         }
 
-        public String getComponents() {
+        // 修改getter方法
+        public Object getComponents() {
             return components;
+        }
+
+        // 为了向后兼容，保留String版本的getter
+        public String getComponentsAsString() {
+            return components instanceof String ? (String) components : null;
         }
 
         /**
@@ -140,14 +149,15 @@ public class ExchangeRule {
         private boolean matchesItem(ItemStack stack) {
             try {
                 String itemId = item;
-                String componentString = null;
+                Object componentObject = null;
 
                 // 解析内联组件
                 int componentStart = item.indexOf('[');
                 int componentEnd = item.lastIndexOf(']');
                 if (componentStart > 0 && componentEnd > componentStart) {
                     itemId = item.substring(0, componentStart);
-                    componentString = item.substring(componentStart + 1, componentEnd);
+                    String componentString = item.substring(componentStart + 1, componentEnd);
+                    componentObject = componentString;
                 }
 
                 ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
@@ -161,13 +171,24 @@ public class ExchangeRule {
                 }
 
                 // 检查组件匹配
-                String finalComponents = componentString != null ? componentString : components;
-                if (finalComponents != null && !finalComponents.isEmpty()) {
-                    return ExchangeRuleComponents.matchesComponents(stack, finalComponents);
+                Object finalComponents = componentObject != null ? componentObject : components;
+
+                System.out.println("Debug - Checking components: " + finalComponents + " (type: " + (finalComponents != null ? finalComponents.getClass().getSimpleName() : "null") + ")");
+
+                if (finalComponents != null) {
+                    if (finalComponents instanceof String) {
+                        System.out.println("Debug - Using String component matcher");
+                        return ExchangeRuleComponents.matchesComponents(stack, (String) finalComponents);
+                    } else if (finalComponents instanceof JsonObject) {
+                        System.out.println("Debug - Using JsonObject component matcher");
+                        // 处理JsonObject类型的组件匹配 - 直接传递JsonObject对象
+                        return ExchangeRuleComponents.matchesComponents(stack, (JsonObject) finalComponents);
+                    }
                 }
 
                 return true;
             } catch (Exception e) {
+                System.out.println("Debug - Exception in matchesItem: " + e.getMessage());
                 return false;
             }
         }
@@ -179,7 +200,7 @@ public class ExchangeRule {
     public static class OutputItem {
         private String item;
         private int count = 1;
-        private String components;  // 组件数据字符串
+        private Object components;  // 改为Object类型以支持JsonObject和String
 
         public String getItem() {
             return item;
@@ -197,12 +218,19 @@ public class ExchangeRule {
             this.count = count;
         }
 
-        public void setComponents(String components) {
+        // 修改setter方法
+        public void setComponents(Object components) {
             this.components = components;
         }
 
-        public String getComponents() {
+        // 修改getter方法
+        public Object getComponents() {
             return components;
+        }
+
+        // 为了向后兼容，保留String版本的getter
+        public String getComponentsAsString() {
+            return components instanceof String ? (String) components : null;
         }
 
         /**
@@ -232,10 +260,25 @@ public class ExchangeRule {
                 Item resultItem = BuiltInRegistries.ITEM.get(itemResource);
                 ItemStack resultStack = new ItemStack(resultItem, count);
 
-                // 应用组件
-                String finalComponents = componentString != null ? componentString : components;
-                if (finalComponents != null && !finalComponents.isEmpty()) {
-                    ExchangeRuleComponents.applyComponents(resultStack, finalComponents);
+                // 处理不同类型的components
+                Object finalComponents = componentString != null ? componentString : components;
+                if (finalComponents != null) {
+                    if (finalComponents instanceof JsonObject) {
+                        // 直接是JsonObject对象
+                        ExchangeRuleComponents.applyComponents(resultStack, (JsonObject) finalComponents);
+                        System.out.println("Applied components: " + resultStack.getComponents());
+                    } else if (finalComponents instanceof String componentStr) {
+                        // 字符串格式
+                        if (!componentStr.isEmpty()) {
+                            if (componentStr.trim().startsWith("{") && componentStr.trim().endsWith("}")) {
+                                JsonObject jsonObject = JsonParser.parseString(componentStr).getAsJsonObject();
+                                ExchangeRuleComponents.applyComponents(resultStack, jsonObject);
+                            } else {
+                                ExchangeRuleComponents.applyComponents(resultStack, componentStr);
+                            }
+                            System.out.println("Applied components: " + resultStack.getComponents());
+                        }
+                    }
                 }
 
                 return resultStack;

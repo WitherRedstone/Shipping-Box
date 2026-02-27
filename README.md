@@ -6,7 +6,7 @@
 - Items automatically have exchange information, supporting JEI list display of item exchange information.
 
 ## Instructions
-- The "exchange rules" need to be placed in the darta/shipping_box/recipe_manager folder.
+- The "exchange rules" need to be placed in the data/shipping_box/recipe_manager folder.
 - All formats support input and output quantities. The input and output items can be any items; these are just examples. The files must be in JSON format, and there can be multiple JSON files.
 - The following is the internal JSON format, with all descriptions in the code.
 
@@ -19,10 +19,17 @@
 - 将物品放入售货箱后，在第二天6:00会按照"兑换规则"内设置的规则进行兑换
 - 物品自动有兑换信息，支持jei列表显示物品的兑换信息
 
+## 联动模组
+### ViScriptShop
+- 添加一个物品兑换虚拟货币的模组，需要依赖ViScriptShop模组
+- 右键爬爬币会根据物品提示显示的货币价格兑换虚拟货币，潜行右键换取一组
+- 手持次元钱袋右键转换实体货币或查询余额，潜行右键兑换容器内的实体货币
+
 ## 使用方法
-- 需要将“兑换规则”放入到darta/shipping\_box/recipe\_manager文件夹内
-- 所有格式都支持输入输出数量，输入输出物品可以是任意物品，这里只是示例。 文件必须是json文件，可以有多个json文件
-- 关于json内部格式和描述都在上面的代码中
+- 需要将“兑换规则”放入到data/shipping\_box/recipe\_manager文件夹内
+- 支持任意物品作为输入/输出，且数量可自定义。 文件必须是json，可以有多个json
+- 支持输入/输出数据组件
+- 关于json内部格式和描述都在下面的代码中
 
 ======================================================================
 # 文件格式/File Format
@@ -90,71 +97,70 @@
     },
     "output": {
       "item": "minecraft:iron_sword",
-      "count": 1,
-      "components": "damage=100"
-    }
-  }
-}
-```
-
-5.物品 ↔ 药水物品/Item → Potion Item
-```
-"rules": [
-  {
-    "input": {
-      "item": "minecraft:glass_bottle",
-      "count": 1
-    },
-    "output": {
-      "item": "minecraft:potion",
-      "components": "{\"potion_contents\":{\"potion\":\"minecraft:night_vision\"}}",
+      "components": "damage=100",
       "count": 1
     }
   }
 }
 ```
 
-6.物品 ↔ 附魔物品/Item → Enchanted Item
+## 特殊组件
+1.药水组件/Potion Item
 ```
-"rules": [
-  {
-    "input": {
-      "item": "minecraft:golden_sword",
-      "count": 1
-    },
-    "output": {
-      "item": "minecraft:golden_sword",
-      "components": "{\"enchantments\":{\"levels\":{\"minecraft:unbreaking\":1}}}",
-      "count": 1
-    }
-  },
-  {
-    "input": {
-      "item": "minecraft:diamond_sword",
-      "count": 1
-    },
-    "output": {
-      "item": "minecraft:diamond_sword",
-      "components": "{\"enchantments\":{\"levels\":{\"minecraft:sharpness\":5,\"minecraft:unbreaking\":1}}}",
-      "count": 1
+字符串格式/String Format
+"components": "{\"potion_contents\":{\"potion\":\"minecraft:night_vision\"}}"
+
+JSON对象格式/JSON Object Format
+"components": {
+  "potion_contents": {
+    "potion": "minecraft:night_vision"
+  }
+}
+```
+
+2.附魔物品/Enchanted Item
+```
+字符串格式/String Format
+"components": "{\"enchantments\":{\"levels\":{\"minecraft:unbreaking\":1}}}"
+
+JSON对象格式/JSON Object Format
+"components": {
+  "enchantments": {
+    "levels": {
+      "minecraft:sharpness": 3,
+      "minecraft:unbreaking": 3
     }
   }
 }
 ```
 
-7.物品 ↔ 附魔书/Item → Enchanted Book
+3.附魔书/Enchanted Book
 ```
-"rules": [
-  {
-    "input": {
-      "item": "minecraft:book",
-      "count": 1
-    },
-    "output": {
-      "item": "minecraft:enchanted_book",
-      "components": "{\"stored_enchantments\":{\"levels\":{\"minecraft:sharpness\":5}}}",
-      "count": 1
+字符串格式/String Format
+"components": "{\"stored_enchantments\":{\"levels\":{\"minecraft:sharpness\":5}}}"
+
+JSON对象格式/JSON Object Format
+"components": {
+  "stored_enchantments": {
+    "levels": {
+      "minecraft:sharpness": 5,
+      "minecraft:unbreaking": 3
     }
+  }
+}
+```
+
+## 其他模组特殊组件
+1.[MOD]Quality Food
+```
+字符串格式/String Format
+"components": "{\"quality_food:quality\":{\"level\":3,\"type\":\"quality_food:diamond\"}}"
+
+JSON对象格式/JSON Object Format
+"components": {
+  "quality_food:quality": {
+    "level": 3,
+    "type": "quality_food:diamond"
   }
 }
 ```

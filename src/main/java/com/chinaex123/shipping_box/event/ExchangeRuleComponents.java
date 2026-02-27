@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.event;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.JsonOps;
@@ -103,6 +104,39 @@ public class ExchangeRuleComponents {
     }
 
     /**
+     * 检查物品堆是否匹配指定的组件要求（JsonObject版本）
+     *
+     * @param stack 要检查的物品堆
+     * @param jsonObject 组件要求的JSON对象
+     * @return 所有组件都匹配返回true，否则返回false
+     */
+    public static boolean matchesComponents(ItemStack stack, JsonObject jsonObject) {
+        try {
+            System.out.println("Debug - matchesComponents JsonObject called with: " + jsonObject);
+            System.out.println("Debug - Stack components: " + stack.getComponents());
+
+            // 遍历JSON对象的每个条目
+            for (var entry : jsonObject.entrySet()) {
+                String componentName = entry.getKey();
+                JsonElement componentValue = entry.getValue();
+
+                System.out.println("Debug - Checking component: " + componentName + " = " + componentValue);
+
+                if (!matchesSingleComponentFromJson(stack, componentName, componentValue)) {
+                    System.out.println("Debug - Component " + componentName + " does not match");
+                    return false;
+                }
+            }
+
+            System.out.println("Debug - All components match!");
+            return true;
+        } catch (Exception e) {
+            System.out.println("Debug - Exception in matchesComponents JsonObject: " + e.getMessage());
+            return true; // 出错时宽松匹配
+        }
+    }
+
+    /**
      * 检查物品堆是否匹配指定的组件要求
      *
      * @param stack 要检查的物品堆
@@ -111,21 +145,177 @@ public class ExchangeRuleComponents {
      */
     public static boolean matchesComponents(ItemStack stack, String componentString) {
         try {
-            // 解析组件字符串为键值对
-            Map<String, String> componentMap = parseComponentString(componentString);
+            // 检查是否为JSON对象格式
+            if (componentString.trim().startsWith("{") && componentString.trim().endsWith("}")) {
+                // 直接解析并调用JsonObject版本
+                JsonObject jsonObject = JsonParser.parseString(componentString).getAsJsonObject();
+                return ExchangeRuleComponents.matchesComponents(stack, jsonObject); // 明确指定调用JsonObject版本
+            } else {
+                // 解析组件字符串为键值对
+                Map<String, String> componentMap = parseComponentString(componentString);
 
-            for (Map.Entry<String, String> entry : componentMap.entrySet()) {
-                String componentName = entry.getKey();
-                String componentValue = entry.getValue();
+                for (Map.Entry<String, String> entry : componentMap.entrySet()) {
+                    String componentName = entry.getKey();
+                    String componentValue = entry.getValue();
 
-                if (!matchesSingleComponent(stack, componentName, componentValue)) {
-                    return false;
+                    if (!matchesSingleComponent(stack, componentName, componentValue)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        } catch (Exception e) {
+            return true; // 出错时宽松匹配
+        }
+    }
+
+    /**
+     * 检查物品堆的单个组件是否匹配指定的JSON要求
+     *
+     * @param stack 要检查的物品堆
+     * @param componentName 组件名称
+     * @param componentValue 组件值的JSON元素
+     * @return 组件匹配返回true，否则返回false
+     */
+    private static boolean matchesSingleComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
+        try {
+            ResourceLocation componentId = normalizeComponentId(componentName);
+            if (componentId == null) {
+                return false;
+            }
+
+            // 获取组件类型
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            if (componentType == null) {
+                // 组件类型不存在，宽松匹配
+                return true;
+            }
+
+            // 获取物品的实际组件值
+            Object actualValue = stack.get(componentType);
+            if (actualValue == null) {
+                return false;
+            }
+
+            // 比较组件值
+            return compareComponentValuesFromJson(actualValue, componentValue);
+        } catch (Exception e) {
+            return true; // 出错时宽松匹配
+        }
+    }
+
+    private static boolean compareComponentValuesFromJson(Object actualValue, JsonElement expectedValue) {
+        try {
+            System.out.println("Debug - Comparing actual: " + actualValue + " (class: " + actualValue.getClass().getSimpleName() + ")");
+            System.out.println("Debug - With expected: " + expectedValue);
+
+            // 对于简单类型，直接比较
+            if (expectedValue.isJsonPrimitive()) {
+                boolean result = actualValue.toString().equals(expectedValue.getAsString());
+                System.out.println("Debug - Primitive comparison result: " + result);
+                return result;
+            }
+
+            // 对于复杂对象，我们需要更智能的比较
+            if (expectedValue.isJsonObject()) {
+                JsonObject expectedObj = expectedValue.getAsJsonObject();
+                return compareComplexObject(actualValue, expectedObj);
+            }
+
+            // 对于复杂对象，转换为字符串比较（作为后备方案）
+            String expectedString = expectedValue.toString();
+            boolean result = actualValue.toString().equals(expectedString);
+            System.out.println("Debug - String comparison result: " + result);
+            return result;
+        } catch (Exception e) {
+            System.out.println("Debug - Exception in compareComponentValuesFromJson: " + e.getMessage());
+            return true;
+        }
+    }
+
+
+    /**
+     * 比较复杂对象与JSON对象
+     * 通过反射检查对象的字段是否匹配JSON中的值
+     *
+     * @param actualValue 实际的对象值
+     * @param expectedObj 期望的JSON对象
+     * @return 匹配返回true，否则返回false
+     */
+    private static boolean compareComplexObject(Object actualValue, JsonObject expectedObj) {
+        try {
+            System.out.println("Debug - Comparing complex object: " + actualValue.getClass().getSimpleName());
+
+            // 获取对象的所有getter方法
+            Class<?> clazz = actualValue.getClass();
+            for (var entry : expectedObj.entrySet()) {
+                String fieldName = entry.getKey();
+                JsonElement expectedFieldValue = entry.getValue();
+
+                // 尝试通过反射获取字段值
+                try {
+                    // 首先尝试直接字段访问
+                    java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
+                    field.setAccessible(true);
+                    Object actualFieldValue = field.get(actualValue);
+
+                    System.out.println("Debug - Field " + fieldName + ": actual=" + actualFieldValue + ", expected=" + expectedFieldValue);
+
+                    // 递归比较字段值
+                    if (!compareFieldValues(actualFieldValue, expectedFieldValue)) {
+                        return false;
+                    }
+                } catch (NoSuchFieldException e) {
+                    // 如果没有直接字段，尝试getter方法
+                    String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+                    try {
+                        java.lang.reflect.Method getter = clazz.getMethod(getterName);
+                        Object actualFieldValue = getter.invoke(actualValue);
+
+                        System.out.println("Debug - Getter " + getterName + ": actual=" + actualFieldValue + ", expected=" + expectedFieldValue);
+
+                        if (!compareFieldValues(actualFieldValue, expectedFieldValue)) {
+                            return false;
+                        }
+                    } catch (Exception getterException) {
+                        System.out.println("Debug - Cannot access field/getter for " + fieldName);
+                        // 字段无法访问，宽松匹配
+                        continue;
+                    }
                 }
             }
 
+            System.out.println("Debug - Complex object comparison succeeded");
             return true;
         } catch (Exception e) {
+            System.out.println("Debug - Exception in compareComplexObject: " + e.getMessage());
             return true; // 出错时宽松匹配
+        }
+    }
+
+    /**
+     * 比较字段值
+     * 处理不同类型值的比较逻辑
+     *
+     * @param actualFieldValue 实际字段值
+     * @param expectedFieldValue 期望的JSON元素值
+     * @return 匹配返回true，否则返回false
+     */
+    private static boolean compareFieldValues(Object actualFieldValue, JsonElement expectedFieldValue) {
+        try {
+            if (expectedFieldValue.isJsonPrimitive()) {
+                String expectedString = expectedFieldValue.getAsString();
+                String actualString = actualFieldValue != null ? actualFieldValue.toString() : "null";
+                return actualString.equals(expectedString);
+            } else if (expectedFieldValue.isJsonObject()) {
+                // 递归处理嵌套对象
+                return actualFieldValue != null &&
+                        compareComplexObject(actualFieldValue, expectedFieldValue.getAsJsonObject());
+            }
+            return true; // 复杂情况宽松匹配
+        } catch (Exception e) {
+            return true;
         }
     }
 
@@ -195,11 +385,17 @@ public class ExchangeRuleComponents {
      * @return 标准化的ResourceLocation对象，无效时返回null
      */
     public static ResourceLocation normalizeComponentId(String componentName) {
+        System.out.println("Debug - Normalizing component ID: " + componentName);
+
         // 标准化组件ID（添加minecraft:前缀如果需要）
         if (componentName.contains(":")) {
-            return ResourceLocation.tryParse(componentName);
+            ResourceLocation result = ResourceLocation.tryParse(componentName);
+            System.out.println("Debug - Parsed as namespaced: " + result);
+            return result;
         }
-        return ResourceLocation.tryParse("minecraft:" + componentName);
+        ResourceLocation result = ResourceLocation.tryParse("minecraft:" + componentName);
+        System.out.println("Debug - Parsed as minecraft namespace: " + result);
+        return result;
     }
 
     /**
@@ -234,6 +430,42 @@ public class ExchangeRuleComponents {
             }
         } catch (Exception e) {
             // 应用失败时静默处理
+        }
+    }
+
+    /**
+     * 直接将JSON对象应用到物品堆上
+     * 支持直接传入JsonObject格式
+     *
+     * @param stack 目标物品堆
+     * @param jsonObject JSON格式的组件配置对象
+     */
+    public static void applyComponents(ItemStack stack, JsonObject jsonObject) {
+        try {
+            // 直接处理JSON对象
+            applyComponentsFromJsonObject(stack, jsonObject);
+        } catch (Exception e) {
+            // 应用失败时静默处理
+        }
+    }
+
+    /**
+     * 从JSON对象直接解析并应用组件到物品堆
+     *
+     * @param stack 目标物品堆
+     * @param jsonObject JSON格式的组件配置对象
+     */
+    private static void applyComponentsFromJsonObject(ItemStack stack, JsonObject jsonObject) {
+        try {
+            // 处理每个组件
+            for (var entry : jsonObject.entrySet()) {
+                String componentName = entry.getKey();
+                var componentValue = entry.getValue();
+
+                applyComponentFromJson(stack, componentName, componentValue);
+            }
+        } catch (Exception e) {
+            // 解析失败时静默处理
         }
     }
 
@@ -281,30 +513,32 @@ public class ExchangeRuleComponents {
                 return;
             }
 
-            // 特殊处理附魔组件
+            // Check for special components
             if ("enchantments".equals(componentName) || componentId.getPath().equals("enchantments")) {
                 applyEnchantmentsFromJson(stack, componentValue);
                 return;
             }
 
-            // 特殊处理存储的附魔组件
             if ("stored_enchantments".equals(componentName) || componentId.getPath().equals("stored_enchantments")) {
                 applyStoredEnchantmentsFromJson(stack, componentValue);
                 return;
             }
 
-            // 通用组件处理
+            // Generic component handling
             DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
             if (componentType == null) {
                 return;
             }
 
-            // 使用组件codec解析JSON
+            if (componentType.codec() == null) {
+                return;
+            }
+
+            // Try to parse
             var result = componentType.codec().parse(JsonOps.INSTANCE, componentValue);
             if (result.isSuccess()) {
                 Object parsedValue = result.result().orElse(null);
                 if (parsedValue != null) {
-                    // 安全地转换类型
                     DataComponentType<Object> rawType = (DataComponentType<Object>) componentType;
                     stack.set(rawType, parsedValue);
                 }

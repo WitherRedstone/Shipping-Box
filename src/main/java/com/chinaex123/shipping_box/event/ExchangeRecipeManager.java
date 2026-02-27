@@ -146,9 +146,16 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             input.setItem(inputObj.get("item").getAsString());
         }
 
-        // 支持单独的components字段
+        // 正确处理components字段的类型
         if (inputObj.has("components")) {
-            input.setComponents(inputObj.get("components").getAsString());
+            JsonElement componentsElement = inputObj.get("components");
+            if (componentsElement.isJsonObject()) {
+                // 直接保存JsonObject
+                input.setComponents(componentsElement.getAsJsonObject());
+            } else if (componentsElement.isJsonPrimitive()) {
+                // 字符串格式
+                input.setComponents(componentsElement.getAsString());
+            }
         }
 
         if (inputObj.has("count")) {
@@ -171,9 +178,16 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             output.setItem(outputObj.get("item").getAsString());
         }
 
-        // 确保组件字段被正确解析
+        // 正确处理components字段的类型
         if (outputObj.has("components")) {
-            output.setComponents(outputObj.get("components").getAsString());
+            JsonElement componentsElement = outputObj.get("components");
+            if (componentsElement.isJsonObject()) {
+                // 直接保存JsonObject
+                output.setComponents(componentsElement.getAsJsonObject());
+            } else if (componentsElement.isJsonPrimitive()) {
+                // 字符串格式
+                output.setComponents(componentsElement.getAsString());
+            }
         }
 
         if (outputObj.has("count")) {
@@ -504,7 +518,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             obj.addProperty("tag", input.getTag());
         }
         if (input.getComponents() != null) {
-            obj.addProperty("components", input.getComponents());
+            if (input.getComponents() instanceof JsonObject) {
+                obj.add("components", (JsonObject) input.getComponents());
+            } else if (input.getComponents() instanceof String) {
+                obj.addProperty("components", (String) input.getComponents());
+            }
         }
         obj.addProperty("count", input.getCount());
         return obj;
@@ -515,7 +533,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         obj.addProperty("item", output.getItem());
         obj.addProperty("count", output.getCount());
         if (output.getComponents() != null) {
-            obj.addProperty("components", output.getComponents());
+            if (output.getComponents() instanceof JsonObject) {
+                obj.add("components", (JsonObject) output.getComponents());
+            } else if (output.getComponents() instanceof String) {
+                obj.addProperty("components", (String) output.getComponents());
+            }
         }
         return obj;
     }
@@ -529,7 +551,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             input.setTag(obj.get("tag").getAsString());
         }
         if (obj.has("components")) {
-            input.setComponents(obj.get("components").getAsString());
+            JsonElement componentsElement = obj.get("components");
+            if (componentsElement.isJsonObject()) {
+                input.setComponents(componentsElement.getAsJsonObject());
+            } else if (componentsElement.isJsonPrimitive()) {
+                input.setComponents(componentsElement.getAsString());
+            }
         }
         if (obj.has("count")) {
             input.setCount(obj.get("count").getAsInt());
@@ -542,7 +569,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         output.setItem(obj.get("item").getAsString());
         output.setCount(obj.get("count").getAsInt());
         if (obj.has("components")) {
-            output.setComponents(obj.get("components").getAsString());
+            JsonElement componentsElement = obj.get("components");
+            if (componentsElement.isJsonObject()) {
+                output.setComponents(componentsElement.getAsJsonObject());
+            } else if (componentsElement.isJsonPrimitive()) {
+                output.setComponents(componentsElement.getAsString());
+            }
         }
         return output;
     }

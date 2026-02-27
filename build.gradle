@@ -120,19 +120,22 @@ configurations {
 
 dependencies {
     // 联动 - ViScriptShop
-    implementation "curse.maven:ldlib-626676:7658151"
-    implementation "curse.maven:viscriptshop-1408178:7594435"
+    localRuntime "curse.maven:ldlib-626676:7658151"
+    localRuntime "curse.maven:viscriptshop-1408178:7594435"
     // 辅助
     localRuntime "curse.maven:jei-238222:7420587"
+
+    localRuntime "curse.maven:cloth-config-348521:5729127"
+    localRuntime "curse.maven:tide-884685:7586281"
 
     // 测试
     localRuntime "curse.maven:apothic-attributes-898963:7445079"
     localRuntime "curse.maven:placebo-283644:6926281"
     localRuntime "curse.maven:pipez-443900:5609056"
-    localRuntime "curse.maven:kiwi-303657:7666569"
     localRuntime "curse.maven:kubejs-238086:7278501"
     localRuntime "curse.maven:rhino-416294:7104526"
     localRuntime "curse.maven:jade-324717:7545219"
+    localRuntime "curse.maven:quality-food-973932:7653821"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
