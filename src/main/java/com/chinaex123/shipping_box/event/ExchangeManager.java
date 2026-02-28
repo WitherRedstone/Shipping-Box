@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.attribute.ModAttributes;
+import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -11,10 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class ExchangeManager {
 
@@ -42,7 +40,9 @@ public class ExchangeManager {
         }
 
         List<ItemStack> results = new ArrayList<>();
-        boolean exchanged = false;
+        boolean exchanged; // 标记是否已发生兑换
+        int totalVirtualCurrency = 0; // 记录总的虚拟货币数量
+        boolean hasValidExchange = false; // 标记是否有有效的兑换发生
 
         // 执行兑换逻辑
         do {
@@ -50,6 +50,11 @@ public class ExchangeManager {
             ExchangeRule rule = ExchangeRecipeManager.findMatchingRule(currentItems);
 
             if (rule != null) {
+                // 检查如果是虚拟货币兑换但模组未加载，则完全跳过处理
+                if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
+                    return; // 直接返回，不处理任何物品
+                }
+
                 int maxExchanges = getMaxExchanges(rule, currentItems);
 
                 if (maxExchanges > 0) {
@@ -58,49 +63,86 @@ public class ExchangeManager {
                         currentItems = ExchangeRecipeManager.consumeInputs(rule, currentItems);
                     }
 
-                    // 生成输出物品
-                    ItemStack output = rule.getOutputItem().getResultStack().copy();
-                    int baseCount = rule.getOutputItem().getCount() * maxExchanges;
-                    // 应用属性加成
-                    int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
-                    output.setCount(enhancedCount);
-                    results.add(output);
+                    // 处理输出
+                    if (rule.getOutputItem().isCoin()) {
+                        // 虚拟货币模式：累加货币数量，应用属性加成
+                        int baseCount = rule.getOutputItem().getCount() * maxExchanges;
+                        // 应用属性加成
+                        int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+                        totalVirtualCurrency += enhancedCount;
+                    } else {
+                        // 普通物品模式：生成输出物品
+                        ItemStack output = rule.getOutputItem().getResultStack().copy();
+
+                        int baseCount = rule.getOutputItem().getCount() * maxExchanges;
+                        // 应用属性加成
+                        int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+                        output.setCount(enhancedCount);
+                        results.add(output);
+                    }
 
                     exchanged = true;
+                    hasValidExchange = true; // 标记发生了有效兑换
                 }
             }
         } while (exchanged);
 
-        // 添加剩余物品
-        results.addAll(currentItems);
+        // 如果有虚拟货币要添加
+        if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
+            ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
+            if (player != null && ViScriptShopUtil.isAvailable()) {
+                // 获取玩家当前余额并开始动画
+                int currentBalance = ViScriptShopUtil.getMoney(player);
+                startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
 
-        // 清空并重新填充
-        Collections.fill(items, ItemStack.EMPTY);
-        int slotIndex = 0;
-
-        for (ItemStack result : results) {
-            if (slotIndex >= items.size()) break;
-
-            int maxStackSize = result.getMaxStackSize();
-            int remainingCount = result.getCount();
-
-            while (remainingCount > 0 && slotIndex < items.size()) {
-                if (items.get(slotIndex).isEmpty()) {
-                    int stackSize = Math.min(remainingCount, maxStackSize);
-                    ItemStack newStack = result.copy();
-                    newStack.setCount(stackSize);
-                    items.set(slotIndex, newStack);
-                    remainingCount -= stackSize;
-                }
-                slotIndex++;
+                ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
             }
         }
 
-        // 播放成功音效
-        serverLevel.playSound(null, blockPos,
-                SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
-                SoundSource.BLOCKS,
-                0.5F, 1.0F);
+        // 只有当确实有有效兑换发生时才处理物品和播放音效
+        if (hasValidExchange) {
+            // 添加剩余物品（仅限普通物品）
+            results.addAll(currentItems);
+
+            // 清空并重新填充
+            Collections.fill(items, ItemStack.EMPTY);
+            int slotIndex = 0;
+
+            for (ItemStack result : results) {
+                if (slotIndex >= items.size()) break;
+
+                int maxStackSize = result.getMaxStackSize();
+                int remainingCount = result.getCount();
+
+                // 遍历所有槽位，将物品按最大堆叠数分配到各个槽位中
+                while (remainingCount > 0 && slotIndex < items.size()) {
+                    // 检查当前槽位是否为空
+                    if (items.get(slotIndex).isEmpty()) {
+                        // 计算当前槽位应该放置的数量（取剩余数量和最大堆叠数中的较小值）
+                        int stackSize = Math.min(remainingCount, maxStackSize);
+                        ItemStack newStack = result.copy(); // 创建新的物品堆栈副本
+                        newStack.setCount(stackSize); // 设置该堆栈的数量
+                        items.set(slotIndex, newStack); // 将物品放入当前槽位
+                        remainingCount -= stackSize; // 减去已分配的数量
+                    }
+                    // 移动到下一个槽位
+                    slotIndex++;
+                }
+            }
+
+            // 播放成功音效
+            serverLevel.playSound(null, blockPos,
+                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
+                    SoundSource.BLOCKS,
+                    0.5F, 1.0F);
+        }
+    }
+
+    /**
+     * 开始余额动画
+     */
+    private static void startBalanceAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
+        BalanceAnimationManager.startAnimation(player, startBalance, totalValue, exchangeAmount);
     }
 
     /**
@@ -111,9 +153,10 @@ public class ExchangeManager {
             return baseCount;
         }
 
-        ServerPlayer player = level.getServer().getPlayerList().getPlayer(playerUUID);
+        ServerPlayer player = level.getServer() != null ?
+                level.getServer().getPlayerList().getPlayer(playerUUID) : null;
         if (player == null) {
-            return baseCount; // 玩家不在线，返回基础数量
+            return baseCount; // 玩家不在线或服务器不可用，返回基础数量
         }
 
         try {

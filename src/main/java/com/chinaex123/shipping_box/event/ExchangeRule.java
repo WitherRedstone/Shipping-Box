@@ -93,11 +93,6 @@ public class ExchangeRule {
             return components;
         }
 
-        // 为了向后兼容，保留String版本的getter
-        public String getComponentsAsString() {
-            return components instanceof String ? (String) components : null;
-        }
-
         /**
          * 检查物品堆是否匹配此输入要求
          * 支持物品ID、标签和组件匹配
@@ -194,6 +189,7 @@ public class ExchangeRule {
         private String item; // 物品ID
         private int count = 1; //  数量
         private Object components;  // 支持JsonObject和String
+        private boolean coin = false; // 虚拟货币标识符
 
         public String getItem() {
             return item;
@@ -219,9 +215,12 @@ public class ExchangeRule {
             return components;
         }
 
-        // 为了向后兼容，保留String版本的getter
-        public String getComponentsAsString() {
-            return components instanceof String ? (String) components : null;
+        public boolean isCoin() {
+            return coin;
+        }
+
+        public void setCoin(boolean coin) {
+            this.coin = coin;
         }
 
         /**
@@ -232,6 +231,13 @@ public class ExchangeRule {
          */
         public ItemStack getResultStack() {
             try {
+                // 虚拟货币兑换模式
+                if (this.coin) {
+                    // 直接返回空物品堆
+                    return ItemStack.EMPTY;
+                }
+
+                // 普通物品模式
                 String itemId = item;
                 String componentString = null;
 
@@ -251,7 +257,7 @@ public class ExchangeRule {
                 Item resultItem = BuiltInRegistries.ITEM.get(itemResource);
                 ItemStack resultStack = new ItemStack(resultItem, count);
 
-                // 处理不同类型的components
+                // 处理不同类型的组件
                 Object finalComponents = componentString != null ? componentString : components;
                 if (finalComponents != null) {
                     if (finalComponents instanceof JsonObject) {

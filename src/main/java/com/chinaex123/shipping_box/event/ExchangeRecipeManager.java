@@ -238,6 +238,17 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     private ExchangeRule.OutputItem parseOutputItem(JsonObject outputObj) {
         ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
 
+        // 处理虚拟货币标识符（优先级最高）
+        if (outputObj.has("coin") && outputObj.get("coin").getAsBoolean()) {
+            output.setCoin(true);
+            if (outputObj.has("count")) {
+                int count = outputObj.get("count").getAsInt();
+                output.setCount(count);
+            }
+            return output; // 虚拟货币模式下不需要其他字段
+        }
+
+        // 普通物品模式
         if (outputObj.has("item")) {
             output.setItem(outputObj.get("item").getAsString());
         }
@@ -313,10 +324,17 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @param output 输出物品对象
      * @return 物品有效返回true，否则返回false
      */
+
     private boolean validateOutputItem(ExchangeRule.OutputItem output) {
+        // 虚拟货币模式下不需要验证物品ID
+        if (output.isCoin()) {
+            return true;
+        }
+
         if (output.getItem() == null || output.getItem().isEmpty()) {
             return false;
         }
+
         return validateItemWithComponents(output.getItem());
     }
 
@@ -612,6 +630,15 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      */
     private static JsonObject serializeOutputItem(ExchangeRule.OutputItem output) {
         JsonObject obj = new JsonObject();
+
+        // 虚拟货币模式
+        if (output.isCoin()) {
+            obj.addProperty("coin", true);
+            obj.addProperty("count", output.getCount());
+            return obj;
+        }
+
+        // 普通物品模式
         obj.addProperty("item", output.getItem());
         obj.addProperty("count", output.getCount());
 
@@ -670,6 +697,17 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      */
     private static ExchangeRule.OutputItem deserializeOutputItem(JsonObject obj) {
         ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
+
+        // 处理虚拟货币标识符
+        if (obj.has("coin") && obj.get("coin").getAsBoolean()) {
+            output.setCoin(true);
+            if (obj.has("count")) {
+                output.setCount(obj.get("count").getAsInt());
+            }
+            return output;
+        }
+
+        // 普通物品模式
         output.setItem(obj.get("item").getAsString());
         output.setCount(obj.get("count").getAsInt());
 

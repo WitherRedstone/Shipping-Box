@@ -2,6 +2,26 @@
   "rules": [
     {
       "input": {
+        "item": "minecraft:stone",
+        "count": 1
+      },
+      "output": {
+        "coin": true,
+        "count": 10
+      }
+    },
+    {
+      "input": {
+        "item": "minecraft:dirt",
+        "count": 1
+      },
+      "output": {
+        "item": "minecraft:diamond",
+        "count": 1
+      }
+    },
+    {
+      "input": {
         "item": "minecraft:glass_bottle",
         "count": 1
       },

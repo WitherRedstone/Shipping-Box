@@ -3,6 +3,7 @@ package com.chinaex123.shipping_box;
 import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.block.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.ModBlockEntities;
+import com.chinaex123.shipping_box.event.ExchangeManager;
 import com.chinaex123.shipping_box.event.ExchangeRuleComponents;
 import com.chinaex123.shipping_box.item.ModItems;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;

@@ -14,8 +14,9 @@
 
 ### Integrated Mods
 - **ViScriptShop**
-    - Right-click with Pawa Coin to exchange for virtual currency based on the currency price shown in the item tooltip; sneak right-click to exchange a full stack
+  - Right-click with Creeper Coin to exchange for virtual currency based on the currency price shown in the item tooltip; sneak right-click to exchange a full stack
   - Right-click with "Secondary Currency Pouch" to convert physical currency or check balance; sneak right-click to exchange physical currency from containers
+  - In "exchange rules", if the item in output is replaced with "coin": true, the input item will be directly exchanged for the mod's virtual currency.
 
 ### Usage Instructions
 - Place "exchange rules" in the data/shipping_box/recipe/recipe_manager/ folder
@@ -38,6 +39,7 @@
 - **ViScriptShop**
   - 右键爬爬币会根据物品提示显示的货币价格兑换虚拟货币，潜行右键换取一组
   - 手持"次元钱袋"右键转换实体货币或查询余额，潜行右键兑换容器内的实体货币
+  - 在“兑换规则”中，若将 output 中的 item 替换为 "coin": true，则输入物品将被直接兑换为模组的虚拟货币
 
 ### 使用方法
 - 需要将“兑换规则”放入到data/shipping_box/recipe/recipe_manager/文件夹内
@@ -197,3 +199,35 @@ JSON对象格式/JSON Object Format
   "tide:catch_timestamp": "[5000,6000]"
 }
 ```
+
+## 模组联动专有
+ViScriptShop
+- 当在output中将item替换成"coin": true时，将进入虚拟货币兑换模式；
+- 直接把输入物品兑换成模组的虚拟货币。
+- 输出的count为兑换的虚拟货币金额
+
+
+- In "exchange rules", when the `item` in `output` is replaced with `"coin": true`, the virtual currency exchange mode is activated.
+- The input item will be directly exchanged for the mod's virtual currency.
+- The `count` in the output specifies the amount of virtual currency to be exchanged.
+```
+{
+  "input": {
+    "item": "minecraft:stone",
+    "count": 1
+  },
+  "output": {
+    "coin": true,
+    "count": 10
+  }
+}
+```
+
+
+---
+
+## License | 许可证
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+本项目采用MIT许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。

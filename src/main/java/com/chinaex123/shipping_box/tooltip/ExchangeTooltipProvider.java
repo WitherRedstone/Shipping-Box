@@ -2,8 +2,12 @@ package com.chinaex123.shipping_box.tooltip;
 
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
+import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -30,22 +34,28 @@ public class ExchangeTooltipProvider {
             for (ExchangeRule.InputItem input : rule.getInputs()) {
                 try {
                     if (input.matches(stack)) {
+                        // 检查输出是否为虚拟货币且模组可用
+                        ExchangeRule.OutputItem output = rule.getOutputItem();
+                        if (output.isCoin() && !ViScriptShopUtil.isAvailable()) {
+                            // 虚拟货币模式但模组未加载，跳过此规则
+                            continue;
+                        }
+
                         // 构建兑换信息文本
-                        Component info = buildExchangeInfo(input, rule.getOutputItem());
+                        Component info = buildExchangeInfo(input, output);
                         exchangeInfo.add(info);
 
                         // 返回第一个匹配的规则信息
                         return new TooltipData(
                                 exchangeInfo,
                                 stack,
-                                rule.getOutputItem().getResultStack(),
+                                output.getResultStack(),
                                 input.getCount(),
-                                rule.getOutputItem().getCount()
+                                output.getCount()
                         );
                     }
                 } catch (Exception e) {
                     // 静默处理匹配过程中的异常，避免崩溃
-                    continue;
                 }
             }
         }
@@ -56,6 +66,7 @@ public class ExchangeTooltipProvider {
     /**
      * 构建兑换信息的显示文本
      * 格式："[输入数量 输入物品名称 → 输出数量 输出物品名称]"
+     * 虚拟货币格式："[输入数量 输入物品名称 → 输出货币数量]"
      *
      * @param input 输入物品信息
      * @param output 输出物品信息
@@ -65,16 +76,26 @@ public class ExchangeTooltipProvider {
         try {
             // 获取输入物品的本地化名称
             Component inputName = getLocalizedItemName(input);
-            // 获取输出物品的本地化名称
-            Component outputName = getLocalizedItemName(output);
 
-            // 构建带方括号的格式："[输入数量 输入物品名称 → 输出数量 输出物品名称]"
-            return Component.translatable("tooltip.shipping_box.exchange_format",
-                            input.getCount(),
-                            inputName,
-                            output.getCount(),
-                            outputName)
-                    .withStyle(ChatFormatting.GOLD);
+            // 检查是否为虚拟货币模式
+            if (output.isCoin()) {
+                // 虚拟货币使用简化格式："[输入数量 输入物品名称 → 货币数量]"
+                Component currencyText = getLocalizedItemName(output);
+                return Component.translatable("tooltip.shipping_box.exchange_format_simple",
+                                input.getCount(),
+                                inputName,
+                                currencyText)
+                        .withStyle(ChatFormatting.GOLD);
+            } else {
+                // 普通物品使用原有格式："[输入数量 输入物品名称 → 输出数量 输出物品名称]"
+                Component outputName = getLocalizedItemName(output);
+                return Component.translatable("tooltip.shipping_box.exchange_format",
+                                input.getCount(),
+                                inputName,
+                                output.getCount(),
+                                outputName)
+                        .withStyle(ChatFormatting.GOLD);
+            }
         } catch (Exception e) {
             // 如果构建失败，返回简单的带方括号文本
             return Component.literal("[" + input.getCount() + " items → " + output.getCount() + " items]").withStyle(ChatFormatting.RED);
@@ -117,6 +138,13 @@ public class ExchangeTooltipProvider {
      */
     private static Component getLocalizedItemName(ExchangeRule.OutputItem output) {
         try {
+            // 检查是否为虚拟货币模式
+            if (output.isCoin()) {
+                // 虚拟货币模式下显示货币数量
+                return Component.translatable("tooltip.shipping_box.virtual_currency", output.getCount())
+                        .withStyle(ChatFormatting.GOLD);
+            }
+
             if (output.getItem() != null && !output.getItem().isEmpty()) {
                 return getLocalizedItemName(output.getItem());
             }
@@ -134,8 +162,8 @@ public class ExchangeTooltipProvider {
      */
     private static Component getLocalizedItemName(String itemIdentifier) {
         try {
-            net.minecraft.resources.ResourceLocation itemId = net.minecraft.resources.ResourceLocation.parse(itemIdentifier);
-            net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemId);
+            ResourceLocation itemId = ResourceLocation.parse(itemIdentifier);
+            Item item = BuiltInRegistries.ITEM.get(itemId);
 
             if (item != null) {
                 return item.getDescription();
