@@ -1,8 +1,10 @@
 package com.chinaex123.shipping_box.tooltip;
 
+import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
 import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
+import com.chinaex123.shipping_box.network.ClientSoldCountCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -10,6 +12,8 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,33 +82,31 @@ public class ExchangeTooltipProvider {
             // 获取输入物品的本地化名称
             Component inputName = getLocalizedItemName(input);
 
+            // 获取输出信息（已经包含了动态定价信息的完整显示）
+            Component outputInfo = getLocalizedItemName(output);
+
             // 检查是否为虚拟货币模式
             if (output.isCoin()) {
-                // 虚拟货币使用简化格式："[输入数量 输入物品名称 → 货币数量]"
-                Component currencyText = getLocalizedItemName(output);
                 return Component.translatable("tooltip.shipping_box.exchange_format_simple",
                                 input.getCount(),
                                 inputName,
-                                currencyText)
+                                outputInfo)
                         .withStyle(ChatFormatting.GOLD);
             }
             // 检查是否为权重模式
             else if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
-                // 权重模式使用特殊格式："[输入数量 输入物品名称 → 随机物品]"
-                Component outputName = getLocalizedItemName(output);
                 return Component.translatable("tooltip.shipping_box.exchange_format_weight",
                                 input.getCount(),
                                 inputName,
-                                outputName)
+                                outputInfo)
                         .withStyle(ChatFormatting.GOLD);
-            } else {
-                // 普通物品使用原有格式："[输入数量 输入物品名称 → 输出数量 输出物品名称]"
-                Component outputName = getLocalizedItemName(output);
-                return Component.translatable("tooltip.shipping_box.exchange_format",
+            }
+            // 检查是否为动态定价模式或其他模式
+            else {
+                return Component.translatable("tooltip.shipping_box.exchange_format_dynamic",
                                 input.getCount(),
                                 inputName,
-                                output.getCount(),
-                                outputName)
+                                outputInfo)
                         .withStyle(ChatFormatting.GOLD);
             }
         } catch (Exception e) {
@@ -162,6 +164,31 @@ public class ExchangeTooltipProvider {
                 return buildWeightedItemsDisplay(output.getItems());
             }
 
+            // 检查是否为动态定价模式
+            if ("dynamic_pricing".equals(output.getType()) && output.getDynamicProperties() != null) {
+                // 动态定价模式：返回完整的动态定价显示信息
+                String itemIdentifier = output.getItem();
+
+                // 获取销售相关信息
+                int soldCount = getLatestSoldCount(itemIdentifier);
+                int dynamicCount = output.getDynamicCount(soldCount);
+                int resetDay = output.getDynamicProperties().getDay();
+                int daysSinceLastSale = DynamicPricingManager.getDaysSinceLastSale(itemIdentifier);
+                int remainingDays = DynamicPricingManager.getResetRemainingDays(itemIdentifier);
+
+                // 获取基础物品名称
+                Component baseName = getLocalizedItemName(itemIdentifier);
+
+                // 构建动态定价信息
+                Component dynamicInfo = buildDynamicPricingInfo(dynamicCount, soldCount,
+                        resetDay, daysSinceLastSale, remainingDays);
+
+                // 组合返回：基础名称 + 动态信息
+                return Component.empty()
+                        .append(baseName)
+                        .append(dynamicInfo);
+            }
+
             if (output.getItem() != null && !output.getItem().isEmpty()) {
                 return getLocalizedItemNameWithComponents(output.getItem(), output.getComponents());
             }
@@ -169,6 +196,61 @@ public class ExchangeTooltipProvider {
             // 异常处理
         }
         return Component.translatable("tooltip.shipping_box.unknown_item").withStyle(ChatFormatting.RED);
+    }
+
+    /**
+     * 构建动态定价信息显示
+     */
+    private static Component buildDynamicPricingInfo(int dynamicCount, int soldCount,
+                                                     int resetDay, int daysSinceLastSale, int remainingDays) {
+        // 基本信息：数量和已售
+        Component baseInfo = Component.translatable("tooltip.shipping_box.dynamic_pricing_info",
+                dynamicCount, soldCount).withStyle(ChatFormatting.YELLOW);
+
+        // 根据不同的重置模式显示不同的时间信息
+        if (resetDay == -1) {
+            // 永不重置模式
+            Component neverResetInfo = Component.translatable("tooltip.shipping_box.reset_info_never_reset")
+                    .withStyle(ChatFormatting.DARK_GREEN);
+
+            return Component.empty()
+                    .append(baseInfo)
+                    .append(Component.literal("\n"))
+                    .append(neverResetInfo);
+        } else if (resetDay == 0) {
+            // 每天重置模式
+            Component dailyResetInfo = Component.translatable("tooltip.shipping_box.reset_info_daily_reset")
+                    .withStyle(ChatFormatting.GREEN);
+
+            return Component.empty()
+                    .append(baseInfo)
+                    .append(Component.literal("\n"))
+                    .append(dailyResetInfo);
+        } else if (resetDay > 0) {
+            // 按天数重置模式
+            Component timeInfo;
+            if (daysSinceLastSale == -1) {
+                // 从未销售过
+                timeInfo = Component.translatable("tooltip.shipping_box.reset_info_never_sold",
+                        resetDay).withStyle(ChatFormatting.GREEN);
+            } else if (remainingDays <= 0) {
+                // 已经可以重置
+                timeInfo = Component.translatable("tooltip.shipping_box.reset_info_ready",
+                        daysSinceLastSale).withStyle(ChatFormatting.GREEN);
+            } else {
+                // 还需要等待
+                timeInfo = Component.translatable("tooltip.shipping_box.reset_info_waiting",
+                        daysSinceLastSale, remainingDays).withStyle(ChatFormatting.RED);
+            }
+
+            // 分隔基本信息和时间信息
+            return Component.empty()
+                    .append(baseInfo)
+                    .append(Component.literal("\n"))
+                    .append(timeInfo);
+        }
+
+        return baseInfo;
     }
 
     /**
@@ -264,6 +346,25 @@ public class ExchangeTooltipProvider {
             }
         } catch (Exception e) {
             return Component.literal(itemIdentifier);
+        }
+    }
+
+
+    /**
+     * 获取最新的销售计数（优先使用客户端缓存）
+     */
+    private static int getLatestSoldCount(String itemIdentifier) {
+        try {
+            // 在客户端环境下优先使用缓存数据
+            if (FMLEnvironment.dist == Dist.CLIENT && ClientSoldCountCache.hasCachedData(itemIdentifier)) {
+                return ClientSoldCountCache.getCachedSoldCount(itemIdentifier);
+            }
+
+            // 回退到服务器数据
+            return DynamicPricingManager.getSoldCount(itemIdentifier);
+        } catch (Exception e) {
+            // 如果都失败，返回0作为默认值
+            return 0;
         }
     }
 }

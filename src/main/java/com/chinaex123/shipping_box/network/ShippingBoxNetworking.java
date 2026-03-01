@@ -3,53 +3,44 @@ package com.chinaex123.shipping_box.network;
 import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
-import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
-
-import java.util.List;
-import java.util.UUID;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 /**
  * 售货箱网络通信管理类
  * 处理多人协作时的数据同步
  */
 public class ShippingBoxNetworking {
+
     /**
-     * 打开售货箱的数据包
+     * 发送销售计数同步到所有客户端玩家
+     * 使用服务器广播方法，性能优于遍历方式
+     *
+     * @param itemIdentifier 物品标识符
+     * @param soldCount 销售数量
      */
-    public record OpenShippingBox(BlockPos pos, UUID playerUUID) implements CustomPacketPayload {
-        public static final Type<OpenShippingBox> TYPE = new Type<>(
-                ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "open_shipping_box")
-        );
-
-        public static final StreamCodec<FriendlyByteBuf, OpenShippingBox> STREAM_CODEC =
-                StreamCodec.of(
-                        (buf, packet) -> {
-                            BlockPos.STREAM_CODEC.encode(buf, packet.pos());
-                            buf.writeUtf(packet.playerUUID().toString());
-                        },
-                        buf -> new OpenShippingBox(
-                                BlockPos.STREAM_CODEC.decode(buf),
-                                UUID.fromString(buf.readUtf())
-                        )
-                );
-
-        @Override
-        public Type<? extends CustomPacketPayload> type() {
-            return TYPE;
+    public static void sendSoldCountSync(String itemIdentifier, int soldCount) {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server != null) {
+            SoldCountSyncPacket payload = new SoldCountSyncPacket(itemIdentifier, soldCount);
+            Packet<?> packet = new ClientboundCustomPayloadPacket(payload);
+            // 使用服务器原生广播方法
+            server.getPlayerList().broadcastAll(packet);
         }
     }
 
@@ -162,32 +153,13 @@ public class ShippingBoxNetworking {
                 SyncRecipes.STREAM_CODEC,
                 ShippingBoxNetworking::handleSyncRecipes
         );
-    }
 
-    /**
-     * 处理打开运输箱GUI的网络数据包
-     * 在服务端执行GUI打开逻辑，确保线程安全性
-     *
-     * @param packet 包含位置信息和玩家UUID的打开请求数据包
-     * @param context 网络上下文，提供玩家和执行环境信息
-     */
-    private static void handleOpenShippingBox(OpenShippingBox packet, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            ServerPlayer player = (ServerPlayer) context.player();
-            Level level = player.level();
-
-            if (level.getBlockEntity(packet.pos()) instanceof ShippingBoxBlockEntity box) {
-                // 直接打开GUI，菜单会处理玩家特定的存储
-                player.openMenu(new SimpleMenuProvider(
-                        (windowId, playerInventory, playerEntity) ->
-                                new ShippingBoxMenu(windowId, playerInventory, box, packet.playerUUID()),
-                        Component.translatable("block.shipping_box.shipping_box")
-                ), buf -> {
-                    buf.writeBlockPos(packet.pos());
-                    buf.writeUUID(packet.playerUUID());
-                });
-            }
-        }).exceptionally(e -> null);
+        // 注册新的销售计数同步数据包
+        registrar.playToClient(
+                SoldCountSyncPacket.TYPE,
+                SoldCountSyncPacket.STREAM_CODEC,
+                SoldCountSyncPacket::handle
+        );
     }
 
     /**
@@ -205,9 +177,7 @@ public class ShippingBoxNetworking {
             } catch (Exception e) {
                 // 静默处理同步错误
             }
-        }).exceptionally(e -> {
-            return null;
-        });
+        }).exceptionally(e -> null);
     }
 
     /**
@@ -224,9 +194,7 @@ public class ShippingBoxNetworking {
                     Component.translatable("message.shipping_box.exchange_success"),
                     true // 在行动栏显示
             );
-        }).exceptionally(e -> {
-            return null;
-        });
+        }).exceptionally(e -> null);
     }
 
     /**
@@ -243,44 +211,6 @@ public class ShippingBoxNetworking {
                 box.setSlotOwner(packet.slot(), context.player().getUUID());
             }
         });
-    }
-
-    /**
-     * 向指定玩家发送兑换成功消息
-     *
-     * @param player 目标玩家
-     */
-    public static void sendSuccessMessage(ServerPlayer player) {
-        PacketDistributor.sendToPlayer(player, new ShowSuccessMessage());
-    }
-
-    /**
-     * 发送玩家放置物品的信息到服务器
-     *
-     * @param player 发送消息的玩家
-     * @param pos 方块位置
-     * @param slot 槽位索引
-     */
-    public static void sendPlayerPlaceItem(ServerPlayer player, BlockPos pos, int slot) {
-        PacketDistributor.sendToServer(new PlayerPlaceItem(pos, slot));
-    }
-
-    /**
-     * 向所有客户端玩家同步配方规则
-     *
-     * @param players 玩家列表
-     */
-    public static void syncRecipesToClients(List<ServerPlayer> players) {
-        try {
-            String rulesJson = ExchangeRecipeManager.serializeRulesToJson();
-            SyncRecipes packet = new SyncRecipes(rulesJson);
-
-            for (ServerPlayer player : players) {
-                PacketDistributor.sendToPlayer(player, packet);
-            }
-        } catch (Exception e) {
-            // 静默处理序列化错误
-        }
     }
 
     /**

@@ -48,14 +48,34 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         return boundPlayerUUID;
     }
 
-    // 修改漏斗输出控制
+    /**
+     * 检查是否可以通过指定面取出指定槽位的物品
+     * <p>
+     * 实现WorldlyContainer接口的方法，控制漏斗等自动化设备从该方块实体
+     * 中提取物品的权限。只有当槽位中的物品已完成兑换流程时才允许提取。
+     *
+     * @param slot 物品槽位索引
+     * @param stack 要检查的物品堆栈（在此实现中未使用）
+     * @param side 提取物品的方向面
+     * @return 如果该槽位的物品已完成兑换则返回true，否则返回false
+     */
     @Override
     public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction side) {
         // 只允许输出兑换完成的物品
         return slotIsExchanged.getOrDefault(slot, false);
     }
 
-    // 允许所有方向输入
+    /**
+     * 检查是否可以通过指定面放入物品到指定槽位
+     * <p>
+     * 实现WorldlyContainer接口的方法，控制外部设备向该方块实体
+     * 输入物品的权限。当前实现允许从任何方向向任何槽位放入物品。
+     *
+     * @param slot 目标槽位索引
+     * @param stack 要放入的物品堆栈
+     * @param side 输入物品的方向面，可能为null
+     * @return 总是返回true，表示允许从任何方向放入任何物品
+     */
     @Override
     public boolean canPlaceItemThroughFace(int slot, ItemStack stack, @Nullable Direction side) {
         return true;
@@ -63,6 +83,11 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
 
     /**
      * 执行物品兑换的核心逻辑方法
+     * <p>
+     * 调用全局兑换管理器处理当前存储中的所有物品，完成兑换后标记
+     * 所有非空槽位为已兑换状态，并更新最后兑换日期。
+     *
+     * @param currentDay 当前游戏天数，用于记录兑换时间戳
      */
     private void performExchange(long currentDay) {
         ExchangeManager.performExchange(items, level, worldPosition, boundPlayerUUID);
@@ -328,6 +353,16 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         }
     }
 
+    /**
+     * 创建自动售货箱的容器菜单实例
+     * <p>
+     * 实现BaseContainerBlockEntity抽象方法，为自动售货箱方块实体
+     * 创建对应的GUI菜单界面，供玩家与容器进行交互。
+     *
+     * @param id 菜单唯一标识符
+     * @param inventory 玩家物品栏对象
+     * @return 新创建的自动售货箱菜单实例
+     */
     @Override
     protected @NotNull AbstractContainerMenu createMenu(int id, @NotNull Inventory inventory) {
         return new AutoShippingBoxMenu(id, inventory, this);

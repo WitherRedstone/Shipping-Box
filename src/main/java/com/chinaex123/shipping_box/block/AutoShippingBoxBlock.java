@@ -91,9 +91,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
         // 简单直接的实现
         if (type == ModBlockEntities.AUTOMATED_SHIPPING_BOX.get() && !level.isClientSide) {
-            return (level1, pos, state1, blockEntity) -> {
-                ((AutoShippingBoxBlockEntity) blockEntity).tick();
-            };
+            return (level1, pos, state1, blockEntity) -> ((AutoShippingBoxBlockEntity) blockEntity).tick();
         }
         return null;
     }

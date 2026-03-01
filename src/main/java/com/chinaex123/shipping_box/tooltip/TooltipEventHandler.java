@@ -29,7 +29,7 @@ public class TooltipEventHandler {
                 return;
             }
 
-            // 获取兑换信息
+            // 获取兑换信息（不传递游戏日参数）
             TooltipData tooltipData = ExchangeTooltipProvider.getExchangeTooltip(stack);
 
             if (tooltipData != null && tooltipData.hasExchangeInfo()) {

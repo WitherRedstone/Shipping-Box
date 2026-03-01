@@ -248,6 +248,51 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return output; // 虚拟货币模式下不需要其他字段
         }
 
+        // 处理动态定价模式
+        if (outputObj.has("type") && "dynamic_pricing".equals(outputObj.get("type").getAsString())) {
+            output.setType("dynamic_pricing");
+
+            if (outputObj.has("item")) {
+                output.setItem(outputObj.get("item").getAsString());
+            }
+
+            // 解析动态定价属性
+            if (outputObj.has("dynamic_properties") && outputObj.get("dynamic_properties").isJsonObject()) {
+                JsonObject dynamicPropsObj = outputObj.getAsJsonObject("dynamic_properties");
+                ExchangeRule.DynamicPricingProperties dynamicProps =
+                        new ExchangeRule.DynamicPricingProperties();
+
+                // 解析阈值数组
+                if (dynamicPropsObj.has("threshold") && dynamicPropsObj.get("threshold").isJsonArray()) {
+                    JsonArray thresholdArray = dynamicPropsObj.getAsJsonArray("threshold");
+                    int[] thresholds = new int[thresholdArray.size()];
+                    for (int i = 0; i < thresholdArray.size(); i++) {
+                        thresholds[i] = thresholdArray.get(i).getAsInt();
+                    }
+                    dynamicProps.setThreshold(thresholds);
+                }
+
+                // 解析价值数组
+                if (dynamicPropsObj.has("value") && dynamicPropsObj.get("value").isJsonArray()) {
+                    JsonArray valueArray = dynamicPropsObj.getAsJsonArray("value");
+                    int[] values = new int[valueArray.size()];
+                    for (int i = 0; i < valueArray.size(); i++) {
+                        values[i] = valueArray.get(i).getAsInt();
+                    }
+                    dynamicProps.setValue(values);
+                }
+
+                // 解析天数
+                if (dynamicPropsObj.has("day")) {
+                    dynamicProps.setDay(dynamicPropsObj.get("day").getAsInt());
+                }
+
+                output.setDynamicProperties(dynamicProps);
+            }
+
+            return output;
+        }
+
         // 处理权重模式
         if (outputObj.has("type") && "weight".equals(outputObj.get("type").getAsString())) {
             output.setType("weight");
@@ -384,6 +429,33 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return true;
         }
 
+        // 动态定价模式验证
+        if ("dynamic_pricing".equals(output.getType())) {
+            if (output.getItem() == null || output.getItem().isEmpty()) {
+                return false;
+            }
+
+            if (output.getDynamicProperties() == null) {
+                return false;
+            }
+
+            int[] thresholds = output.getDynamicProperties().getThreshold();
+            int[] values = output.getDynamicProperties().getValue();
+
+            if (thresholds == null || values == null || thresholds.length != values.length) {
+                return false;
+            }
+
+            // 验证阈值数组是否递增
+            for (int i = 1; i < thresholds.length; i++) {
+                if (thresholds[i] <= thresholds[i-1]) {
+                    return false;
+                }
+            }
+
+            return validateItemWithComponents(output.getItem());
+        }
+
         // 权重模式验证
         if ("weight".equals(output.getType()) && output.getItems() != null) {
             for (ExchangeRule.WeightedItem weightedItem : output.getItems()) {
@@ -507,7 +579,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @return 匹配的规则，如果没有匹配则返回null
      */
     public static ExchangeRule findMatchingRule(List<ItemStack> availableStacks) {
-        for (ExchangeRule rule : currentRules) {
+        for (ExchangeRule rule : ExchangeRecipeManager.getRules()) {
             if (matchesRule(rule, availableStacks)) {
                 return rule;
             }
@@ -701,6 +773,40 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             return obj;
         }
 
+        // 动态定价模式
+        if ("dynamic_pricing".equals(output.getType()) && output.getDynamicProperties() != null) {
+            obj.addProperty("type", "dynamic_pricing");
+            obj.addProperty("item", output.getItem());
+
+            // 序列化动态定价属性
+            JsonObject dynamicPropsObj = new JsonObject();
+            ExchangeRule.DynamicPricingProperties props = output.getDynamicProperties();
+
+            // 序列化阈值数组
+            if (props.getThreshold() != null) {
+                JsonArray thresholdArray = new JsonArray();
+                for (int threshold : props.getThreshold()) {
+                    thresholdArray.add(threshold);
+                }
+                dynamicPropsObj.add("threshold", thresholdArray);
+            }
+
+            // 序列化价值数组
+            if (props.getValue() != null) {
+                JsonArray valueArray = new JsonArray();
+                for (int value : props.getValue()) {
+                    valueArray.add(value);
+                }
+                dynamicPropsObj.add("value", valueArray);
+            }
+
+            // 序列化天数
+            dynamicPropsObj.addProperty("day", props.getDay());
+
+            obj.add("dynamic_properties", dynamicPropsObj);
+            return obj;
+        }
+
         // 权重模式
         if ("weight".equals(output.getType()) && output.getItems() != null) {
             obj.addProperty("type", "weight");
@@ -794,6 +900,50 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             if (obj.has("count")) {
                 output.setCount(obj.get("count").getAsInt());
             }
+            return output;
+        }
+
+        // 处理动态定价模式
+        if (obj.has("type") && "dynamic_pricing".equals(obj.get("type").getAsString())) {
+            output.setType("dynamic_pricing");
+
+            if (obj.has("item")) {
+                output.setItem(obj.get("item").getAsString());
+            }
+
+            // 反序列化动态定价属性
+            if (obj.has("dynamic_properties") && obj.get("dynamic_properties").isJsonObject()) {
+                JsonObject dynamicPropsObj = obj.getAsJsonObject("dynamic_properties");
+                ExchangeRule.DynamicPricingProperties dynamicProps = new ExchangeRule.DynamicPricingProperties();
+
+                // 反序列化阈值数组
+                if (dynamicPropsObj.has("threshold") && dynamicPropsObj.get("threshold").isJsonArray()) {
+                    JsonArray thresholdArray = dynamicPropsObj.getAsJsonArray("threshold");
+                    int[] thresholds = new int[thresholdArray.size()];
+                    for (int i = 0; i < thresholdArray.size(); i++) {
+                        thresholds[i] = thresholdArray.get(i).getAsInt();
+                    }
+                    dynamicProps.setThreshold(thresholds);
+                }
+
+                // 反序列化价值数组
+                if (dynamicPropsObj.has("value") && dynamicPropsObj.get("value").isJsonArray()) {
+                    JsonArray valueArray = dynamicPropsObj.getAsJsonArray("value");
+                    int[] values = new int[valueArray.size()];
+                    for (int i = 0; i < valueArray.size(); i++) {
+                        values[i] = valueArray.get(i).getAsInt();
+                    }
+                    dynamicProps.setValue(values);
+                }
+
+                // 反序列化天数
+                if (dynamicPropsObj.has("day")) {
+                    dynamicProps.setDay(dynamicPropsObj.get("day").getAsInt());
+                }
+
+                output.setDynamicProperties(dynamicProps);
+            }
+
             return output;
         }
 

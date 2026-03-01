@@ -199,6 +199,20 @@ public class ExchangeRule {
         public void setComponents(Object components) { this.components = components; }
     }
 
+
+    public static class DynamicPricingProperties {
+        private int[] threshold; // 阈值数组
+        private int[] value; // 对应的价格数组
+        private int day; // 清除天数，-1表示永不清除
+
+        public int[] getThreshold() { return threshold; }
+        public void setThreshold(int[] threshold) { this.threshold = threshold; }
+        public int[] getValue() { return value; }
+        public void setValue(int[] value) { this.value = value; }
+        public int getDay() { return day; }
+        public void setDay(int day) { this.day = day; }
+    }
+
     /**
      * 输出物品类，定义兑换规则中的输出物品规格
      */
@@ -209,9 +223,11 @@ public class ExchangeRule {
         private boolean coin = false; // 虚拟货币标识符
 
         // 权重相关字段
-        private String type; // 输出类型："single"(默认) 或 "weight"(权重模式)
+        private String type; // 输出类型："single"(默认) 或 "weight"(权重模式) 或 "dynamic_pricing"(动态定价)
         private List<WeightedItem> items; // 权重物品列表
 
+        // 动态定价相关字段
+        private DynamicPricingProperties dynamicProperties;
 
         public String getItem() {
             return item;
@@ -259,6 +275,14 @@ public class ExchangeRule {
 
         public void setItems(List<WeightedItem> items) {
             this.items = items;
+        }
+
+        public DynamicPricingProperties getDynamicProperties() {
+            return dynamicProperties;
+        }
+
+        public void setDynamicProperties(DynamicPricingProperties dynamicProperties) {
+            this.dynamicProperties = dynamicProperties;
         }
 
         /**
@@ -329,7 +353,7 @@ public class ExchangeRule {
          * 根据权重随机选择一个物品
          * @return 随机选中的物品堆
          */
-        public ItemStack getRandomWeightedItem() {  // 改为public
+        public ItemStack getRandomWeightedItem() {
             try {
                 // 计算总权重
                 int totalWeight = 0;
@@ -383,6 +407,37 @@ public class ExchangeRule {
             } catch (Exception e) {
                 return ItemStack.EMPTY;
             }
+        }
+
+        /**
+         * 根据动态定价规则计算当前应该输出的数量
+         * @param soldCount 已售出的数量
+         * @return 根据阈值计算出的输出数量
+         */
+        public int getDynamicCount(int soldCount) {
+            if (dynamicProperties == null ||
+                    dynamicProperties.getThreshold() == null ||
+                    dynamicProperties.getValue() == null) {
+                return count; // 如果没有动态定价配置，返回默认数量
+            }
+
+            int[] thresholds = dynamicProperties.getThreshold();
+            int[] values = dynamicProperties.getValue();
+
+            // 如果阈值数组为空或长度不匹配，返回默认数量
+            if (thresholds.length == 0 || thresholds.length != values.length) {
+                return count;
+            }
+
+            // 寻找合适的阈值区间
+            for (int i = 0; i < thresholds.length; i++) {
+                if (soldCount < thresholds[i]) {
+                    return values[i];
+                }
+            }
+
+            // 如果超过所有阈值，使用最后一个价格
+            return values[values.length - 1];
         }
     }
 }

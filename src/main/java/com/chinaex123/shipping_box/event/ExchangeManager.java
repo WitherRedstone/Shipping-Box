@@ -73,20 +73,40 @@ public class ExchangeManager {
                     } else if ("weight".equals(rule.getOutputItem().getType()) &&
                             rule.getOutputItem().getItems() != null &&
                             !rule.getOutputItem().getItems().isEmpty()) {
-                        // 权重模式：为每次兑换生成物品，然后使用通用的堆叠处理逻辑
+                        // 权重模式：为每次兑换独立随机选择一个物品
                         for (int i = 0; i < maxExchanges; i++) {
                             ItemStack weightedOutput = rule.getOutputItem().getRandomWeightedItem();
                             if (!weightedOutput.isEmpty()) {
-                                // 应用属性加成
+                                // 对权重选出的物品也应用属性加成
                                 int baseCount = weightedOutput.getCount();
                                 int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
-
-                                // 创建带有增强数量的新物品堆
-                                ItemStack enhancedOutput = weightedOutput.copy();
-                                enhancedOutput.setCount(enhancedCount);
-                                results.add(enhancedOutput);
+                                weightedOutput.setCount(enhancedCount);
+                                results.add(weightedOutput);
                             }
                         }
+                    } else if ("dynamic_pricing".equals(rule.getOutputItem().getType()) &&
+                            rule.getOutputItem().getDynamicProperties() != null) {
+
+                        // 动态定价模式
+                        String itemIdentifier = rule.getOutputItem().getItem();
+
+                        // 调试动态属性
+                        ExchangeRule.DynamicPricingProperties props = rule.getOutputItem().getDynamicProperties();
+
+                        int soldCount = DynamicPricingManager.getSoldCount(itemIdentifier);
+
+                        int dynamicCount = rule.getOutputItem().getDynamicCount(soldCount);
+
+                        // 更新销售统计
+                        DynamicPricingManager.addSoldCount(itemIdentifier, maxExchanges);
+
+                        // 生成输出物品
+                        ItemStack output = rule.getOutputItem().getResultStack().copy();
+                        // 使用动态计算的数量，而不是基础数量
+                        int baseCount = dynamicCount * maxExchanges;
+                        int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+                        output.setCount(enhancedCount);
+                        results.add(output);
                     } else {
                         // 普通物品模式：生成输出物品
                         ItemStack output = rule.getOutputItem().getResultStack().copy();
@@ -189,7 +209,15 @@ public class ExchangeManager {
     }
 
     /**
-     * 为特定玩家应用出售价格属性加成
+     * 应用玩家出售价格属性加成到基础数量
+     * <p>
+     * 根据玩家的出售价格属性加成值，计算增强后的物品数量。
+     * 采用智能取整策略：小数量向下取整保证平衡，大数量向上取整激励玩家。
+     *
+     * @param baseCount 基础物品数量
+     * @param level 游戏世界实例，用于获取服务器和玩家信息
+     * @param playerUUID 玩家唯一标识符
+     * @return 应用属性加成后的最终物品数量
      */
     public static int applySellingPriceBoost(int baseCount, Level level, UUID playerUUID) {
         if (level == null || playerUUID == null) {
@@ -225,7 +253,14 @@ public class ExchangeManager {
     }
 
     /**
-     * 计算指定兑换规则可以执行的最大兑换次数（多物品兑换）
+     * 计算指定兑换规则可以执行的最大兑换次数
+     * <p>
+     * 通过检查每种输入物品的可用数量来确定限制因素，返回能够完成的最多兑换轮数。
+     * 算法找出所有必需物品中最紧缺的那种，以其可支持的兑换次数作为整体上限。
+     *
+     * @param rule 兑换规则，包含所需的输入物品列表及其数量要求
+     * @param availableStacks 当前可用的物品堆列表
+     * @return 可以执行的最大兑换次数，如果无法兑换则返回0
      */
     public static int getMaxExchanges(ExchangeRule rule, List<ItemStack> availableStacks) {
         int maxExchanges = Integer.MAX_VALUE;

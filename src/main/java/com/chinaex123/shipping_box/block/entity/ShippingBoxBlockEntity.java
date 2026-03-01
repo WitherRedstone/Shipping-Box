@@ -1,9 +1,6 @@
 package com.chinaex123.shipping_box.block.entity;
 
-import com.chinaex123.shipping_box.attribute.ModAttributes;
-import com.chinaex123.shipping_box.event.ExchangeManager;
-import com.chinaex123.shipping_box.event.ExchangeRule;
-import com.chinaex123.shipping_box.event.PlayerStorageManager;
+import com.chinaex123.shipping_box.event.*;
 import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -454,37 +451,6 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                     0.5F, 1.0F);
 
             notifySuccessfulPlayers(serverLevel, successfulPlayers);
-        }
-    }
-
-    /**
-     * 为特定玩家应用出售价格属性加成
-     *
-     * @param baseCount 基础物品数量
-     * @param playerUUID 玩家UUID
-     * @return 加成后的物品数量
-     */
-    private int applySellingPriceBoostForPlayer(int baseCount, UUID playerUUID) {
-        if (level == null || playerUUID == null) {
-            return baseCount;
-        }
-
-        ServerPlayer player = level.getServer().getPlayerList().getPlayer(playerUUID);
-        if (player == null) {
-            return baseCount; // 玩家不在线，返回基础数量
-        }
-
-        // 获取该玩家的出售价格属性加成
-        double boost = player.getAttributeValue(ModAttributes.SELLING_PRICE_BOOST);
-
-        // 应用加成：基础数量 × (1 + 加成系数)
-        double enhancedAmount = baseCount * (1.0 + boost);
-
-        // 智能取整：小于等于5向下取整，大于5向上取整
-        if (enhancedAmount <= 5.0) {
-            return (int) Math.floor(enhancedAmount);
-        } else {
-            return (int) Math.ceil(enhancedAmount);
         }
     }
 

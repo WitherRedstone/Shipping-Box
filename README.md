@@ -23,7 +23,6 @@
 - Supports any item as input/output with customizable quantities. Files must be in JSON format, multiple JSON files allowed;
 - Support input/output data components. Input components support NBT ranges, and output items support weight configuration;
 - Components have two formats: string format and JSON object format; JSON object format is recommended;
-- The internal JSON format and descriptions are provided in the code below.
 
 ---
 
@@ -34,6 +33,7 @@
 - 将物品放入售货箱后，在第二天6:00会按照"兑换规则"内设置的规则进行兑换；
 - 物品自动有兑换信息，支持jei列表显示物品的兑换信息；
 - "兑换规则"配置错误时会在游戏内提醒。
+- 拥有动态阈值系统，物品销量达阈值后，物品的价值依照JSON配置的数量进行逐步递减，可在JSON中为每个物品配置是否启用
 
 ### 联动模组
 - **ViScriptShop**
@@ -46,7 +46,39 @@
 - 支持任意物品作为输入/输出，且数量可自定义。 文件必须是json，可以有多个json；
 - 支持输入/输出数据组件，输入组件支持nbt区间，输出物品支持权重；
 - 组件有两种格式，字符串格式和JSON对象格式，推荐用JSON对象格式；
-- 关于json内部格式和描述都在下面的代码中。
+
+### 动态阈值机制说明
+- 类型：dynamic_pricing（动态定价）
+- 阈值数组 threshold：定义价格变更的销量临界点（如 [100, 500, 1000]）
+- 价值数组 value：对应每个阈值后的输出数量（如 [5, 3, 1]）
+- 重置时间 day：阈值重置所需天数
+  - day = -1：销售计数永不重置，会一直累加
+  - day = 0：每天自动重置销售计数为0
+  - day = N（N > 0）：每N天重置一次销售计数
+- 阈值数组和价值数组必须一一对应
+- 规则：
+  - 销量 < 最小阈值 → 使用第一档价格
+  - 销量 ≥ 最大阈值 → 使用最后一档价格
+  - 销量介于阈值之间 → 使用对应档位价格
+- 范围：所有玩家共享销售统计
+- 示例：
+```
+{
+  "input": {
+    "item": "minecraft:stone",
+    "count": 1
+  },
+  "output": {
+    "type": "dynamic_pricing",
+    "item": "minecraft:diamond",
+    "dynamic_properties": {
+      "threshold": [64, 128, 256, 512],
+      "value": [4, 3, 2, 1],
+      "day":3
+    }
+  }
+}
+```
 
 ---
 

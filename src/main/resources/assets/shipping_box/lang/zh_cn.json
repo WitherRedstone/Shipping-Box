@@ -49,11 +49,18 @@
   "tooltip.shipping_box.exchange_format": "[%s个%s → %s个%s]",
   "tooltip.shipping_box.exchange_format_simple": "[%s个%s → %s]",
   "tooltip.shipping_box.exchange_format_weight": "[%s个%s → %s]",
+  "tooltip.shipping_box.exchange_format_dynamic": "[%s个%s → %s]",
   "tooltip.shipping_box.virtual_currency": "%s◎",
   "tooltip.shipping_box.unknown_item": "未知物品!",
   "tooltip.shipping_box.random_item": "随机物品",
   "tooltip.shipping_box.and_more": "以及更多",
   "tooltip.shipping_box.with_components": "(含组件)",
+  "tooltip.shipping_box.dynamic_pricing_info": "(数量:%s,已售:%s)",
+  "tooltip.shipping_box.reset_info_never_sold": "[重置周期:%s天]",
+  "tooltip.shipping_box.reset_info_waiting": "[已过%s天, 还需%s天重置]",
+  "tooltip.shipping_box.reset_info_ready": "[已过%s天, 可重置!]",
+  "tooltip.shipping_box.reset_info_never_reset": "[永不重置]",
+  "tooltip.shipping_box.reset_info_daily_reset": "[每日重置]",
 
   "attribute.shipping_box.selling_price_boost": "出售价格加成",
   "attribute.shipping_box.selling_price_boost.desc": "影响物品出售的价格"
