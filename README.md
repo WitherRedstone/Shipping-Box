@@ -97,6 +97,19 @@
         ]
       }
       ```
+### Item Attribute System
+
+#### Selling Price Boost Attribute
+- **Attribute Name**: `selling_price:selling_price_boost`
+- **Default Value**: `0.0`
+- **Maximum Value**: `10.0`
+- **Function Description**: This attribute affects item selling price as a percentage, higher values yield more when selling
+  - For example: `selling_price_boost = 0.5` means a 50% price increase
+  - `selling_price_boost = 2.0` means a 200% price increase
+- **Application Scope**: Applies to all exchangeable items, including:
+  - Item-to-item exchange mode
+  - Virtual currency exchange mode
+- **Configuration Method**: Currently unobtainable in normal game modes
 
 ### Input Configuration Types
 | Type               | Description                         | Example                                                                                  |
@@ -304,6 +317,19 @@ Used for numerical range matching (such as durability, fish length, etc.):
         ]
       }
       ```
+### 物品属性系统
+
+#### 售价加成属性
+- **属性名称**：`selling_price:selling_price_boost`
+- **默认值**：`0.0`
+- **最大值**：`10.0`
+- **功能说明**：该属性以百分比形式影响物品售价，数值越高，出售所得越多
+  - 例如：`selling_price_boost = 0.5` 表示售价提升 50%
+  - `selling_price_boost = 2.0` 表示售价提升 200%
+- **应用范围**：适用于所有可兑换物品，包括：
+  - 物品兑换物品模式
+  - 虚拟货币兑换模式
+- **配置方式**：暂时无法在常规模式下获得
 
 ### 输入配置类型
 | 类型      | 说明         | 示例                                                                                       |
