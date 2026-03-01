@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,6 +48,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     /** 存储待发送的错误信息 */
     private static final List<String> pendingErrorMessages = new ArrayList<>();
+
     /**
      * 准备阶段：从资源配置中加载并解析兑换规则
      *
@@ -57,14 +59,13 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     @Override
     protected List<ExchangeRule> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
         List<ExchangeRule> rules = new ArrayList<>();
-        List<String> currentErrors = new ArrayList<>(); // 当前加载会话的错误
+        List<String> currentErrors = new ArrayList<>();
 
         try {
             // 遍历所有匹配的资源配置文件
-            for (ResourceLocation resourceLocation : resourceManager.listResources(
-                    CONFIG_FOLDER,
-                    path -> path.getPath().endsWith(".json")).keySet()) {
+            var resources = resourceManager.listResources(CONFIG_FOLDER, path -> path.getPath().endsWith(".json"));
 
+            for (ResourceLocation resourceLocation : resources.keySet()) {
                 try {
                     // 正确处理Optional<Resource>
                     Optional<Resource> resourceOptional = resourceManager.getResource(resourceLocation);
@@ -79,42 +80,37 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
                             // 解析规则数组
                             if (json.has("rules") && json.get("rules").isJsonArray()) {
+                                JsonArray rulesArray = json.getAsJsonArray("rules");
+
                                 int ruleIndex = 0;
-                                for (JsonElement element : json.getAsJsonArray("rules")) {
+                                for (JsonElement element : rulesArray) {
                                     try {
-                                        ExchangeRule rule = parseRule(element.getAsJsonObject());
+                                        JsonObject ruleObj = element.getAsJsonObject();
+
+                                        ExchangeRule rule = parseRule(ruleObj);
+
                                         if (validateRule(rule)) {
                                             rules.add(rule);
                                         } else {
-                                            // 使用本地化键
-                                            currentErrors.add(Component.translatable("message.shipping_box.recipe_validation_failed",
-                                                    ruleIndex + 1, resourceLocation.getPath()).getString());
+                                            currentErrors.add("Rule " + (ruleIndex + 1) + " validation failed in " + resourceLocation.getPath());
                                         }
                                     } catch (Exception e) {
-                                        // 使用本地化键
-                                        currentErrors.add(Component.translatable("message.shipping_box.recipe_parse_error",
-                                                ruleIndex + 1, e.getMessage(), resourceLocation.getPath()).getString());
+                                        currentErrors.add("Rule " + (ruleIndex + 1) + " parse error: " + e.getMessage() + " in " + resourceLocation.getPath());
                                     }
                                     ruleIndex++;
                                 }
                             } else {
-                                // 使用本地化键
-                                currentErrors.add(Component.translatable("message.shipping_box.missing_rules_array",
-                                        resourceLocation.getPath()).getString());
+                                currentErrors.add("Missing 'rules' array in " + resourceLocation.getPath());
                             }
                         }
                     }
                 } catch (Exception e) {
-                    // 使用本地化键
-                    currentErrors.add(Component.translatable("message.shipping_box.resource_load_error",
-                            resourceLocation.getPath(), e.getMessage()).getString());
+                    currentErrors.add("Resource load error for " + resourceLocation.getPath() + ": " + e.getMessage());
                 }
             }
 
         } catch (Exception e) {
-            // 使用本地化键
-            currentErrors.add(Component.translatable("message.shipping_box.scan_error",
-                    e.getMessage()).getString());
+            currentErrors.add("Scan error: " + e.getMessage());
         }
 
         // 将错误信息添加到待发送列表
@@ -205,7 +201,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         if (inputObj.has("tag")) {
             input.setTag(inputObj.get("tag").getAsString());
         }
-        // 支持物品ID（可能包含内联组件）
+        // 支持物品ID
         else if (inputObj.has("item")) {
             input.setItem(inputObj.get("item").getAsString());
         }
@@ -238,19 +234,14 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     private ExchangeRule.OutputItem parseOutputItem(JsonObject outputObj) {
         ExchangeRule.OutputItem output = new ExchangeRule.OutputItem();
 
-        // 处理虚拟货币标识符（优先级最高）
-        if (outputObj.has("coin") && outputObj.get("coin").getAsBoolean()) {
-            output.setCoin(true);
-            if (outputObj.has("count")) {
-                int count = outputObj.get("count").getAsInt();
-                output.setCount(count);
-            }
-            return output; // 虚拟货币模式下不需要其他字段
-        }
-
-        // 处理动态定价模式
+        // 首先检查是否为动态定价模式（优先处理）
         if (outputObj.has("type") && "dynamic_pricing".equals(outputObj.get("type").getAsString())) {
             output.setType("dynamic_pricing");
+
+            // 检查是否为动态定价+虚拟货币模式
+            if (outputObj.has("coin") && outputObj.get("coin").getAsBoolean()) {
+                output.setCoin(true);
+            }
 
             if (outputObj.has("item")) {
                 output.setItem(outputObj.get("item").getAsString());
@@ -259,8 +250,8 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             // 解析动态定价属性
             if (outputObj.has("dynamic_properties") && outputObj.get("dynamic_properties").isJsonObject()) {
                 JsonObject dynamicPropsObj = outputObj.getAsJsonObject("dynamic_properties");
-                ExchangeRule.DynamicPricingProperties dynamicProps =
-                        new ExchangeRule.DynamicPricingProperties();
+
+                ExchangeRule.DynamicPricingProperties dynamicProps = new ExchangeRule.DynamicPricingProperties();
 
                 // 解析阈值数组
                 if (dynamicPropsObj.has("threshold") && dynamicPropsObj.get("threshold").isJsonArray()) {
@@ -290,6 +281,21 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 output.setDynamicProperties(dynamicProps);
             }
 
+            // 如果是虚拟货币模式，设置默认数量
+            if (output.isCoin() && outputObj.has("count")) {
+                output.setCount(outputObj.get("count").getAsInt());
+            }
+
+            return output;
+        }
+
+        // 处理纯虚拟货币模式（非动态定价）
+        if (outputObj.has("coin") && outputObj.get("coin").getAsBoolean()) {
+            output.setCoin(true);
+            if (outputObj.has("count")) {
+                int count = outputObj.get("count").getAsInt();
+                output.setCount(count);
+            }
             return output;
         }
 
@@ -311,7 +317,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 output.setItems(weightedItems);
             }
 
-            return output; // 权重模式下不需要其他字段
+            return output;
         }
 
         // 普通物品模式
@@ -319,7 +325,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             output.setItem(outputObj.get("item").getAsString());
         }
 
-        // 正确处理components字段的类型
+        // 处理components字段的类型
         if (outputObj.has("components")) {
             JsonElement componentsElement = outputObj.get("components");
             if (componentsElement.isJsonObject()) {
@@ -426,10 +432,32 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     private boolean validateOutputItem(ExchangeRule.OutputItem output) {
         // 虚拟货币模式下不需要验证物品ID
         if (output.isCoin()) {
-            return true;
+            // 对于动态定价+虚拟货币模式，只需要验证动态属性
+            if ("dynamic_pricing".equals(output.getType())) {
+                if (output.getDynamicProperties() == null) {
+                    return false;
+                }
+
+                int[] thresholds = output.getDynamicProperties().getThreshold();
+                int[] values = output.getDynamicProperties().getValue();
+
+                if (thresholds == null || values == null || thresholds.length != values.length) {
+                    return false;
+                }
+
+                // 验证阈值数组是否递增
+                for (int i = 1; i < thresholds.length; i++) {
+                    if (thresholds[i] <= thresholds[i-1]) {
+                        return false;
+                    }
+                }
+
+                return true; // 虚拟货币模式不需要验证具体物品
+            }
+            return true; // 普通虚拟货币模式
         }
 
-        // 动态定价模式验证
+        // 动态定价模式验证（非虚拟货币）
         if ("dynamic_pricing".equals(output.getType())) {
             if (output.getItem() == null || output.getItem().isEmpty()) {
                 return false;
@@ -770,13 +798,50 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         if (output.isCoin()) {
             obj.addProperty("coin", true);
             obj.addProperty("count", output.getCount());
+
+            // 如果是动态定价+虚拟货币模式，也要保留type信息
+            if ("dynamic_pricing".equals(output.getType())) {
+                obj.addProperty("type", "dynamic_pricing");
+                // 注意：虚拟货币模式下item可以为null，不要强制添加
+
+                // 序列化动态定价属性
+                if (output.getDynamicProperties() != null) {
+                    JsonObject dynamicPropsObj = new JsonObject();
+                    ExchangeRule.DynamicPricingProperties props = output.getDynamicProperties();
+
+                    // 序列化阈值数组
+                    if (props.getThreshold() != null) {
+                        JsonArray thresholdArray = new JsonArray();
+                        for (int threshold : props.getThreshold()) {
+                            thresholdArray.add(threshold);
+                        }
+                        dynamicPropsObj.add("threshold", thresholdArray);
+                    }
+
+                    // 序列化价值数组
+                    if (props.getValue() != null) {
+                        JsonArray valueArray = new JsonArray();
+                        for (int value : props.getValue()) {
+                            valueArray.add(value);
+                        }
+                        dynamicPropsObj.add("value", valueArray);
+                    }
+
+                    // 序列化天数
+                    dynamicPropsObj.addProperty("day", props.getDay());
+
+                    obj.add("dynamic_properties", dynamicPropsObj);
+                }
+            }
             return obj;
         }
 
-        // 动态定价模式
+        // 动态定价模式（非虚拟货币）
         if ("dynamic_pricing".equals(output.getType()) && output.getDynamicProperties() != null) {
             obj.addProperty("type", "dynamic_pricing");
-            obj.addProperty("item", output.getItem());
+            if (output.getItem() != null) {
+                obj.addProperty("item", output.getItem());
+            }
 
             // 序列化动态定价属性
             JsonObject dynamicPropsObj = new JsonObject();
@@ -900,10 +965,48 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             if (obj.has("count")) {
                 output.setCount(obj.get("count").getAsInt());
             }
+
+            // 检查是否为动态定价+虚拟货币模式
+            if (obj.has("type") && "dynamic_pricing".equals(obj.get("type").getAsString())) {
+                output.setType("dynamic_pricing");
+
+                // 反序列化动态定价属性
+                if (obj.has("dynamic_properties") && obj.get("dynamic_properties").isJsonObject()) {
+                    JsonObject dynamicPropsObj = obj.getAsJsonObject("dynamic_properties");
+                    ExchangeRule.DynamicPricingProperties dynamicProps = new ExchangeRule.DynamicPricingProperties();
+
+                    // 反序列化阈值数组
+                    if (dynamicPropsObj.has("threshold") && dynamicPropsObj.get("threshold").isJsonArray()) {
+                        JsonArray thresholdArray = dynamicPropsObj.getAsJsonArray("threshold");
+                        int[] thresholds = new int[thresholdArray.size()];
+                        for (int i = 0; i < thresholdArray.size(); i++) {
+                            thresholds[i] = thresholdArray.get(i).getAsInt();
+                        }
+                        dynamicProps.setThreshold(thresholds);
+                    }
+
+                    // 反序列化价值数组
+                    if (dynamicPropsObj.has("value") && dynamicPropsObj.get("value").isJsonArray()) {
+                        JsonArray valueArray = dynamicPropsObj.getAsJsonArray("value");
+                        int[] values = new int[valueArray.size()];
+                        for (int i = 0; i < valueArray.size(); i++) {
+                            values[i] = valueArray.get(i).getAsInt();
+                        }
+                        dynamicProps.setValue(values);
+                    }
+
+                    // 反序列化天数
+                    if (dynamicPropsObj.has("day")) {
+                        dynamicProps.setDay(dynamicPropsObj.get("day").getAsInt());
+                    }
+
+                    output.setDynamicProperties(dynamicProps);
+                }
+            }
             return output;
         }
 
-        // 处理动态定价模式
+        // 处理动态定价模式（非虚拟货币）
         if (obj.has("type") && "dynamic_pricing".equals(obj.get("type").getAsString())) {
             output.setType("dynamic_pricing");
 

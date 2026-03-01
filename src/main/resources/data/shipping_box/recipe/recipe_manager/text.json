@@ -27,6 +27,36 @@
     },
     {
       "input": {
+        "item": "minecraft:cobblestone",
+        "count": 1
+      },
+      "output": {
+        "type": "dynamic_pricing",
+        "coin": true,
+        "dynamic_properties": {
+          "threshold": [64, 128, 256, 512],
+          "value": [10, 5, 3, 1],
+          "day":5
+        }
+      }
+    },
+    {
+      "input": {
+        "item": "minecraft:blackstone",
+        "count": 1
+      },
+      "output": {
+        "type": "dynamic_pricing",
+        "item": "minecraft:diamond",
+        "dynamic_properties": {
+          "threshold": [64, 128, 256, 512],
+          "value": [10, 5, 3, 1],
+          "day":-1
+        }
+      }
+    },
+    {
+      "input": {
         "item": "minecraft:dirt",
         "count": 1
       },

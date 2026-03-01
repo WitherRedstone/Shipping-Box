@@ -8,6 +8,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -293,10 +294,52 @@ public class ExchangeRule {
          */
         public ItemStack getResultStack() {
             try {
-                // 虚拟货币兑换模式
+                // 虚拟货币兑换模式（包括动态定价+虚拟货币模式）
                 if (this.coin) {
                     // 直接返回空物品堆
                     return ItemStack.EMPTY;
+                }
+
+                // 动态定价模式处理
+                if ("dynamic_pricing".equals(this.type) && this.dynamicProperties != null) {
+                    // 创建基础物品堆
+                    String itemId = item;
+                    String componentString = null;
+
+                    // 解析内联组件
+                    int componentStart = item.indexOf('[');
+                    int componentEnd = item.lastIndexOf(']');
+                    if (componentStart > 0 && componentEnd > componentStart) {
+                        itemId = item.substring(0, componentStart);
+                        componentString = item.substring(componentStart + 1, componentEnd);
+                    }
+
+                    ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
+                    if (itemResource == null) {
+                        return ItemStack.EMPTY;
+                    }
+
+                    Item resultItem = BuiltInRegistries.ITEM.get(itemResource);
+                    ItemStack resultStack = new ItemStack(resultItem, count);
+
+                    // 处理组件
+                    Object finalComponents = componentString != null ? componentString : components;
+                    if (finalComponents != null) {
+                        if (finalComponents instanceof JsonObject) {
+                            ExchangeRuleComponents.applyComponents(resultStack, (JsonObject) finalComponents);
+                        } else if (finalComponents instanceof String componentStr) {
+                            if (!componentStr.isEmpty()) {
+                                if (componentStr.trim().startsWith("{") && componentStr.trim().endsWith("}")) {
+                                    JsonObject jsonObject = JsonParser.parseString(componentStr).getAsJsonObject();
+                                    ExchangeRuleComponents.applyComponents(resultStack, jsonObject);
+                                } else {
+                                    ExchangeRuleComponents.applyComponents(resultStack, componentStr);
+                                }
+                            }
+                        }
+                    }
+
+                    return resultStack;
                 }
 
                 // 权重模式处理

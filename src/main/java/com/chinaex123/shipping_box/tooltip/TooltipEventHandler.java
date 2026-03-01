@@ -46,6 +46,13 @@ public class TooltipEventHandler {
                     tooltip.add(Component.literal("  ").append(info));
                 }
 
+                // 添加额外的行信息
+                if (!tooltipData.getAdditionalLines().isEmpty()) {
+                    for (Component additionalLine : tooltipData.getAdditionalLines()) {
+                        tooltip.add(Component.literal("  ").append(additionalLine));
+                    }
+                }
+
                 // 添加说明文字
                 tooltip.add(Component.empty());
                 tooltip.add(Component.translatable("tooltip.shipping_box.instruction"));

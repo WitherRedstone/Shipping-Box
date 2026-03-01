@@ -4,8 +4,6 @@ import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -124,33 +122,45 @@ public class DynamicPricingManager {
 
             // 检查是否为目标物品且为动态定价模式
             if ("dynamic_pricing".equals(output.getType()) &&
-                    output.getDynamicProperties() != null &&
-                    itemIdentifier.equals(output.getItem())) {
+                    output.getDynamicProperties() != null) {
 
-                int resetDay = output.getDynamicProperties().getDay();
+                // 对于虚拟货币模式，使用输入物品作为标识符进行匹配
+                String ruleItemIdentifier;
+                if (output.isCoin()) {
+                    // 虚拟货币模式使用输入物品作为标识符
+                    ruleItemIdentifier = rule.getInputs().get(0).getItem();
+                } else {
+                    // 普通动态定价模式使用输出物品作为标识符
+                    ruleItemIdentifier = output.getItem();
+                }
 
-                if (resetDay == -1) {
-                    // day = -1: 永不重置，只记录销售日期
-                    data.recordSaleDay(itemIdentifier);
-                    break;
-                } else if (resetDay == 0) {
-                    // day = 0: 每天重置
-                    data.resetCount(itemIdentifier);
-                    data.recordSaleDay(itemIdentifier);
-                    break;
-                } else if (resetDay > 0) {
-                    // day > 0: 按天数重置
-                    boolean shouldReset = data.shouldResetCount(itemIdentifier, resetDay);
+                // 检查是否匹配
+                if (itemIdentifier.equals(ruleItemIdentifier)) {
+                    int resetDay = output.getDynamicProperties().getDay();
 
-                    if (shouldReset) {
+                    if (resetDay == -1) {
+                        // day = -1: 永不重置，只记录销售日期
+                        data.recordSaleDay(itemIdentifier);
+                        break;
+                    } else if (resetDay == 0) {
+                        // day = 0: 每天重置
                         data.resetCount(itemIdentifier);
-                        // 重置后重新记录当前日期
                         data.recordSaleDay(itemIdentifier);
-                    } else {
-                        // 如果不需要重置，更新销售日期
-                        data.recordSaleDay(itemIdentifier);
+                        break;
+                    } else if (resetDay > 0) {
+                        // day > 0: 按天数重置
+                        boolean shouldReset = data.shouldResetCount(itemIdentifier, resetDay);
+
+                        if (shouldReset) {
+                            data.resetCount(itemIdentifier);
+                            // 重置后重新记录当前日期
+                            data.recordSaleDay(itemIdentifier);
+                        } else {
+                            // 如果不需要重置，更新销售日期
+                            data.recordSaleDay(itemIdentifier);
+                        }
+                        break; // 找到对应规则后退出循环
                     }
-                    break; // 找到对应规则后退出循环
                 }
             }
         }
@@ -191,25 +201,37 @@ public class DynamicPricingManager {
         for (ExchangeRule rule : rules) {
             ExchangeRule.OutputItem output = rule.getOutputItem();
             if ("dynamic_pricing".equals(output.getType()) &&
-                    output.getDynamicProperties() != null &&
-                    itemIdentifier.equals(output.getItem())) {
+                    output.getDynamicProperties() != null) {
 
-                int resetDay = output.getDynamicProperties().getDay();
-
-                if (resetDay == -1) {
-                    // 永不重置
-                    return -1;
-                } else if (resetDay == 0) {
-                    // 每天重置，剩余天数总是0（表示随时可以重置）
-                    return 0;
-                } else if (resetDay > 0) {
-                    // 按天数重置
-                    PricingData data = getPricingData();
-                    if (data != null) {
-                        return data.getResetRemainingDays(itemIdentifier, resetDay);
-                    }
+                // 对于虚拟货币模式，使用输入物品作为标识符进行匹配
+                String ruleItemIdentifier;
+                if (output.isCoin()) {
+                    // 虚拟货币模式使用输入物品作为标识符
+                    ruleItemIdentifier = rule.getInputs().getFirst().getItem();
+                } else {
+                    // 普通动态定价模式使用输出物品作为标识符
+                    ruleItemIdentifier = output.getItem();
                 }
-                break;
+
+                // 检查是否匹配
+                if (itemIdentifier.equals(ruleItemIdentifier)) {
+                    int resetDay = output.getDynamicProperties().getDay();
+
+                    if (resetDay == -1) {
+                        // 永不重置
+                        return -1;
+                    } else if (resetDay == 0) {
+                        // 每天重置，剩余天数总是0（表示随时可以重置）
+                        return 0;
+                    } else if (resetDay > 0) {
+                        // 按天数重置
+                        PricingData data = getPricingData();
+                        if (data != null) {
+                            return data.getResetRemainingDays(itemIdentifier, resetDay);
+                        }
+                    }
+                    break;
+                }
             }
         }
         return -1; // 未找到配置或无重置设置
