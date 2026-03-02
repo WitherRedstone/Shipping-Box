@@ -8,7 +8,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -224,7 +223,7 @@ public class ExchangeRule {
         private boolean coin = false; // 虚拟货币标识符
 
         // 权重相关字段
-        private String type; // 输出类型："single"(默认) 或 "weight"(权重模式) 或 "dynamic_pricing"(动态定价)
+        private String type = "item"; // 默认类型设为"item"而不是null
         private List<WeightedItem> items; // 权重物品列表
 
         // 动态定价相关字段
@@ -472,15 +471,16 @@ public class ExchangeRule {
                 return count;
             }
 
-            // 寻找合适的阈值区间
+            // 分段定价逻辑：从低到高检查阈值区间
             for (int i = 0; i < thresholds.length; i++) {
+                // 如果售出数量小于当前阈值，则使用对应的价值
                 if (soldCount < thresholds[i]) {
                     return values[i];
                 }
             }
 
-            // 如果超过所有阈值，使用最后一个价格
-            return values[values.length - 1];
+            // 如果售出数量大于等于所有阈值，使用最低价值
+            return values[values.length-1];
         }
     }
 }

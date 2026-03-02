@@ -54,24 +54,6 @@ public class DynamicPricingManager {
     public static void saveData() {}
 
     /**
-     * 获取指定物品的已售出数量
-     * <p>
-     * 通过物品标识符查询对应的销售统计数据。如果数据存储不可用，
-     * 则返回默认值0。
-     *
-     * @param itemIdentifier 物品标识符，用于定位特定物品的销售数据
-     * @return int 指定物品的已售出数量，如果数据不可用则返回0
-     */
-    public static int getSoldCount(String itemIdentifier) {
-        PricingData data = getPricingData();
-        if (data != null) {
-            int count = data.getCount(itemIdentifier);
-            return count;
-        }
-        return 0;
-    }
-
-    /**
      * 增加指定物品的售出数量并同步到所有客户端
      * <p>
      * 此方法负责更新指定物品的销售统计数据，并确保数据在所有客户端间同步。
@@ -86,9 +68,10 @@ public class DynamicPricingManager {
             // 在增加销售计数前检查是否需要重置
             checkAndResetIfNeeded(itemIdentifier);
 
-            int oldCount = data.getCount(itemIdentifier);
             data.addCount(itemIdentifier, count);
+
             int newCount = data.getCount(itemIdentifier);
+
             // 强制标记为脏数据以确保保存
             data.setDirty();
 
@@ -98,7 +81,24 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 检查并重置指定物品的销售计数（如果需要）
+     * 获取指定物品的已售出数量
+     * <p>
+     * 通过物品标识符查询对应的销售统计数据。如果数据存储不可用，
+     * 则返回默认值0。
+     *
+     * @param itemIdentifier 物品标识符，用于定位特定物品的销售数据
+     * @return int 指定物品的已售出数量，如果数据不可用则返回0
+     */
+    public static int getSoldCount(String itemIdentifier) {
+        PricingData data = getPricingData();
+        if (data != null) {
+            return data.getCount(itemIdentifier);
+        }
+        return 0;
+    }
+
+    /**
+     * 检查并重置指定物品的销售计数
      * <p>
      * 根据物品的动态定价规则配置，判断是否需要重置销售计数。
      * 支持三种重置模式：
@@ -278,6 +278,71 @@ public class DynamicPricingManager {
         PricingData data = getPricingData();
         if (data != null) {
             data.setData(new HashMap<>());
+        }
+    }
+
+    /**
+     * 获取指定物品的已售出数量（累计）- 带重置天数版本
+     *
+     * @param itemIdentifier 物品标识符
+     * @param resetDay 重置天数
+     * @return 已售出的累计数量
+     */
+    public static int getSoldCount(String itemIdentifier, int resetDay) {
+        // 如果重置天数为-1，表示永不清除，直接返回累计数量
+        if (resetDay == -1) {
+            return getSoldCount(itemIdentifier);
+        }
+
+        PricingData data = getPricingData();
+        if (data != null) {
+            // 检查是否需要重置计数
+            boolean shouldReset = data.shouldResetCount(itemIdentifier, resetDay);
+
+            if (shouldReset) {
+                // 重置计数
+                data.resetCount(itemIdentifier);
+                return 0;
+            }
+
+            return data.getCount(itemIdentifier);
+        }
+        return 0;
+    }
+
+    /**
+     * 增加指定物品的售出数量（累计）- 带重置天数版本
+     *
+     * @param itemIdentifier 物品标识符
+     * @param amount 增加的数量
+     * @param resetDay 重置天数
+     */
+    public static void addSoldCount(String itemIdentifier, int amount, int resetDay) {
+        // 如果重置天数为-1，表示永不清除，直接累加
+        if (resetDay == -1) {
+            addSoldCount(itemIdentifier, amount);
+            return;
+        }
+
+        PricingData data = getPricingData();
+        if (data != null) {
+            // 检查是否需要重置计数
+            boolean shouldReset = data.shouldResetCount(itemIdentifier, resetDay);
+
+            if (shouldReset) {
+                // 重置并重新开始计数
+                data.resetCount(itemIdentifier);
+                data.addCount(itemIdentifier, amount);
+            } else {
+                // 累加到现有计数
+                data.addCount(itemIdentifier, amount);
+            }
+
+            // 强制标记为脏数据以确保保存
+            data.setDirty();
+
+            // 同步到所有客户端
+            ShippingBoxNetworking.sendSoldCountSync(itemIdentifier, data.getCount(itemIdentifier));
         }
     }
 }

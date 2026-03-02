@@ -23,7 +23,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
+
 public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
+
     /** 存储物品列表 - 共享的公共存储 */
     private NonNullList<ItemStack> sharedItems;
 
@@ -286,7 +288,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
      * 能够正确处理时间重置、时间跳跃等各种边界情况
      */
     public void tick() {
-        if (level == null || level.isClientSide) return;
+        if (level == null || level.isClientSide) {
+            return;
+        }
 
         long dayTime = level.getDayTime();
         long timeOfDay = dayTime % 24000;
@@ -326,7 +330,18 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
                     lastExchangeDay = dayTime / 24000;
                     setChanged();
                 } catch (Exception e) {
-                    // 异常处理
+                    // 异常处理保持简洁
+                }
+            }
+            // 处理时间重置的特殊情况
+            else if (timeSinceLastExchange < 0) {
+                // 时间被重置到过去，强制进行兑换
+                try {
+                    performExchange(dayTime / 24000);
+                    lastExchangeDay = dayTime / 24000;
+                    setChanged();
+                } catch (Exception e) {
+                    // 异常处理保持简洁
                 }
             }
         }
@@ -420,7 +435,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity {
             // 遍历该玩家的所有结果物品
             for (ItemStack result : results) {
                 // 如果存储已满，停止分配
-                if (slotIndex >= playerStorage.size()) break;
+                if (slotIndex >= playerStorage.size()) {
+                    break;
+                }
 
                 int maxStackSize = result.getMaxStackSize();
                 int remainingCount = result.getCount();

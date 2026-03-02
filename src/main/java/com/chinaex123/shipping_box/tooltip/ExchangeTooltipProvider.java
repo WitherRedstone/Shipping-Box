@@ -48,11 +48,24 @@ public class ExchangeTooltipProvider {
                         Component mainInfo = buildMainExchangeInfo(input, output, rule);
                         exchangeInfo.add(mainInfo);
 
-                        // 为动态定价模式构建额外的重置信息行
+                        // 为动态定价模式构建额外的动态信息行
                         if ("dynamic_pricing".equals(output.getType()) && output.getDynamicProperties() != null) {
+                            Component dynamicInfo = buildDynamicInfoLine(output, rule);
+                            if (dynamicInfo != null) {
+                                additionalLines.add(dynamicInfo);
+                            }
+
+                            // 构建重置信息行
                             Component resetInfo = buildResetInfoLine(output, rule);
                             if (resetInfo != null) {
                                 additionalLines.add(resetInfo);
+                            }
+                        }
+                        // 为权重模式构建额外的物品列表信息行
+                        else if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
+                            Component weightItemsInfo = buildWeightItemsInfoLine(output);
+                            if (weightItemsInfo != null) {
+                                additionalLines.add(weightItemsInfo);
                             }
                         }
 
@@ -75,6 +88,111 @@ public class ExchangeTooltipProvider {
     }
 
     /**
+     * 根据兑换规则和输出物品类型确定正确的物品标识符
+     * <p>
+     * 不同的兑换模式使用不同的标识符：
+     * - 动态定价+虚拟货币模式：使用输入物品作为标识符
+     * - 普通动态定价模式：使用输出物品作为标识符
+     * - 其他模式：使用输入物品作为标识符
+     *
+     * @param output 输出物品对象
+     * @param rule 兑换规则对象
+     * @return 对应模式的物品标识符字符串
+     */
+    private static String getItemIdentifier(ExchangeRule.OutputItem output, ExchangeRule rule) {
+        if (output.isCoin() && "dynamic_pricing".equals(output.getType())) {
+            // 动态定价+虚拟货币模式使用输入物品作为标识符
+            return rule.getInputs().getFirst().getItem();
+        } else if ("dynamic_pricing".equals(output.getType())) {
+            // 普通动态定价模式使用输出物品作为标识符
+            return output.getItem();
+        } else {
+            // 其他模式使用输入物品
+            return rule.getInputs().getFirst().getItem();
+        }
+    }
+
+    /**
+     * 构建动态定价信息行组件
+     * <p>
+     * 根据兑换规则和输出物品类型生成动态定价的显示信息，
+     * 包括当前动态价格和已售出数量，使用统一的颜色风格进行显示。
+     *
+     * @param output 输出物品对象，包含动态定价配置信息
+     * @param rule 兑换规则对象，用于确定物品标识符
+     * @return 格式化的动态定价信息组件，如果发生异常则返回null
+     */
+    private static Component buildDynamicInfoLine(ExchangeRule.OutputItem output, ExchangeRule rule) {
+        try {
+            // 获取正确的物品标识符
+            String itemIdentifier = getItemIdentifier(output, rule);
+
+            int soldCount = getLatestSoldCount(itemIdentifier);
+            int dynamicCount = output.getDynamicCount(soldCount);
+
+            // 使用与主兑换信息相同的颜色风格
+            return Component.translatable("tooltip.shipping_box.dynamic_pricing_info",
+                            Component.literal(String.valueOf(dynamicCount)).withStyle(ChatFormatting.AQUA),
+                            Component.literal(String.valueOf(soldCount)).withStyle(ChatFormatting.AQUA))
+                    .withStyle(ChatFormatting.YELLOW);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 构建权重物品信息行组件
+     * <p>
+     * 根据权重物品列表生成格式化的显示信息，展示可能获得的物品名称。
+     * 最多显示3个物品，超出部分用"以及更多"提示代替，使用灰色方括号包装。
+     *
+     * @param output 输出物品对象，包含权重物品列表
+     * @return 格式化的权重物品信息组件，如果发生异常或无物品则返回null
+     */
+    private static Component buildWeightItemsInfoLine(ExchangeRule.OutputItem output) {
+        try {
+            List<ExchangeRule.WeightedItem> weightedItems = output.getItems();
+            if (weightedItems == null || weightedItems.isEmpty()) {
+                return null;
+            }
+
+            // 构建物品名称列表
+            List<Component> itemNames = new ArrayList<>();
+            int displayLimit = Math.min(3, weightedItems.size()); // 最多显示3个物品
+
+            for (int i = 0; i < displayLimit; i++) {
+                ExchangeRule.WeightedItem item = weightedItems.get(i);
+                Component itemName = getLocalizedItemName(item.getItem());
+                itemNames.add(itemName);
+            }
+
+            // 如果还有更多物品，添加"以及更多"提示
+            if (weightedItems.size() > 3) {
+                Component moreText = Component.translatable("tooltip.shipping_box.and_more")
+                        .withStyle(ChatFormatting.GRAY);
+                itemNames.add(moreText);
+            }
+
+            // 用斜杠连接所有物品名称，并用方括号包装
+            MutableComponent result = Component.empty();
+            result.append(Component.literal("[").withStyle(ChatFormatting.GRAY));
+
+            for (int i = 0; i < itemNames.size(); i++) {
+                result.append(itemNames.get(i));
+                if (i < itemNames.size() - 1) {
+                    result.append(Component.literal("/").withStyle(ChatFormatting.GRAY));
+                }
+            }
+
+            result.append(Component.literal("]").withStyle(ChatFormatting.GRAY));
+
+            return result;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * 构建主要的兑换信息显示组件
      * 根据不同的兑换模式（动态定价+虚拟货币、普通虚拟货币、普通物品）生成相应的tooltip显示
      *
@@ -89,15 +207,15 @@ public class ExchangeTooltipProvider {
 
             // 动态定价+虚拟货币模式
             if ("dynamic_pricing".equals(output.getType()) && output.isCoin()) {
-                String itemIdentifier = rule.getInputs().getFirst().getItem();
+                // 修复：使用输出物品作为标识符
+                String itemIdentifier = output.getItem();
                 int soldCount = getLatestSoldCount(itemIdentifier);
                 int dynamicValue = output.getDynamicCount(soldCount);
 
-                // 参数顺序：输入数量、输入物品名、动态值、虚拟货币文本
-                return Component.translatable("tooltip.shipping_box.exchange.format.coin_dynamic",
+                // 对于动态定价+虚拟货币模式，只显示"虚拟货币"而不显示具体数量
+                return Component.translatable("tooltip.shipping_box.exchange.format.coin_dynamic_no_count",
                                 Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
-                                Component.literal(String.valueOf(dynamicValue)).withStyle(ChatFormatting.AQUA),
                                 Component.translatable("tooltip.shipping_box.virtual_currency_info").withStyle(ChatFormatting.LIGHT_PURPLE))
                         .withStyle(ChatFormatting.WHITE);
             }
@@ -108,6 +226,25 @@ public class ExchangeTooltipProvider {
                                 inputName.copy().withStyle(ChatFormatting.GOLD),
                                 Component.literal(String.valueOf(output.getCount())).withStyle(ChatFormatting.AQUA),
                                 Component.translatable("tooltip.shipping_box.virtual_currency_unit").withStyle(ChatFormatting.LIGHT_PURPLE))
+                        .withStyle(ChatFormatting.WHITE);
+            }
+            // 动态定价模式（普通物品）
+            else if ("dynamic_pricing".equals(output.getType()) && output.getDynamicProperties() != null) {
+                // 动态定价模式：只显示输入→输出物品名称，不显示固定数量
+                Component outputName = getLocalizedItemName(output.getItem());
+                return Component.translatable("tooltip.shipping_box.exchange_format_no_count",
+                                Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
+                                inputName.copy().withStyle(ChatFormatting.GOLD),
+                                outputName.copy().withStyle(ChatFormatting.LIGHT_PURPLE))
+                        .withStyle(ChatFormatting.WHITE);
+            }
+            // 权重模式
+            else if ("weight".equals(output.getType()) && output.getItems() != null && !output.getItems().isEmpty()) {
+                // 权重模式：显示"随机物品"
+                return Component.translatable("tooltip.shipping_box.exchange_format_weight",
+                                Component.literal(String.valueOf(input.getCount())).withStyle(ChatFormatting.YELLOW),
+                                inputName.copy().withStyle(ChatFormatting.GOLD),
+                                Component.translatable("tooltip.shipping_box.random_item_display").withStyle(ChatFormatting.LIGHT_PURPLE))
                         .withStyle(ChatFormatting.WHITE);
             }
             // 普通物品模式
@@ -126,6 +263,31 @@ public class ExchangeTooltipProvider {
     }
 
     /**
+     * 根据兑换规则和输出物品类型确定正确的物品标识符
+     * <p>
+     * 不同的兑换模式使用不同的标识符：
+     * - 动态定价+虚拟货币模式：使用输入物品作为标识符
+     * - 普通动态定价模式：使用输出物品作为标识符
+     * - 其他模式：使用输入物品作为标识符
+     *
+     * @param output 输出物品对象
+     * @param rule 兑换规则对象
+     * @return 对应模式的物品标识符字符串
+     */
+    private static String getItemIdentifierForReset(ExchangeRule.OutputItem output, ExchangeRule rule) {
+        if (output.isCoin() && "dynamic_pricing".equals(output.getType())) {
+            // 动态定价+虚拟货币模式使用输入物品作为标识符
+            return rule.getInputs().getFirst().getItem();
+        } else if ("dynamic_pricing".equals(output.getType())) {
+            // 普通动态定价模式使用输出物品作为标识符
+            return output.getItem();
+        } else {
+            // 其他模式使用输入物品
+            return rule.getInputs().getFirst().getItem();
+        }
+    }
+
+    /**
      * 构建动态定价模式的重置信息行组件
      * 根据不同的重置模式和销售状态生成相应的重置周期显示信息
      *
@@ -135,8 +297,9 @@ public class ExchangeTooltipProvider {
      */
     private static Component buildResetInfoLine(ExchangeRule.OutputItem output, ExchangeRule rule) {
         try {
-            String itemIdentifier = rule.getInputs().getFirst().getItem();
-            int soldCount = getLatestSoldCount(itemIdentifier);
+            // 获取正确的物品标识符
+            String itemIdentifier = getItemIdentifierForReset(output, rule);
+
             int resetDay = output.getDynamicProperties().getDay();
             int daysSinceLastSale = DynamicPricingManager.getDaysSinceLastSale(itemIdentifier);
             int remainingDays = DynamicPricingManager.getResetRemainingDays(itemIdentifier);
@@ -202,19 +365,29 @@ public class ExchangeTooltipProvider {
             if ("dynamic_pricing".equals(output.getType()) && output.getDynamicProperties() != null) {
                 // 检查是否为动态定价+虚拟货币模式
                 if (output.isCoin()) {
-                    // 虚拟货币模式：只显示基础的虚拟货币信息
+                    // 虚拟货币模式：显示虚拟货币信息
                     String itemIdentifier = rule.getInputs().getFirst().getItem();
                     int soldCount = getLatestSoldCount(itemIdentifier);
                     int dynamicCount = output.getDynamicCount(soldCount);
 
-                    // 只显示基础信息，不包含重置信息
+                    // 显示完整的动态定价信息
                     return Component.literal("◎")
                             .withStyle(ChatFormatting.GOLD)
                             .append(Component.translatable("tooltip.shipping_box.dynamic_pricing_info", dynamicCount, soldCount)
                                     .withStyle(ChatFormatting.YELLOW));
                 } else {
-                    // 普通动态定价模式：只显示物品名称
-                    return getLocalizedItemName(output.getItem());
+                    // 普通动态定价模式
+                    String itemIdentifier = output.getItem();
+                    int soldCount = getLatestSoldCount(itemIdentifier);
+                    int dynamicCount = output.getDynamicCount(soldCount);
+
+                    Component itemName = getLocalizedItemName(itemIdentifier);
+                    Component dynamicInfo = Component.translatable("tooltip.shipping_box.dynamic_pricing_info",
+                            dynamicCount, soldCount).withStyle(ChatFormatting.YELLOW);
+
+                    return Component.empty()
+                            .append(itemName)
+                            .append(dynamicInfo);
                 }
             }
 
@@ -233,7 +406,6 @@ public class ExchangeTooltipProvider {
         }
         return Component.translatable("tooltip.shipping_box.unknown_item").withStyle(ChatFormatting.RED);
     }
-
 
     /**
      * 获取输出物品的本地化显示名称
@@ -509,11 +681,7 @@ public class ExchangeTooltipProvider {
             ResourceLocation itemId = ResourceLocation.parse(itemIdentifier);
             Item item = BuiltInRegistries.ITEM.get(itemId);
 
-            if (item != null) {
-                return item.getDescription();
-            } else {
-                return Component.literal(itemIdentifier);
-            }
+            return item.getDescription();
         } catch (Exception e) {
             return Component.literal(itemIdentifier);
         }

@@ -222,4 +222,25 @@ public class PricingData extends SavedData {
         }
         return resetDay - daysPassed;
     }
+
+    /**
+     * 记录重置日期
+     *
+     * @param itemIdentifier 物品标识符
+     * @param day 重置日期
+     */
+    public void recordResetDay(String itemIdentifier, long day) {
+        lastSaleDays.put(itemIdentifier, day);
+        setDirty();
+    }
+
+    /**
+     * 获取上次重置日期
+     *
+     * @param itemIdentifier 物品标识符
+     * @return 上次重置日期，如果没有记录则返回null
+     */
+    public Long getLastResetDay(String itemIdentifier) {
+        return lastSaleDays.get(itemIdentifier);
+    }
 }

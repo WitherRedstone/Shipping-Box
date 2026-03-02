@@ -1,6 +1,7 @@
 package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.ShippingBox;
+import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.google.gson.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -22,7 +23,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,15 +36,15 @@ import java.util.Optional;
  */
 @EventBusSubscriber(modid = ShippingBox.MOD_ID)
 public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<ExchangeRule>> {
+
     /** JSON解析器实例 */
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     /** 配置文件夹路径 */
-    private static final String CONFIG_FOLDER = "recipe/recipe_manager";
+    private static final String CONFIG_FOLDER = "exchange_rules";
 
     /** 当前生效的兑换规则列表 */
     private static List<ExchangeRule> currentRules = new ArrayList<>();
-
 
     /** 存储待发送的错误信息 */
     private static final List<String> pendingErrorMessages = new ArrayList<>();
@@ -241,10 +241,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             // 检查是否为动态定价+虚拟货币模式
             if (outputObj.has("coin") && outputObj.get("coin").getAsBoolean()) {
                 output.setCoin(true);
-            }
-
-            if (outputObj.has("item")) {
-                output.setItem(outputObj.get("item").getAsString());
+                // 虚拟货币模式下不需要item字段，value数组定义了数量
+            } else {
+                // 普通动态定价模式需要item字段
+                if (outputObj.has("item")) {
+                    output.setItem(outputObj.get("item").getAsString());
+                }
             }
 
             // 解析动态定价属性
@@ -279,11 +281,6 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 }
 
                 output.setDynamicProperties(dynamicProps);
-            }
-
-            // 如果是虚拟货币模式，设置默认数量
-            if (output.isCoin() && outputObj.has("count")) {
-                output.setCount(outputObj.get("count").getAsInt());
             }
 
             return output;
@@ -607,11 +604,14 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @return 匹配的规则，如果没有匹配则返回null
      */
     public static ExchangeRule findMatchingRule(List<ItemStack> availableStacks) {
-        for (ExchangeRule rule : ExchangeRecipeManager.getRules()) {
+        for (int i = 0; i < currentRules.size(); i++) {
+            ExchangeRule rule = currentRules.get(i);
+
             if (matchesRule(rule, availableStacks)) {
                 return rule;
             }
         }
+
         return null;
     }
 
@@ -623,25 +623,42 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * @return 满足规则返回true，否则返回false
      */
     private static boolean matchesRule(ExchangeRule rule, List<ItemStack> availableStacks) {
-        boolean[] matched = new boolean[rule.getInputs().size()];
+        // 为每个输入物品创建计数器
+        int[] requiredCounts = new int[rule.getInputs().size()];
+        boolean[] satisfied = new boolean[rule.getInputs().size()];
 
-        // 检查每个所需的输入物品
+        // 初始化所需数量
         for (int i = 0; i < rule.getInputs().size(); i++) {
-            ExchangeRule.InputItem required = rule.getInputs().get(i);
+            requiredCounts[i] = rule.getInputs().get(i).getCount();
+        }
 
-            for (ItemStack stack : availableStacks) {
-                if (!matched[i] && required.matches(stack) && stack.getCount() >= required.getCount()) {
-                    matched[i] = true;
-                    break;
+        // 遍历可用物品，尝试满足需求
+        for (ItemStack stack : availableStacks) {
+            if (stack.isEmpty()) continue;
+
+            // 检查这个物品能否满足任何未满足的需求
+            for (int i = 0; i < rule.getInputs().size(); i++) {
+                if (!satisfied[i] && rule.getInputs().get(i).matches(stack)) {
+                    int canConsume = Math.min(stack.getCount(), requiredCounts[i]);
+                    requiredCounts[i] -= canConsume;
+
+                    if (requiredCounts[i] <= 0) {
+                        satisfied[i] = true;
+                    }
+                    break; // 一个物品只能满足一个需求
                 }
             }
         }
 
-        // 确保所有输入物品都已匹配
-        for (boolean m : matched) {
-            if (!m) return false;
+        // 检查所有需求是否都满足
+        boolean allSatisfied = true;
+        for (int i = 0; i < rule.getInputs().size(); i++) {
+            if (!satisfied[i]) {
+                allSatisfied = false;
+            }
         }
-        return true;
+
+        return allSatisfied;
     }
 
     /**
@@ -806,30 +823,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
                 // 序列化动态定价属性
                 if (output.getDynamicProperties() != null) {
-                    JsonObject dynamicPropsObj = new JsonObject();
-                    ExchangeRule.DynamicPricingProperties props = output.getDynamicProperties();
-
-                    // 序列化阈值数组
-                    if (props.getThreshold() != null) {
-                        JsonArray thresholdArray = new JsonArray();
-                        for (int threshold : props.getThreshold()) {
-                            thresholdArray.add(threshold);
-                        }
-                        dynamicPropsObj.add("threshold", thresholdArray);
-                    }
-
-                    // 序列化价值数组
-                    if (props.getValue() != null) {
-                        JsonArray valueArray = new JsonArray();
-                        for (int value : props.getValue()) {
-                            valueArray.add(value);
-                        }
-                        dynamicPropsObj.add("value", valueArray);
-                    }
-
-                    // 序列化天数
-                    dynamicPropsObj.addProperty("day", props.getDay());
-
+                    JsonObject dynamicPropsObj = serializeDynamicPricingProperties(output.getDynamicProperties());
                     obj.add("dynamic_properties", dynamicPropsObj);
                 }
             }
@@ -844,30 +838,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             }
 
             // 序列化动态定价属性
-            JsonObject dynamicPropsObj = new JsonObject();
-            ExchangeRule.DynamicPricingProperties props = output.getDynamicProperties();
-
-            // 序列化阈值数组
-            if (props.getThreshold() != null) {
-                JsonArray thresholdArray = new JsonArray();
-                for (int threshold : props.getThreshold()) {
-                    thresholdArray.add(threshold);
-                }
-                dynamicPropsObj.add("threshold", thresholdArray);
-            }
-
-            // 序列化价值数组
-            if (props.getValue() != null) {
-                JsonArray valueArray = new JsonArray();
-                for (int value : props.getValue()) {
-                    valueArray.add(value);
-                }
-                dynamicPropsObj.add("value", valueArray);
-            }
-
-            // 序列化天数
-            dynamicPropsObj.addProperty("day", props.getDay());
-
+            JsonObject dynamicPropsObj = serializeDynamicPricingProperties(output.getDynamicProperties());
             obj.add("dynamic_properties", dynamicPropsObj);
             return obj;
         }
@@ -913,6 +884,40 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
 
         return obj;
+    }
+
+    /**
+     * 序列化动态定价属性为JSON对象
+     * 将ExchangeRule.DynamicPricingProperties实例转换为JSON格式
+     *
+     * @param props 要序列化的动态定价属性实例
+     * @return 包含动态定价配置的JSON对象
+     */
+    private static JsonObject serializeDynamicPricingProperties(ExchangeRule.DynamicPricingProperties props) {
+        JsonObject dynamicPropsObj = new JsonObject();
+
+        // 序列化阈值数组
+        if (props.getThreshold() != null) {
+            JsonArray thresholdArray = new JsonArray();
+            for (int threshold : props.getThreshold()) {
+                thresholdArray.add(threshold);
+            }
+            dynamicPropsObj.add("threshold", thresholdArray);
+        }
+
+        // 序列化价值数组
+        if (props.getValue() != null) {
+            JsonArray valueArray = new JsonArray();
+            for (int value : props.getValue()) {
+                valueArray.add(value);
+            }
+            dynamicPropsObj.add("value", valueArray);
+        }
+
+        // 序列化天数
+        dynamicPropsObj.addProperty("day", props.getDay());
+
+        return dynamicPropsObj;
     }
 
     /**

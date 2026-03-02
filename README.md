@@ -77,7 +77,7 @@
 
 ## III. Configuration Method
 - **Rule File Path**
-  - "Exchange rules" must be placed in the `data/shipping_box/recipe/recipe_manager/` folder
+  - "Exchange rules" must be placed in the `data/shipping_box/exchange_rules/` folder
   - **File Format**
   - Files must be JSON, multiple JSON files are supported
   - **Rule Structure**: Use `"rules"` array containing multiple exchange rules
@@ -297,7 +297,7 @@ Used for numerical range matching (such as durability, fish length, etc.):
 
 ## 三、配置方式
 - **规则文件路径**
-  - 需要将“兑换规则”放入到`data/shipping_box/recipe/recipe_manager/`文件夹内
+  - 需要将“兑换规则”放入到`data/shipping_box/exchange_rules/`文件夹内
   - **文件格式**
   - 文件必须是json，可以有多个json
   - **规则结构**：使用`"rules"`数组包含多条兑换规则

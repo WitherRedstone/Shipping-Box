@@ -86,10 +86,8 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @param <T>   方块实体泛型参数
      * @return 方块实体更新器，如果条件不匹配则返回null
      */
-    @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        // 简单直接的实现
         if (type == ModBlockEntities.AUTOMATED_SHIPPING_BOX.get() && !level.isClientSide) {
             return (level1, pos, state1, blockEntity) -> ((AutoShippingBoxBlockEntity) blockEntity).tick();
         }
@@ -243,11 +241,15 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     }
 
                     // 掉落方块
-                    //Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), dropStack);
                     Block.popResource(level, pos, dropStack);
 
                     // 掉落存储的物品
-                    Containers.dropContents(level, pos, autoBox);
+                    for (int i = 0; i < autoBox.getContainerSize(); i++) {
+                        ItemStack stack = autoBox.getItemHandler().getStackInSlot(i);
+                        if (!stack.isEmpty()) {
+                            Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
+                        }
+                    }
 
                     // 直接返回，避免重复掉落
                     return;

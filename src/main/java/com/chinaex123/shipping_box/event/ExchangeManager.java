@@ -2,6 +2,7 @@ package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.modCompat.ViScriptShop.ViScriptShopUtil;
+import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -11,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
 
@@ -40,9 +42,9 @@ public class ExchangeManager {
         }
 
         List<ItemStack> results = new ArrayList<>();
-        boolean exchanged; // 标记是否已发生兑换
-        int totalVirtualCurrency = 0; // 记录总的虚拟货币数量
-        boolean hasValidExchange = false; // 标记是否有有效的兑换发生
+        boolean exchanged;
+        int totalVirtualCurrency = 0;
+        boolean hasValidExchange = false;
 
         // 执行兑换逻辑
         do {
@@ -52,7 +54,7 @@ public class ExchangeManager {
             if (rule != null) {
                 // 检查如果是虚拟货币兑换但模组未加载，则完全跳过处理
                 if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
-                    return; // 直接返回，不处理任何物品
+                    return;
                 }
 
                 int maxExchanges = getMaxExchanges(rule, currentItems);
@@ -63,60 +65,77 @@ public class ExchangeManager {
                         currentItems = ExchangeRecipeManager.consumeInputs(rule, currentItems);
                     }
 
-                    // 处理输出 - 重新排列条件判断顺序，优先处理动态定价模式
-                    if ("dynamic_pricing".equals(rule.getOutputItem().getType()) &&
+                    // 处理输出 - 重新排列条件判断顺序
+                    if (rule.getOutputItem().isCoin() &&
+                            "dynamic_pricing".equals(rule.getOutputItem().getType()) &&
                             rule.getOutputItem().getDynamicProperties() != null) {
 
-                        // 修复：对于虚拟货币模式，使用输入物品作为标识符
-                        String itemIdentifier;
-                        if (rule.getOutputItem().isCoin()) {
-                            // 虚拟货币模式使用输入物品作为标识符
-                            itemIdentifier = rule.getInputs().get(0).getItem();
-                        } else {
-                            // 普通动态定价模式使用输出物品作为标识符
-                            itemIdentifier = rule.getOutputItem().getItem();
+                        // 动态定价+虚拟货币模式
+                        // 修复：使用输入物品作为标识符
+                        String itemIdentifier = rule.getInputs().getFirst().getItem();
+
+                        // 获取重置天数配置
+                        int resetDay = rule.getOutputItem().getDynamicProperties().getDay();
+
+                        // 获取当前累计售出数量（使用带重置天数的版本）
+                        int currentSoldCount = DynamicPricingManager.getSoldCount(itemIdentifier, resetDay);
+
+                        // 逐个物品计算虚拟货币数量（累计阈值机制）
+                        int totalVirtualCurrencyCount = 0;
+                        int itemsToProcess = maxExchanges; // 虚拟货币模式下每次兑换就是1个单位
+
+                        for (int i = 0; i < itemsToProcess; i++) {
+                            // 为每个单位单独计算基于当前累计数量的单价
+                            int dynamicCount = rule.getOutputItem().getDynamicCount(currentSoldCount + i);
+                            totalVirtualCurrencyCount += dynamicCount;
                         }
 
-                        // 获取已售出数量
-                        int soldCount = DynamicPricingManager.getSoldCount(itemIdentifier);
+                        // 更新累计售出数量（增加这一批的数量）
+                        DynamicPricingManager.addSoldCount(itemIdentifier, itemsToProcess, resetDay);
 
-                        // 检查是否为动态定价+虚拟货币模式
-                        if (rule.getOutputItem().isCoin()) {
-                            // 调用getDynamicCount方法
-                            int virtualCurrencyValue = rule.getOutputItem().getDynamicCount(soldCount);
+                        // 应用属性加成到总数量
+                        int enhancedCount = applySellingPriceBoost(totalVirtualCurrencyCount, level, boundPlayerUUID);
+                        totalVirtualCurrency += enhancedCount;
 
-                            // 计算基础数量
-                            int baseCount = virtualCurrencyValue * maxExchanges;
-
-                            // 应用属性加成
-                            int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
-
-                            totalVirtualCurrency += enhancedCount;
-
-                            // 更新销售统计
-                            DynamicPricingManager.addSoldCount(itemIdentifier, maxExchanges);
-                        } else {
-                            // 普通动态定价模式
-                            int dynamicCount = rule.getOutputItem().getDynamicCount(soldCount);
-
-                            // 更新销售统计
-                            DynamicPricingManager.addSoldCount(itemIdentifier, maxExchanges);
-
-                            // 生成输出物品
-                            ItemStack output = rule.getOutputItem().getResultStack().copy();
-                            if (!output.isEmpty()) {
-                                int baseCount = dynamicCount * maxExchanges;
-                                int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
-                                output.setCount(enhancedCount);
-                                results.add(output);
-                            }
-                        }
                     } else if (rule.getOutputItem().isCoin()) {
-                        // 虚拟货币模式：累加货币数量，应用属性加成
+                        // 普通虚拟货币模式：使用固定数量
                         int baseCount = rule.getOutputItem().getCount() * maxExchanges;
                         // 应用属性加成
                         int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
                         totalVirtualCurrency += enhancedCount;
+
+                    } else if ("dynamic_pricing".equals(rule.getOutputItem().getType()) &&
+                            rule.getOutputItem().getDynamicProperties() != null) {
+                        // 动态定价模式处理 - 逐个物品计算以支持跨阈值
+                        String itemIdentifier = rule.getOutputItem().getItem();
+
+                        // 获取重置天数配置
+                        int resetDay = rule.getOutputItem().getDynamicProperties().getDay();
+
+                        // 获取当前累计售出数量（使用带重置天数的版本）
+                        int currentSoldCount = DynamicPricingManager.getSoldCount(itemIdentifier, resetDay);
+
+                        // 逐个物品计算输出数量
+                        int totalOutputCount = 0;
+                        int itemsToProcess = rule.getOutputItem().getCount() * maxExchanges;
+
+                        for (int i = 0; i < itemsToProcess; i++) {
+                            // 为每个物品单独计算基于当前累计数量的单价
+                            int dynamicCount = rule.getOutputItem().getDynamicCount(currentSoldCount + i);
+                            totalOutputCount += dynamicCount;
+                        }
+
+                        // 更新累计售出数量（增加这一批的数量）
+                        DynamicPricingManager.addSoldCount(itemIdentifier, itemsToProcess, resetDay);
+
+                        // 生成输出物品
+                        ItemStack output = rule.getOutputItem().getResultStack().copy();
+                        if (!output.isEmpty()) {
+                            // 应用属性加成
+                            int enhancedCount = applySellingPriceBoost(totalOutputCount, level, boundPlayerUUID);
+                            output.setCount(enhancedCount);
+                            results.add(output);
+                        }
                     } else if ("weight".equals(rule.getOutputItem().getType()) &&
                             rule.getOutputItem().getItems() != null &&
                             !rule.getOutputItem().getItems().isEmpty()) {
@@ -131,10 +150,19 @@ public class ExchangeManager {
                                 results.add(weightedOutput);
                             }
                         }
+                    } else {
+                        // 普通物品模式 - 处理 type 为 null 或 "item" 的情况
+                        ItemStack output = rule.getOutputItem().getResultStack().copy();
+                        if (!output.isEmpty()) {
+                            int baseCount = rule.getOutputItem().getCount() * maxExchanges;
+                            int enhancedCount = applySellingPriceBoost(baseCount, level, boundPlayerUUID);
+                            output.setCount(enhancedCount);
+                            results.add(output);
+                        }
                     }
 
                     exchanged = true;
-                    hasValidExchange = true; // 标记发生了有效兑换
+                    hasValidExchange = true;
                 }
             }
         } while (exchanged);
@@ -213,6 +241,16 @@ public class ExchangeManager {
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
                     0.5F, 1.0F);
+
+            // 发送兑换成功消息到绑定玩家
+            if (boundPlayerUUID != null) {
+                ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
+                if (player != null) {
+                    // 发送成功提示消息包
+                    ShippingBoxNetworking.ShowSuccessMessage successPacket = new ShippingBoxNetworking.ShowSuccessMessage();
+                    PacketDistributor.sendToPlayer(player, successPacket);
+                }
+            }
         }
     }
 
@@ -257,11 +295,14 @@ public class ExchangeManager {
             double enhancedAmount = baseCount * (1.0 + boost);
 
             // 智能取整：小于等于5向下取整，大于5向上取整
+            int result;
             if (enhancedAmount <= 5.0) {
-                return (int) Math.floor(enhancedAmount);
+                result = (int) Math.floor(enhancedAmount);
             } else {
-                return (int) Math.ceil(enhancedAmount);
+                result = (int) Math.ceil(enhancedAmount);
             }
+
+            return result;
         } catch (Exception e) {
             return baseCount;
         }
