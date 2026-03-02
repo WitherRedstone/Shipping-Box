@@ -121,7 +121,7 @@ public class ShippingBox {
                 Capabilities.ItemHandler.BLOCK,
                 (level, pos, state, be, side) -> {
                     if (be instanceof AutoShippingBoxBlockEntity autoBox) {
-                        return autoBox.getCapabilityHandler(); // 使用新的能力提供者方法
+                        return autoBox.getCapabilityHandler();
                     }
                     return null;
                 },
