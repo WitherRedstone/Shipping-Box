@@ -15,15 +15,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.common.util.Lazy;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class AutoShippingBoxBlockEntity extends BlockEntity implements MenuProvider {
 
-    private final ItemStackHandler itemHandler = new ItemStackHandler(54) {
+    private final AutoShippingBoxItemHandler itemHandler = new AutoShippingBoxItemHandler(54) {
         /**
          * 当容器内容发生变化时调用的回调方法
          * <p>
@@ -354,5 +356,118 @@ public class AutoShippingBoxBlockEntity extends BlockEntity implements MenuProvi
             return autoBox.getCapabilityHandler();
         }
         return null;
+    }
+
+    /**
+     * 自定义的物品处理器，控制漏斗交互行为
+     * 只允许放入物品，但只允许提取已兑换的物品
+     */
+    public class AutoShippingBoxItemHandler extends ItemStackHandler implements IItemHandlerModifiable {
+        public AutoShippingBoxItemHandler(int size) {
+            super(size);
+        }
+
+        /**
+         * 检查指定槽位是否允许放入指定物品
+         * <p>
+         * 此方法用于验证某个物品是否可以放入自动售货箱的指定槽位。
+         * 目前实现为允许放入所有类型的物品，不做任何限制。
+         *
+         * @param slot 要检查的槽位索引
+         * @param stack 要放入的物品堆栈
+         * @return 总是返回 true，表示允许放入任何物品
+         */
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            // 允许放入所有物品
+            return true;
+        }
+
+        /**
+         * 从指定槽位提取物品
+         * <p>
+         * 此方法用于从自动售货箱的指定槽位中提取物品。
+         * 只有已兑换的物品才能被提取，未兑换的原始输入物品无法被提取。
+         * 这个机制确保了漏斗和其他管道系统只能吸走兑换完成的物品。
+         *
+         * @param slot 要提取物品的槽位索引
+         * @param amount 要提取的最大物品数量
+         * @param simulate 是否为模拟提取，true 表示仅模拟不实际移除物品，false 表示实际提取
+         * @return 提取到的物品堆栈，如果无法提取则返回空物品堆栈
+         */
+        @Override
+        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+            // 检查是否为已兑换物品
+            if (!slotIsExchanged.getOrDefault(slot, false)) {
+                return ItemStack.EMPTY;
+            }
+
+            ItemStack stack = getStackInSlot(slot);
+
+            // 确保物品确实发生了变化（不是原始输入）
+            if (stack.isEmpty()) {
+                return ItemStack.EMPTY;
+            }
+
+            return super.extractItem(slot, amount, simulate);
+        }
+
+        /**
+         * 设置指定槽位的物品堆栈
+         * <p>
+         * 此方法用于在自动售货箱的指定槽位中放置物品。
+         * 当设置新物品时，会自动重置该槽位的兑换状态标记，
+         * 确保新放入的物品不会被误认为是已兑换的物品。
+         *
+         * @param slot 要设置的槽位索引
+         * @param stack 要放置的物品堆栈
+         */
+        @Override
+        public void setStackInSlot(int slot, @NotNull ItemStack stack) {
+            // 当设置物品时，重置兑换状态
+            slotIsExchanged.put(slot, false);
+            super.setStackInSlot(slot, stack);
+        }
+
+        /**
+         * 当容器内容发生变化时的回调方法
+         * <p>
+         * 此方法在物品栏中某个槽位的内容发生改变时被触发，
+         * 用于标记方块实体的状态已发生变化，需要保存到磁盘。
+         *
+         * @param slot 发生变化的槽位索引
+         */
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChanged();
+        }
+    }
+
+    /**
+     * 检查指定槽位是否包含已兑换的物品
+     * @param slot 槽位索引
+     * @return 如果该槽位包含已兑换物品则返回 true
+     */
+    public boolean isSlotExchanged(int slot) {
+        return slotIsExchanged.getOrDefault(slot, false);
+    }
+
+    /**
+     * 获取所有已兑换的槽位索引集合
+     * @return 已兑换槽位的 Set 集合
+     */
+    public Set<Integer> getExchangedSlots() {
+        return slotIsExchanged.entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * 获取所有槽位的兑换状态映射
+     * @return 槽位索引到兑换状态的映射
+     */
+    public Map<Integer, Boolean> getAllSlotExchangeStatus() {
+        return new HashMap<>(slotIsExchanged);
     }
 }

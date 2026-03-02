@@ -32,10 +32,11 @@ public class ShippingBox {
     public static final String MOD_ID = "shipping_box";
 
     public ShippingBox(IEventBus modEventBus, ModContainer modContainer) {
-        NeoForge.EVENT_BUS.register(this); // 注册当前类实例到NeoForge事件总线
         NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
 
+        modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
+
         ModCreativeTabs.register(modEventBus); // 注册自定义创造模式物品栏
         ModBlocks.register(modEventBus); // 注册方块
         ModItems.register(modEventBus); // 注册物品
@@ -114,7 +115,7 @@ public class ShippingBox {
      * @param event 能力注册事件对象，用于注册各种能力提供者
      */
     @SubscribeEvent
-    public static void registerCapabilities(RegisterCapabilitiesEvent event) {
+    public void registerCapabilities(RegisterCapabilitiesEvent event) {
         // 注册自动售货箱的能力
         event.registerBlock(
                 Capabilities.ItemHandler.BLOCK,
