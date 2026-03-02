@@ -171,13 +171,13 @@ public class ExchangeRule {
                     if (finalComponents instanceof String) {
                         return ExchangeRuleComponents.matchesComponents(stack, (String) finalComponents);
                     } else if (finalComponents instanceof JsonObject) {
-                        // 处理JsonObject类型的组件匹配 - 直接传递JsonObject对象
                         return ExchangeRuleComponents.matchesComponents(stack, (JsonObject) finalComponents);
                     }
                 }
 
                 return true;
             } catch (Exception e) {
+                e.printStackTrace();
                 return false;
             }
         }

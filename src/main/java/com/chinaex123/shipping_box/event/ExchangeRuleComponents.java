@@ -1,9 +1,6 @@
 package com.chinaex123.shipping_box.event;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
@@ -112,7 +109,7 @@ public class ExchangeRuleComponents {
      */
     public static boolean matchesComponents(ItemStack stack, JsonObject jsonObject) {
         try {
-            // 遍历JSON对象的每个条目
+            // 遍历 JSON 对象的每个条目
             for (var entry : jsonObject.entrySet()) {
                 String componentName = entry.getKey();
                 JsonElement componentValue = entry.getValue();
@@ -173,12 +170,14 @@ public class ExchangeRuleComponents {
     private static boolean matchesSingleComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
             ResourceLocation componentId = normalizeComponentId(componentName);
+
             if (componentId == null) {
                 return false;
             }
 
             // 获取组件类型
             DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+
             if (componentType == null) {
                 // 组件类型不存在，宽松匹配
                 return true;
@@ -186,6 +185,7 @@ public class ExchangeRuleComponents {
 
             // 获取物品的实际组件值
             Object actualValue = stack.get(componentType);
+
             if (actualValue == null) {
                 return false;
             }
@@ -208,7 +208,14 @@ public class ExchangeRuleComponents {
         try {
             // 对于简单类型，直接比较
             if (expectedValue.isJsonPrimitive()) {
-                return actualValue.toString().equals(expectedValue.getAsString());
+                String expectedString = expectedValue.getAsString();
+
+                // 检查是否为区间格式 [min,max] 或 (min,max)
+                if (isRangeFormat(expectedString)) {
+                    return matchesRange(actualValue, expectedString);
+                }
+
+                return actualValue.toString().equals(expectedString);
             }
 
             // 对于复杂对象，我们需要更智能的比较
@@ -217,14 +224,50 @@ public class ExchangeRuleComponents {
                 return compareComplexObject(actualValue, expectedObj);
             }
 
+            // 对于数组，进行特殊处理
+            if (expectedValue.isJsonArray()) {
+                return compareArrayValue(actualValue, expectedValue.getAsJsonArray());
+            }
+
             // 对于复杂对象，转换为字符串比较（作为后备方案）
             String expectedString = expectedValue.toString();
             return actualValue.toString().equals(expectedString);
         } catch (Exception e) {
-            return true;
+            return true; // 出错时宽松匹配
         }
     }
 
+    /**
+     * 比较数组值
+     *
+     * @param actualValue 实际的数组值
+     * @param expectedArray 期望的 JSON 数组
+     * @return 匹配返回 true，否则返回 false
+     */
+    private static boolean compareArrayValue(Object actualValue, JsonArray expectedArray) {
+        try {
+            // 如果实际值是列表或数组
+            if (actualValue instanceof java.util.List<?> actualList) {
+                // 检查数组中的每个元素
+                for (int i = 0; i < expectedArray.size(); i++) {
+                    JsonElement expectedElement = expectedArray.get(i);
+                    if (i >= actualList.size()) {
+                        return false;
+                    }
+                    Object actualElement = actualList.get(i);
+                    if (!compareComponentValuesFromJson(actualElement, expectedElement)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // 其他情况宽松匹配
+            return true;
+        } catch (Exception e) {
+            return true;
+        }
+    }
 
     /**
      * 比较复杂对象与JSON对象
@@ -236,7 +279,7 @@ public class ExchangeRuleComponents {
      */
     private static boolean compareComplexObject(Object actualValue, JsonObject expectedObj) {
         try {
-            // 获取对象的所有getter方法
+            // 获取对象的所有 getter 方法
             Class<?> clazz = actualValue.getClass();
             for (var entry : expectedObj.entrySet()) {
                 String fieldName = entry.getKey();
@@ -254,7 +297,7 @@ public class ExchangeRuleComponents {
                         return false;
                     }
                 } catch (NoSuchFieldException e) {
-                    // 如果没有直接字段，尝试getter方法
+                    // 如果没有直接字段，尝试 getter 方法
                     String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
                     try {
                         java.lang.reflect.Method getter = clazz.getMethod(getterName);
@@ -277,14 +320,60 @@ public class ExchangeRuleComponents {
 
     /**
      * 比较字段值（支持区间匹配）
-     * 处理不同类型值的比较逻辑，包括数值区间匹配
+     * 处理不同类型值的比较逻辑，包括 Optional、Reference、数值区间等
      *
      * @param actualFieldValue 实际字段值
-     * @param expectedFieldValue 期望的JSON元素值
-     * @return 匹配返回true，否则返回false
+     * @param expectedFieldValue 期望的 JSON 元素值
+     * @return 匹配返回 true，否则返回 false
      */
     private static boolean compareFieldValues(Object actualFieldValue, JsonElement expectedFieldValue) {
         try {
+            // 处理 Optional 类型
+            if (actualFieldValue instanceof Optional<?> optional) {
+                if (optional.isPresent()) {
+                    Object actualValue = optional.get();
+
+                    // 如果 Optional 中的值是 Reference 类型，尝试获取其 key
+                    String className = actualValue.getClass().getName();
+                    if (className.contains("Reference")) {
+                        try {
+                            java.lang.reflect.Method keyMethod = actualValue.getClass().getMethod("key");
+                            Object key = keyMethod.invoke(actualValue);
+
+                            // key 是 ResourceKey 类型，需要提取 location
+                            String keyString;
+                            if (key.toString().contains("ResourceKey")) {
+                                // 从 ResourceKey 中提取物品
+                                String keyStr = key.toString();
+                                int slashIndex = keyStr.lastIndexOf('/');
+                                if (slashIndex > 0 && keyStr.endsWith("]")) {
+                                    keyString = keyStr.substring(slashIndex + 1, keyStr.length() - 1).trim();
+                                } else {
+                                    keyString = key.toString().trim();
+                                }
+                            } else {
+                                keyString = key.toString().trim();
+                            }
+
+                            // 与期望值比较
+                            if (expectedFieldValue.isJsonPrimitive()) {
+                                String expectedString = expectedFieldValue.getAsString();
+                                // 比较 ResourceLocation
+                                return keyString.equals(expectedString);
+                            }
+                        } catch (Exception e) {
+                            // 提取失败，继续后续处理
+                        }
+                    }
+
+                    // 递归比较解包后的值
+                    return compareFieldValues(actualValue, expectedFieldValue);
+                } else {
+                    // Optional 为空
+                    return expectedFieldValue.isJsonNull() || !expectedFieldValue.getAsJsonObject().has("potion");
+                }
+            }
+
             if (expectedFieldValue.isJsonPrimitive()) {
                 String expectedString = expectedFieldValue.getAsString();
                 String actualString = actualFieldValue != null ? actualFieldValue.toString() : "null";
@@ -407,10 +496,23 @@ public class ExchangeRuleComponents {
      */
     private static boolean compareComponentValues(Object actualValue, String expectedValue) {
         try {
+            // 检查是否为区间格式
+            if (isRangeFormat(expectedValue)) {
+                return matchesRange(actualValue, expectedValue);
+            }
+
             // 处理不同类型的值比较
             return switch (actualValue) {
                 case String s -> s.equals(expectedValue.replace("\"", ""));
-                case Number number -> number.toString().equals(expectedValue);
+                case Number number -> {
+                    // 尝试数字比较
+                    try {
+                        double expectedNum = Double.parseDouble(expectedValue);
+                        yield Math.abs(number.doubleValue() - expectedNum) < 0.0001;
+                    } catch (NumberFormatException e) {
+                        yield number.toString().equals(expectedValue);
+                    }
+                }
                 case Boolean b -> b.toString().equals(expectedValue);
                 case null, default -> true; // 对于复杂对象，进行宽松匹配
             };
