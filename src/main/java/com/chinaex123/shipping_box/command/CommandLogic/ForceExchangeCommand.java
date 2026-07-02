@@ -46,12 +46,12 @@ public class ForceExchangeCommand {
 
             if (blockEntity instanceof ShippingBoxBlockEntity shippingBox) {
                 shippingBox.forceExchange();
-                player.displayClientMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
+                player.sendSystemMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
                         .withStyle(ChatFormatting.GOLD), true);
                 return 1;
             } else if (blockEntity instanceof AutoShippingBoxBlockEntity autoShippingBox) {
                 autoShippingBox.forceExchange();
-                player.displayClientMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
+                player.sendSystemMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
                         .withStyle(ChatFormatting.GOLD), true);
                 return 1;
             } else {

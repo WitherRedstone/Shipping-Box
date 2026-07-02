@@ -587,7 +587,7 @@ public class EditorIconCacheManager {
             // 填充整个图片
             for (int x = 0; x < size; x++) {
                 for (int y = 0; y < size; y++) {
-                    image.setPixelRGBA(x, y, color);
+                    image.setPixel(x, y, color);
                 }
             }
             // 编码为PNG

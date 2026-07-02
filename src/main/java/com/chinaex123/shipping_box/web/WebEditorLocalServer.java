@@ -14,7 +14,7 @@ import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -396,7 +396,7 @@ public final class WebEditorLocalServer {
 
             // 10. 重新加载规则
             if ("POST".equals(req.method) && "/api/reload".equals(path)) {
-                PacketDistributor.sendToServer(new PacketEditorReloadRequest());
+                ClientPacketDistributor.sendToServer(new PacketEditorReloadRequest());
                 writeBytes(out, 200, "application/json; charset=utf-8",
                         "{\"ok\":true}".getBytes(StandardCharsets.UTF_8));
                 return;
@@ -486,7 +486,7 @@ public final class WebEditorLocalServer {
         try {
             // 创建1x1透明图像
             NativeImage img = new NativeImage(NativeImage.Format.RGBA, 1, 1, false);
-            img.setPixelRGBA(0, 0, 0);
+            img.setPixel(0, 0, 0);
             Path tempFile = Files.createTempFile("sbox_transparent_", ".png");
             img.writeToFile(tempFile);
             byte[] result = Files.readAllBytes(tempFile);
@@ -596,7 +596,7 @@ public final class WebEditorLocalServer {
         String file = getRequestedFile(uri);
         String requestId = UUID.randomUUID().toString();
         CompletableFuture<WebEditorRequestTracker.Response> future = WebEditorRequestTracker.create(requestId);
-        PacketDistributor.sendToServer(new PacketEditorReadFile(requestId, file));
+        ClientPacketDistributor.sendToServer(new PacketEditorReadFile(requestId, file));
 
         // 等待服务器响应，超时5秒
         WebEditorRequestTracker.Response response;
@@ -657,7 +657,7 @@ public final class WebEditorLocalServer {
         String file = getRequestedFile(uri);
         String requestId = UUID.randomUUID().toString();
         CompletableFuture<WebEditorRequestTracker.Response> future = WebEditorRequestTracker.create(requestId);
-        PacketDistributor.sendToServer(new PacketEditorSaveRules(requestId, file, GSON.toJson(obj)));
+        ClientPacketDistributor.sendToServer(new PacketEditorSaveRules(requestId, file, GSON.toJson(obj)));
 
         // 等待响应
         WebEditorRequestTracker.Response response;

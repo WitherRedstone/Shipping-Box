@@ -36,7 +36,7 @@ public record PacketEditorReadFile(String requestId, String relativePath) implem
 
     public static void handle(PacketEditorReadFile packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.hasPermissions(2)) {
+            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.gameMode.isCreative()) {
                 if (context.player() instanceof ServerPlayer player) {
                     PacketDistributor.sendToPlayer(
                             player,

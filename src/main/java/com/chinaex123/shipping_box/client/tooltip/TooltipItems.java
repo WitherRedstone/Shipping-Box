@@ -4,10 +4,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.item.component.TooltipDisplay;
 
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /** 提示物品基类 **/
@@ -34,10 +34,12 @@ public class TooltipItems extends Item {
      * @param flag Tooltip标志
      */
     @Override
-    public void appendHoverText(@NotNull ItemStack stack, @Nullable TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> adder, TooltipFlag flag) {
+        super.appendHoverText(stack, context, display, adder, flag);
         if (tooltipSupplier != null) {
-            tooltip.addAll(tooltipSupplier.get());
+            for (Component line : tooltipSupplier.get()) {
+                adder.accept(line);
+            }
         }
     }
 }

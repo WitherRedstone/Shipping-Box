@@ -64,7 +64,7 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
 
     public static void handle(PacketEditorSaveRules packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.hasPermissions(2)) {
+            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.gameMode.isCreative()) {
                 sendResult(context, packet.requestId(), false, "", "Permission denied");
                 return;
             }
@@ -102,7 +102,7 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
                 Files.createDirectories(file.getParent());
                 Files.writeString(file, packet.rulesJson(), StandardCharsets.UTF_8);
 
-                var server = serverPlayer.getServer();
+                var server = serverPlayer.level().getServer();
                 server.execute(() -> {
                     var commandSource = server.createCommandSourceStack().withPermission(4);
                     try {

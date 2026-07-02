@@ -7,7 +7,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -38,23 +37,24 @@ public class DimensionalPouchItem extends TooltipItems {
         ));
     }
 
+    /**
+     * MC 26.2:Item.use 不再返回 InteractionResultHolder,
+     * 改为返回 InteractionResult;手里的物品直接通过 setItemInHand 调整。
+     */
     @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-
+    public @NotNull InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
         if (level.isClientSide()) {
-            return InteractionResultHolder.success(stack);
+            return InteractionResult.SUCCESS;
         }
 
         if (player instanceof ServerPlayer serverPlayer) {
             // 26.2:硬币转换已内置到 Shipping Box 方块
-            // 提示玩家使用方块而非物品
             serverPlayer.sendSystemMessage(
                     Component.translatable("message.shipping_box.dimensional_pouch.use_block_hint"));
             serverPlayer.playSound(SoundEvents.NOTE_BLOCK_HARP.value());
         }
 
-        return InteractionResultHolder.success(stack);
+        return InteractionResult.SUCCESS;
     }
 
     /**

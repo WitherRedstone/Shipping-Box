@@ -164,7 +164,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     autoBox.bindPlayer(boundPlayerUUID);
 
                     // 显示绑定信息，使用读取到的玩家名字
-                    player.displayClientMessage(
+                    player.sendSystemMessage(
                             Component.translatable("message.shipping_box.auto_box_already_bound",
                                     Component.literal(boundPlayerName).withStyle(style -> style.withColor(0xFFAA00))),
                             true
@@ -173,7 +173,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     // ========== 情况2：没有绑定信息（全新放置） ==========
                     // 将当前放置玩家绑定到该自动售货箱
                     autoBox.bindPlayer(player.getUUID());
-                    player.displayClientMessage(
+                    player.sendSystemMessage(
                             Component.translatable("message.shipping_box.auto_box_bound",
                                     player.getName().copy().withStyle(style -> style.withColor(0xFFAA00))),
                             true
