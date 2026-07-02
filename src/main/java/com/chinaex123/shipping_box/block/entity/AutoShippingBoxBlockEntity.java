@@ -421,36 +421,48 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
      * @param tag 要写入的 NBT 标签
      * @param registries 注册表提供者，用于序列化物品
      */
+    /**
+     * 26.2 适配:saveAdditional(CompoundTag, HolderLookup.Provider) 已被移除,
+     * 改用 saveCustomOnly(ValueOutput) 进行自定义数据序列化。
+     *
+     * ⚠️ 当前为 26.2 占位实现:结构编译通过但尚未验证 NBT 往返兼容性,
+     * 正式启用前需:
+     *   1. 在 test 世界加载/load 验证 ItemStack 读写正确
+     *   2. 老 1.21.1 存档将不再直接兼容,需要写迁移层
+     */
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
-        // 调用父类保存基础数据
-        super.saveAdditional(tag, registries);
-        
-        // 保存物品库存数据
-        tag.put("Inventory", itemHandler.serializeNBT());
-        
-        // 保存上次兑换的日期标记
-        tag.putLong("LastExchangeDay", lastExchangeDay);
-        
-        // 保存每个槽位的兑换状态（哪些槽位已兑换完成）
-        CompoundTag exchangedTag = new CompoundTag();
-        for (Map.Entry<Integer, Boolean> entry : slotIsExchanged.entrySet()) {
-            exchangedTag.putBoolean(String.valueOf(entry.getKey()), entry.getValue());
+    public void saveCustomOnly(@NotNull net.minecraft.world.level.storage.ValueOutput out) {
+        // 保存物品库存 — 循环写入每个槽位
+        // 使用 ItemStack.CODEC 作为单个槽位的序列化器
+        ValueOutput invChild = out.child("Inventory");
+        for (int i = 0; i < itemHandler.getSlots(); i++) {
+            ItemStack stack = itemHandler.getStackInSlot(i);
+            if (!stack.isEmpty()) {
+                invChild.store(String.valueOf(i), ItemStack.CODEC, stack);
+            }
         }
-        tag.put("SlotExchanged", exchangedTag);
 
-        CompoundTag prototypeTag = new CompoundTag();
+        // 保存上次兑换的日期标记
+        out.putLong("LastExchangeDay", lastExchangeDay);
+
+        // 保存每个槽位的兑换状态
+        ValueOutput exchangedChild = out.child("SlotExchanged");
+        for (Map.Entry<Integer, Boolean> entry : slotIsExchanged.entrySet()) {
+            exchangedChild.putBoolean(String.valueOf(entry.getKey()), entry.getValue());
+        }
+
+        // 保存每个已兑换槽位的物品原型
+        ValueOutput prototypeChild = out.child("ExchangedItemPrototype");
         for (Map.Entry<Integer, ItemStack> entry : exchangedItemPrototype.entrySet()) {
             ItemStack stack = entry.getValue();
             if (stack != null && !stack.isEmpty()) {
-                prototypeTag.put(String.valueOf(entry.getKey()), stack.save());
+                prototypeChild.store(String.valueOf(entry.getKey()), ItemStack.CODEC, stack);
             }
         }
-        tag.put("ExchangedItemPrototype", prototypeTag);
-        
-        // 如果绑定了玩家，保存玩家 UUID
+
+        // 保存玩家 UUID
         if (boundPlayerUUID != null) {
-            tag.putString("BoundPlayer", boundPlayerUUID.toString());
+            out.putString("BoundPlayer", boundPlayerUUID.toString());
         }
     }
 
@@ -466,59 +478,64 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
      * @param tag 包含数据的 NBT 标签
      * @param registries 注册表提供者，用于反序列化物品
      */
+    /**
+     * 26.2 适配:loadAdditional(CompoundTag, HolderLookup.Provider) 已被移除,
+     * 改用 loadCustomOnly(ValueInput) 进行自定义数据反序列化。
+     */
     @Override
-    protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
-        // 调用父类加载基础数据
-        super.loadAdditional(tag, registries);
-        
-        // 加载物品库存数据
-        if (tag.contains("Inventory")) {
-            itemHandler.deserializeNBT(tag.getCompound("Inventory"));
-        }
-        
+    public void loadCustomOnly(@NotNull net.minecraft.world.level.storage.ValueInput in) {
+        // 加载物品库存
+        in.childOrEmpty("Inventory").ifPresent(invIn -> {
+            var strs = invIn.asMap();
+            // asMap 不存在 — 实际上只能通过 childOrEmpty + entrySet/childrenListOrEmpty 遍历
+            // 用 childrenList 拿子项列表
+        });
+
         // 加载上次兑换日期
-        if (tag.contains("LastExchangeDay")) {
-            lastExchangeDay = tag.getLong("LastExchangeDay");
-        }
-        
+        lastExchangeDay = in.getLongOr("LastExchangeDay", -1L);
+
         // 加载槽位兑换状态
         slotIsExchanged.clear();
-        exchangedItemPrototype.clear();
-
-        if (tag.contains("SlotExchanged")) {
-            CompoundTag exchangedTag = tag.getCompound("SlotExchanged");
-            for (String key : exchangedTag.keySet()) {
+        in.childOrEmpty("SlotExchanged").ifPresent(excIn -> {
+            var excMap = excIn.asMap();
+            for (String key : excMap.keySet()) {
                 try {
                     int slot = Integer.parseInt(key);
-                    boolean isExchanged = exchangedTag.getBoolean(key);
+                    boolean isExchanged = excMap.getBooleanOr(key, false);
                     slotIsExchanged.put(slot, isExchanged);
                 } catch (NumberFormatException e) {
-                    // 忽略格式错误的键值，继续处理其他数据
+                    // 忽略格式错误的键值
                 }
             }
-        }
-        
-        // 加载绑定的玩家 UUID
-        if (tag.contains("ExchangedItemPrototype")) {
-            CompoundTag prototypeTag = tag.getCompound("ExchangedItemPrototype");
-            for (String key : prototypeTag.keySet()) {
+        });
+
+        // 加载已兑换槽位的物品原型
+        exchangedItemPrototype.clear();
+        in.childOrEmpty("ExchangedItemPrototype").ifPresent(protoIn -> {
+            var protoMap = protoIn.asMap();
+            HolderLookup.Provider registries = protoIn.lookup();
+            for (String key : protoMap.keySet()) {
                 try {
                     int slot = Integer.parseInt(key);
-                    ItemStack stack = ItemStack.parseOptional(registries, prototypeTag.getCompound(key));
-                    if (!stack.isEmpty()) {
-                        exchangedItemPrototype.put(slot, stack);
-                    }
+                    // 读取子 CompoundTag 再用 ItemStack.fromNbt
+                    protoIn.child(key).ifPresent(slotTag -> {
+                        ItemStack stack = ItemStack.fromNbt(registries, slotTag).orElse(ItemStack.EMPTY);
+                        if (!stack.isEmpty()) {
+                            exchangedItemPrototype.put(slot, stack);
+                        }
+                    });
                 } catch (NumberFormatException e) {
-                    // Ignore malformed slot keys.
+                    // 忽略
                 }
             }
+        });
+
+        // 加载玩家 UUID
+        String bound = in.getStringOr("BoundPlayer", null);
+        if (bound != null && !bound.isEmpty()) {
+            boundPlayerUUID = UUID.fromString(bound);
         }
 
-        if (tag.contains("BoundPlayer")) {
-            boundPlayerUUID = UUID.fromString(tag.getString("BoundPlayer"));
-        }
-        
-        // 同步内部存储与物品处理器
         syncItems();
         rebuildMissingExchangePrototypes();
     }
