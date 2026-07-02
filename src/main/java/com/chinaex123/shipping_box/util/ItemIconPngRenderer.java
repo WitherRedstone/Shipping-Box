@@ -50,7 +50,7 @@ public class ItemIconPngRenderer {
             }
             return extractSpritePng(mc, sprite, size);
         } catch (Exception e) {
-            LOGGER.warn("[IconRenderer] Failed to render icon for {}", stack.getHoverName().getString(), e);
+            LOGGER.warn("[IconRenderer] Failed to render icon for {}", stack.getHoverName().getStringOr(), e);
             return EditorIconCacheManager.createPlaceholderPng(size, stack.hashCode());
         }
     }
@@ -91,8 +91,8 @@ public class ItemIconPngRenderer {
             return EditorIconCacheManager.createPlaceholderPng(targetSize, name.hashCode());
         }
 
-        try (Resource res = resOpt.get();
-             InputStream in = res.open()) {
+        try {
+            InputStream in = resOpt.get().open();
             BufferedImage buffered = ImageIO.read(in);
             if (buffered == null) {
                 return EditorIconCacheManager.createPlaceholderPng(targetSize, name.hashCode());

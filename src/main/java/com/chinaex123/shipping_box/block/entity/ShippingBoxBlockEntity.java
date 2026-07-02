@@ -597,7 +597,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         ContainerHelper.loadAllItems(tag, sharedItems, registries);
 
         if (tag.contains("LastExchangeDay")) {
-            lastExchangeDay = tag.getLong("LastExchangeDay");
+            lastExchangeDay = tag.getLongOr("LastExchangeDay");
         }
 
         // 加载槽位所有者信息
@@ -606,7 +606,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
             for (String key : ownersTag.keySet()) {
                 try {
                     int slot = Integer.parseInt(key);
-                    UUID uuid = UUID.fromString(ownersTag.getString(key));
+                    UUID uuid = UUID.fromString(ownersTag.getStringOr(key));
                     slotOwners.put(slot, uuid);
                 } catch (IllegalArgumentException e) {
                     // 静默处理错误

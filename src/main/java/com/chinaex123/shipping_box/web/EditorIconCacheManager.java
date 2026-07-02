@@ -361,7 +361,7 @@ public class EditorIconCacheManager {
             Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) return;
             String fileName = toSafeFileName(id);
-            String display = new ItemStack(item).getHoverName().getString();
+            String display = new ItemStack(item).getHoverName().getStringOr();
             pendingEntries.add(new CacheEntry(id, false, display, fileName));
         });
 
@@ -372,7 +372,7 @@ public class EditorIconCacheManager {
             Identifier id = BuiltInRegistries.BLOCK.getKey(block);
             if (id == null) return;
             String fileName = toSafeFileName(id);
-            String display = new ItemStack(item).getHoverName().getString();
+            String display = new ItemStack(item).getHoverName().getStringOr();
             pendingEntries.add(new CacheEntry(id, true, display, fileName));
         });
     }
@@ -473,7 +473,7 @@ public class EditorIconCacheManager {
                 if (Files.exists(file)) {
                     JsonObject entry = new JsonObject();
                     entry.addProperty("id", id.toString());
-                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getString());
+                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getStringOr());
                     entry.addProperty("path", "/icon/cache/items/" + fileName);
                     itemsArr.add(entry);
                 }
@@ -491,7 +491,7 @@ public class EditorIconCacheManager {
                 if (Files.exists(file)) {
                     JsonObject entry = new JsonObject();
                     entry.addProperty("id", id.toString());
-                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getString());
+                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getStringOr());
                     entry.addProperty("path", "/icon/cache/blocks/" + fileName);
                     blocksArr.add(entry);
                 }

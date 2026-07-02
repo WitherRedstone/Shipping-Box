@@ -94,7 +94,7 @@ public class ExchangeTooltipProvider {
                                 additionalLines.add(seasonLine);
 
                                 // 应季加成（如果有）
-                                if (seasonInfoLines.length > 1 && !seasonInfoLines[1].getString().isEmpty()) {
+                                if (seasonInfoLines.length > 1 && !seasonInfoLines[1].getStringOr().isEmpty()) {
                                     MutableComponent bonusLine = Component.empty()
                                             .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
                                             .append(Component.translatable("tooltip.shipping_box.season_bonus_label").withStyle(ChatFormatting.GRAY))
@@ -105,7 +105,7 @@ public class ExchangeTooltipProvider {
                                 }
 
                                 // 非应季减益（如果有）
-                                if (seasonInfoLines.length > 2 && !seasonInfoLines[2].getString().isEmpty()) {
+                                if (seasonInfoLines.length > 2 && !seasonInfoLines[2].getStringOr().isEmpty()) {
                                     MutableComponent penaltyLine = Component.empty()
                                             .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
                                             .append(Component.translatable("tooltip.shipping_box.season_penalty_label").withStyle(ChatFormatting.GRAY))

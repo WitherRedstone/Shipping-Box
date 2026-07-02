@@ -200,7 +200,7 @@ public class ExchangeManager {
                 if (boundPlayerUUID != null) {
                     ServerPlayer logPlayer = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
                     if (logPlayer != null) {
-                        playerName = logPlayer.getName().getString();
+                        playerName = logPlayer.getName().getStringOr();
                     }
                 }
                 TransactionLogger.logTransaction(playerName, consumedItems, results, totalVirtualCurrency, level, lastMatchedRule);

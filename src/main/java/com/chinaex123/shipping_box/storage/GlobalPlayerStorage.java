@@ -32,16 +32,20 @@ public class GlobalPlayerStorage extends SavedData {
             Codec.STRING,
             ItemStorage.CODEC.listOf()
     ).xmap(
-            map -> {
+            // JSON 解码:Map<String,List<ItemStorage>> → GlobalPlayerStorage
+            (Map<String, List<ItemStorage>> map) -> {
                 Map<UUID, List<ItemStack>> m = new LinkedHashMap<>();
                 map.forEach((strUUID, list) ->
-                        m.put(UUID.fromString(strUUID), list.stream().map(ItemStorage::new).toList()));
+                        m.put(UUID.fromString(strUUID),
+                                list.stream().map(ItemStorage::items).toList()));
                 return new GlobalPlayerStorage(m);
             },
-            s -> {
+            // GlobalPlayerStorage → JSON 编码
+            (GlobalPlayerStorage s) -> {
                 Map<String, List<ItemStorage>> out = new LinkedHashMap<>();
                 s.storageMap.forEach((uuid, list) ->
-                        out.put(uuid.toString(), list.stream().map(ItemStorage::new).toList()));
+                        out.put(uuid.toString(),
+                                list.stream().map(ItemStorage::new).toList()));
                 return out;
             }
     );

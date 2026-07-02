@@ -104,7 +104,8 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
 
                 var server = serverPlayer.level().getServer();
                 server.execute(() -> {
-                    var commandSource = server.createCommandSourceStack().withPermission(4);
+                    var commandSource = server.createCommandSourceStack()
+                            .withPermission(net.minecraft.server.permissions.PermissionSet.ALL_PERMISSIONS);
                     try {
                         if (ModList.get().isLoaded("kubejs")) {
                             server.getCommands().performPrefixedCommand(commandSource, "kubejs reload server_scripts");

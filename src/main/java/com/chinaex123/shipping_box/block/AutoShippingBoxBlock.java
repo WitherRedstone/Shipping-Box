@@ -147,14 +147,14 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     // 读取绑定的玩家UUID
                     if (tag.contains("BoundPlayerUUID")) {
                         try {
-                            boundPlayerUUID = UUID.fromString(tag.getString("BoundPlayerUUID"));
+                            boundPlayerUUID = UUID.fromString(tag.getStringOr("BoundPlayerUUID"));
                         } catch (IllegalArgumentException e) {
                             // UUID格式错误，忽略
                         }
                     }
                     // 读取绑定的玩家名字
                     if (tag.contains("BoundPlayerName")) {
-                        boundPlayerName = tag.getString("BoundPlayerName");
+                        boundPlayerName = tag.getStringOr("BoundPlayerName");
                     }
                 }
 
@@ -254,7 +254,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                         String playerName = "Unknown Player";
                         Player player = level.getPlayerByUUID(boundPlayer);
                         if (player != null) {
-                            playerName = player.getName().getString();
+                            playerName = player.getName().getStringOr();
                         }
 
                         // ========== 使用CUSTOM_DATA组件存储UUID和玩家名字 ==========
