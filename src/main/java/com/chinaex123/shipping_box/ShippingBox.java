@@ -75,7 +75,7 @@ public class ShippingBox {
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
             // 延迟一小段时间再同步，确保客户端完全加载
-            serverPlayer.server.execute(() -> {
+            serverPlayer.level().getServer().execute(() -> {
                 ShippingBoxNetworking.syncRecipesToClient(serverPlayer);
             });
         }
