@@ -6,7 +6,8 @@ import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
 import com.chinaex123.shipping_box.compat.EclipticSeasons.EclipticSeasonsUtil;
-import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
+// 26.2 迁移:ViScriptShop 联动已注释(无 26.2 版本)
+// import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.PacketExchangeEffects;
 import com.chinaex123.shipping_box.network.PacketShowSuccessMessage;
 import net.minecraft.core.NonNullList;
@@ -70,9 +71,10 @@ public class ExchangeManager {
             if (rule != null) {
                 lastMatchedRule = rule;
 
-                if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
-                    return;
-                }
+                // 26.2 迁移:ViScriptShop 联动已注释
+                // if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
+                //     return;
+                // }
 
                 if (rule.getOutputItem().getEclipticSeasonsProperties() != null) {
                     var ecsProps = rule.getOutputItem().getEclipticSeasonsProperties();
@@ -116,14 +118,15 @@ public class ExchangeManager {
                 return;
             }
 
-            if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
-                ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
-                if (player != null && ViScriptShopUtil.isAvailable()) {
-                    int currentBalance = ViScriptShopUtil.getMoney(player);
-                    startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
-                    ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
-                }
-            }
+            // 26.2 迁移:ViScriptShop 联动已注释(无 26.2 版联动库)
+            // if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
+            //     ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
+            //     if (player != null && ViScriptShopUtil.isAvailable()) {
+            //         int currentBalance = ViScriptShopUtil.getMoney(player);
+            //         startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
+            //         ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
+            //     }
+            // }
 
             results.addAll(currentItems);
 
@@ -207,9 +210,10 @@ public class ExchangeManager {
     /**
      * 开始余额动画
      */
-    private static void startBalanceAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
-        BalanceAnimationManager.startAnimation(player, startBalance, totalValue, exchangeAmount);
-    }
+    // 26.2 迁移:已无调用者(ViScriptShop 联动已注释)
+    // private static void startBalanceAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
+    //     BalanceAnimationManager.startAnimation(player, startBalance, totalValue, exchangeAmount);
+    // }
 
     /**
      * 应用玩家出售价格属性加成到基础数量
