@@ -30,7 +30,7 @@ public class PricingData extends SavedData {
     public static final SavedDataType<PricingData> TYPE = new SavedDataType<>(
             Identifier.fromNamespaceAndPath(MOD_ID, "pricing_data"),
             PricingData::new,
-            PricingData::codec,
+            () -> CODEC,
             DataFixTypes.LEVEL
     );
 
@@ -43,8 +43,6 @@ public class PricingData extends SavedData {
             INT_MAP_CODEC.fieldOf("sales_data").forGetter(p -> p.data),
             LONG_MAP_CODEC.fieldOf("sale_days").forGetter(p -> p.lastSaleDays)
     ).apply(instance, PricingData::new));
-
-    public static Codec<PricingData> codec() { return CODEC; }
 
     private final Map<String, Integer> data;
     private final Map<String, Long> lastSaleDays;
