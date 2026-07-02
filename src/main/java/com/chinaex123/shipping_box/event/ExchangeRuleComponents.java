@@ -161,7 +161,7 @@ public class ExchangeRuleComponents {
             }
 
             // 获取组件类型
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
 
             if (componentType == null) {
                 // 组件类型不存在，宽松匹配
@@ -458,7 +458,7 @@ public class ExchangeRuleComponents {
             }
 
             // 获取组件类型
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
             if (componentType == null) {
                 return true;
             }
@@ -659,7 +659,7 @@ public class ExchangeRuleComponents {
             }
 
             // 获取通用组件类型
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
             if (componentType == null) {
                 return;
             }
@@ -791,7 +791,7 @@ public class ExchangeRuleComponents {
                 return;
             }
 
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
             if (componentType == null) {
                 return;
             }

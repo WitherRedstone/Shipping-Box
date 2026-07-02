@@ -11,6 +11,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.BossHealthOverlay;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.BossEvent;
@@ -143,7 +144,7 @@ public class EditorIconCacheManager {
             Field eventsField = BossHealthOverlay.class.getDeclaredField("events");
             eventsField.setAccessible(true);
             @SuppressWarnings("unchecked")
-            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.getBossOverlay());
+            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.hud.getBossOverlay());
             events.put(bossBarId, event);
         } catch (Exception e) {
             // 反射失败则忽略，不影响功能
@@ -163,7 +164,7 @@ public class EditorIconCacheManager {
             Field eventsField = BossHealthOverlay.class.getDeclaredField("events");
             eventsField.setAccessible(true);
             @SuppressWarnings("unchecked")
-            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.getBossOverlay());
+            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.hud.getBossOverlay());
             events.remove(bossBarId);
         } catch (Exception e) {
             // 忽略异常
@@ -401,8 +402,8 @@ public class EditorIconCacheManager {
             try {
                 // 获取物品栈
                 ItemStack stack = entry.isBlock()
-                        ? new ItemStack(BuiltInRegistries.BLOCK.get(entry.id()).asItem())
-                        : new ItemStack(BuiltInRegistries.ITEM.get(entry.id()));
+                        ? new ItemStack(BuiltInRegistries.BLOCK.get(entry.id()).map(Holder::value).orElseThrow(() -> new IllegalStateException("Unknown block: " + entry.id())).asItem())
+                        : new ItemStack(BuiltInRegistries.ITEM.get(entry.id()).map(Holder::value).orElseThrow(() -> new IllegalStateException("Unknown item: " + entry.id())));
 
                 // 渲染图标为PNG
                 byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE);

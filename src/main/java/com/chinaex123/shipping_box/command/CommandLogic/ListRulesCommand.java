@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.command.CommandLogic;
 
+import net.minecraft.core.Holder;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
 import com.mojang.brigadier.context.CommandContext;
@@ -202,7 +203,7 @@ public class ListRulesCommand {
             if (itemId != null && !itemId.isEmpty()) {
                 Identifier itemLoc = Identifier.tryParse(itemId);
                 if (itemLoc != null) {
-                    var item = BuiltInRegistries.ITEM.get(itemLoc);
+                    var item = BuiltInRegistries.ITEM.get(itemLoc).map(Holder::value).orElse(null);
                     if (item != Items.AIR) {
                         // 创建一个临时的物品堆来获取显示名称
                         ItemStack stack = new ItemStack(item);

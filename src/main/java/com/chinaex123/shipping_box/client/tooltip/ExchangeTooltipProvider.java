@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.client.tooltip;
 
+import net.minecraft.core.Holder;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
@@ -847,7 +848,7 @@ public class ExchangeTooltipProvider {
     private static Component getLocalizedItemName(String itemIdentifier) {
         try {
             Identifier itemId = Identifier.parse(itemIdentifier);
-            Item item = BuiltInRegistries.ITEM.get(itemId);
+            Item item = BuiltInRegistries.ITEM.get(itemId).map(Holder::value).orElse(null);
 
             return item.getDescription();
         } catch (Exception e) {

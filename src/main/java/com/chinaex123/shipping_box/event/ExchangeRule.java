@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.event;
 
+import net.minecraft.core.Holder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
@@ -167,7 +168,7 @@ public class ExchangeRule {
                     return false;
                 }
 
-                Item requiredItem = BuiltInRegistries.ITEM.get(itemResource);
+                Item requiredItem = BuiltInRegistries.ITEM.get(itemResource).map(Holder::value).orElse(null);
                 if (!stack.is(requiredItem)) {
                     return false;
                 }
@@ -369,7 +370,7 @@ public class ExchangeRule {
                         return ItemStack.EMPTY;
                     }
 
-                    Item resultItem = BuiltInRegistries.ITEM.get(itemResource);
+                    Item resultItem = BuiltInRegistries.ITEM.get(itemResource).map(Holder::value).orElse(null);
                     ItemStack resultStack = new ItemStack(resultItem, count);
 
                     // 处理组件
@@ -414,7 +415,7 @@ public class ExchangeRule {
                     return ItemStack.EMPTY;
                 }
 
-                Item resultItem = BuiltInRegistries.ITEM.get(itemResource);
+                Item resultItem = BuiltInRegistries.ITEM.get(itemResource).map(Holder::value).orElse(null);
                 ItemStack resultStack = new ItemStack(resultItem, count);
 
                 // 处理不同类型的组件
@@ -472,7 +473,7 @@ public class ExchangeRule {
                             continue;
                         }
 
-                        Item resultItem = BuiltInRegistries.ITEM.get(itemResource);
+                        Item resultItem = BuiltInRegistries.ITEM.get(itemResource).map(Holder::value).orElse(null);
                         ItemStack resultStack = new ItemStack(resultItem, weightedItem.getCount());
 
                         // 应用组件
