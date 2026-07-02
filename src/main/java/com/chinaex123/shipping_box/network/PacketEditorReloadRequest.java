@@ -5,7 +5,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -24,7 +24,7 @@ public record PacketEditorReloadRequest() implements CustomPacketPayload {
      * 用于在网络中唯一标识此数据包
      */
     public static final Type<PacketEditorReloadRequest> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_reload_request")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_reload_request")
     );
 
     /**
@@ -87,10 +87,10 @@ public record PacketEditorReloadRequest() implements CustomPacketPayload {
                 });
 
                 // 发送成功队列消息
-                serverPlayer.displayClientMessage(Component.literal("Reload queued"), false);
+                serverPlayer.sendSystemMessage(Component.literal("Reload queued"));
             } catch (Exception e) {
                 // 发送失败消息
-                serverPlayer.displayClientMessage(Component.literal("Failed to queue reload"), false);
+                serverPlayer.sendSystemMessage(Component.literal("Failed to queue reload"));
             }
         }).exceptionally(e -> null); // 异常处理：返回 null 避免进一步传播
     }

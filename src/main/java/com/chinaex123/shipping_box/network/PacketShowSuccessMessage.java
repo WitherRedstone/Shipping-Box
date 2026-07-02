@@ -5,13 +5,13 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** 显示成功消息的数据包记录类 **/
 public record PacketShowSuccessMessage() implements CustomPacketPayload {
     public static final Type<PacketShowSuccessMessage> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "show_success_message")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "show_success_message")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketShowSuccessMessage> STREAM_CODEC =

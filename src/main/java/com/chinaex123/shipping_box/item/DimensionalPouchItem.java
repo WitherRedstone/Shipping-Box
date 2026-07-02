@@ -93,7 +93,7 @@ public class DimensionalPouchItem extends TooltipItems {
             return InteractionResultHolder.fail(stack);
         }
 
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             return InteractionResultHolder.success(stack);
         }
 
@@ -166,7 +166,7 @@ public class DimensionalPouchItem extends TooltipItems {
                     }
 
                     // 播放成功音效
-                    player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+                    player.playSound(SoundEvents.NOTE_BLOCK_CHIME.value());
                 } else {
                     player.sendSystemMessage(Component.translatable("message.shipping_box.viscriptshop.exchange_failed"));
                 }
@@ -175,7 +175,7 @@ public class DimensionalPouchItem extends TooltipItems {
                 System.err.println("[ShippingBox] Container conversion failed: " + e.getMessage());
             }
         } else {
-            player.displayClientMessage(Component.translatable("message.shipping_box.dimensional_pouch.no_container_coins"),true);
+            player.sendSystemMessage(Component.translatable("message.shipping_box.dimensional_pouch.no_container_coins"));
         }
 
         return player.getMainHandItem();
@@ -255,7 +255,7 @@ public class DimensionalPouchItem extends TooltipItems {
             }
 
             // 播放成功音效
-            player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+            player.playSound(SoundEvents.NOTE_BLOCK_CHIME.value());
 
             return InteractionResult.SUCCESS;
         } else {
@@ -271,7 +271,7 @@ public class DimensionalPouchItem extends TooltipItems {
         int currentBalance = ViScriptShopUtil.getMoney(player);
 
         // 播放查询音效
-        player.playNotifySound(SoundEvents.NOTE_BLOCK_HARP.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+        player.playSound(SoundEvents.NOTE_BLOCK_HARP.value());
 
         // 显示余额信息
         player.displayClientMessage(Component.translatable("message.shipping_box.dimensional_pouch.current_balance", currentBalance), true);
@@ -327,7 +327,7 @@ public class DimensionalPouchItem extends TooltipItems {
                         currentBalance,
                         increment);
 
-                player.displayClientMessage(message, true);
+                player.sendSystemMessage(message);
 
                 state.currentStep++;
 

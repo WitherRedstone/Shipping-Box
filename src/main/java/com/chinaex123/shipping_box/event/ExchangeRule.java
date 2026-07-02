@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -132,7 +132,7 @@ public class ExchangeRule {
         private boolean matchesTag(ItemStack stack) {
             try {
                 String tagIdStr = tag.startsWith("#") ? tag.substring(1) : tag;
-                ResourceLocation tagId = ResourceLocation.tryParse(tagIdStr);
+                Identifier tagId = Identifier.tryParse(tagIdStr);
                 if (tagId != null) {
                     TagKey<Item> itemTag = TagKey.create(BuiltInRegistries.ITEM.key(), tagId);
                     return stack.is(itemTag);
@@ -162,7 +162,7 @@ public class ExchangeRule {
                     componentObject = item.substring(componentStart + 1, componentEnd);
                 }
 
-                ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
+                Identifier itemResource = Identifier.tryParse(itemId);
                 if (itemResource == null) {
                     return false;
                 }
@@ -364,7 +364,7 @@ public class ExchangeRule {
                         componentString = item.substring(componentStart + 1, componentEnd);
                     }
 
-                    ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
+                    Identifier itemResource = Identifier.tryParse(itemId);
                     if (itemResource == null) {
                         return ItemStack.EMPTY;
                     }
@@ -409,7 +409,7 @@ public class ExchangeRule {
                     componentString = item.substring(componentStart + 1, componentEnd);
                 }
 
-                ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
+                Identifier itemResource = Identifier.tryParse(itemId);
                 if (itemResource == null) {
                     return ItemStack.EMPTY;
                 }
@@ -467,7 +467,7 @@ public class ExchangeRule {
                     currentWeight += weightedItem.getWeight();
                     if (randomValue < currentWeight) {
                         // 创建选中的物品
-                        ResourceLocation itemResource = ResourceLocation.tryParse(weightedItem.getItem());
+                        Identifier itemResource = Identifier.tryParse(weightedItem.getItem());
                         if (itemResource == null) {
                             continue;
                         }

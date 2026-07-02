@@ -13,7 +13,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.io.BufferedInputStream;
@@ -416,7 +416,7 @@ public final class WebEditorLocalServer {
         // 收集所有物品ID
         JsonArray items = new JsonArray();
         BuiltInRegistries.ITEM.forEach(item -> {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id != null) {
                 items.add(id.toString());
             }
@@ -426,7 +426,7 @@ public final class WebEditorLocalServer {
         JsonArray tags = new JsonArray();
         BuiltInRegistries.ITEM.getTags().forEach(pair -> {
             var tagKey = pair.getFirst();
-            ResourceLocation loc = tagKey.location();
+            Identifier loc = tagKey.location();
             if (loc != null) {
                 tags.add("#" + loc.getNamespace() + ":" + loc.getPath());
             }
@@ -451,7 +451,7 @@ public final class WebEditorLocalServer {
 
         // 尝试从缓存目录获取图标
         if (!itemId.isBlank()) {
-            ResourceLocation rl = ResourceLocation.tryParse(itemId);
+            Identifier rl = Identifier.tryParse(itemId);
             if (rl != null) {
                 String fileName = (rl.getNamespace() + "_" + rl.getPath())
                         .replace(':', '_').replace('/', '_') + ".png";

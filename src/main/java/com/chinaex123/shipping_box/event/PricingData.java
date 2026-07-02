@@ -82,7 +82,7 @@ public class PricingData extends SavedData {
         // 加载销售数据
         if (tag.contains("sales_data")) {
             CompoundTag dataTag = tag.getCompound("sales_data");
-            for (String key : dataTag.getAllKeys()) {
+            for (String key : dataTag.keySet()) {
                 data.put(key, dataTag.getInt(key));
             }
         }
@@ -90,7 +90,7 @@ public class PricingData extends SavedData {
         // 加载游戏日数据
         if (tag.contains("sale_days")) {
             CompoundTag dayTag = tag.getCompound("sale_days");
-            for (String key : dayTag.getAllKeys()) {
+            for (String key : dayTag.keySet()) {
                 lastSaleDays.put(key, dayTag.getLong(key));
             }
         }

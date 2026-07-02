@@ -8,7 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -200,7 +200,7 @@ public class ListRulesCommand {
             
             // 如果是物品 ID
             if (itemId != null && !itemId.isEmpty()) {
-                ResourceLocation itemLoc = ResourceLocation.tryParse(itemId);
+                Identifier itemLoc = Identifier.tryParse(itemId);
                 if (itemLoc != null) {
                     var item = BuiltInRegistries.ITEM.get(itemLoc);
                     if (item != Items.AIR) {

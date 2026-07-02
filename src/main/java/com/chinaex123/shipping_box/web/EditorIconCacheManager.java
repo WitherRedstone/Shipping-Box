@@ -12,7 +12,7 @@ import net.minecraft.client.gui.components.BossHealthOverlay;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -222,7 +222,7 @@ public class EditorIconCacheManager {
      * @param displayName 显示名称
      * @param fileName 安全的文件名
      */
-    private record CacheEntry(ResourceLocation id, boolean isBlock, String displayName, String fileName) {}
+    private record CacheEntry(Identifier id, boolean isBlock, String displayName, String fileName) {}
 
     /**
      * 启动缓存生成任务
@@ -357,7 +357,7 @@ public class EditorIconCacheManager {
         // 1. 处理所有物品
         BuiltInRegistries.ITEM.forEach(item -> {
             if (item == Items.AIR) return; // 跳过空气
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) return;
             String fileName = toSafeFileName(id);
             String display = new ItemStack(item).getHoverName().getString();
@@ -368,7 +368,7 @@ public class EditorIconCacheManager {
         BuiltInRegistries.BLOCK.forEach(block -> {
             Item item = block.asItem();
             if (item == Items.AIR) return; // 跳过没有物品形式的方块
-            ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
+            Identifier id = BuiltInRegistries.BLOCK.getKey(block);
             if (id == null) return;
             String fileName = toSafeFileName(id);
             String display = new ItemStack(item).getHoverName().getString();
@@ -381,7 +381,7 @@ public class EditorIconCacheManager {
      * @param id 资源位置
      * @return 安全的文件名（不含扩展名）
      */
-    private String toSafeFileName(ResourceLocation id) {
+    private String toSafeFileName(Identifier id) {
         // 替换可能引起路径问题的字符
         return (id.getNamespace() + "_" + id.getPath()).replace(':', '_').replace('/', '_');
     }
@@ -465,7 +465,7 @@ public class EditorIconCacheManager {
             JsonArray itemsArr = new JsonArray();
             BuiltInRegistries.ITEM.forEach(item -> {
                 if (item == Items.AIR) return;
-                ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+                Identifier id = BuiltInRegistries.ITEM.getKey(item);
                 if (id == null) return;
                 String fileName = toSafeFileName(id) + ".png";
                 Path file = itemsDir.resolve(fileName);
@@ -483,7 +483,7 @@ public class EditorIconCacheManager {
             BuiltInRegistries.BLOCK.forEach(block -> {
                 Item item = block.asItem();
                 if (item == Items.AIR) return;
-                ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
+                Identifier id = BuiltInRegistries.BLOCK.getKey(block);
                 if (id == null) return;
                 String fileName = toSafeFileName(id) + ".png";
                 Path file = blocksDir.resolve(fileName);
@@ -504,7 +504,7 @@ public class EditorIconCacheManager {
             JsonObject tagIcons = new JsonObject();
             BuiltInRegistries.ITEM.getTags().forEach(pair -> {
                 var tagKey = pair.getFirst();
-                ResourceLocation loc = tagKey.location();
+                Identifier loc = tagKey.location();
                 if (loc == null) return;
                 String tagId = "#" + loc.getNamespace() + ":" + loc.getPath();
                 tagsArr.add(tagId);
@@ -514,7 +514,7 @@ public class EditorIconCacheManager {
                 if (holderSet.isPresent()) {
                     for (var holder : holderSet.get()) {
                         Item item = holder.value();
-                        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+                        Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
                         if (itemId == null) continue;
                         String fileName = toSafeFileName(itemId) + ".png";
                         if (Files.exists(itemsDir.resolve(fileName))) {

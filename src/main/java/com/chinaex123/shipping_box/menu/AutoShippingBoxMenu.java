@@ -6,7 +6,7 @@ import com.chinaex123.shipping_box.init.ModMenuTypes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -118,11 +118,11 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         this.shippingContainer.stopOpen(player);
-        if (menuLevel != null && !menuLevel.isClientSide && player instanceof ServerPlayer) {
+        if (menuLevel != null && !menuLevel.isClientSide() && player instanceof ServerPlayer) {
             menuLevel.playSound(null, menuPos,
-                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.close")),
+                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.close")),
                     SoundSource.BLOCKS, 0.5F,
-                    menuLevel.random.nextFloat() * 0.1F + 0.9F);
+                    menuLevel.getRandom().nextFloat() * 0.1F + 0.9F);
         }
     }
 

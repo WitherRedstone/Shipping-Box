@@ -8,7 +8,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
@@ -31,7 +31,7 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketEditorSaveRules.class);
 
     public static final Type<PacketEditorSaveRules> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_save_rules")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_save_rules")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketEditorSaveRules> STREAM_CODEC = StreamCodec.of(

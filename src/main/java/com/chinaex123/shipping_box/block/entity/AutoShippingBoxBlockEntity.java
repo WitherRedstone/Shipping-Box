@@ -271,9 +271,9 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
      * 在服务端立即执行兑换操作并更新兑换日期
      */
     public void forceExchange() {
-        if (level != null && !level.isClientSide) {
-            performExchange(level.getDayTime() / 24000);
-            lastExchangeDay = level.getDayTime() / 24000;
+        if (level != null && !level.isClientSide()) {
+            performExchange(level.getLevelData().getGameTime() / 24000);
+            lastExchangeDay = level.getLevelData().getGameTime() / 24000;
             setChanged(); // 标记数据已变更
         }
     }
@@ -393,9 +393,9 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
      */
     public void tick() {
         // 确保只在服务端执行
-        if (level != null && !level.isClientSide) {
+        if (level != null && !level.isClientSide()) {
             // 计算当前是第几天（Minecraft 中一天 = 24000 tick）
-            long currentDay = level.getDayTime() / 24000;
+            long currentDay = level.getLevelData().getGameTime() / 24000;
             
             // 如果当前日期晚于上次兑换日期且已初始化过，则触发兑换
             if (currentDay > lastExchangeDay && lastExchangeDay != -1L) {
@@ -427,7 +427,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         super.saveAdditional(tag, registries);
         
         // 保存物品库存数据
-        tag.put("Inventory", itemHandler.serializeNBT(registries));
+        tag.put("Inventory", itemHandler.serializeNBT());
         
         // 保存上次兑换的日期标记
         tag.putLong("LastExchangeDay", lastExchangeDay);
@@ -443,7 +443,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         for (Map.Entry<Integer, ItemStack> entry : exchangedItemPrototype.entrySet()) {
             ItemStack stack = entry.getValue();
             if (stack != null && !stack.isEmpty()) {
-                prototypeTag.put(String.valueOf(entry.getKey()), stack.save(registries));
+                prototypeTag.put(String.valueOf(entry.getKey()), stack.save());
             }
         }
         tag.put("ExchangedItemPrototype", prototypeTag);
@@ -473,7 +473,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         
         // 加载物品库存数据
         if (tag.contains("Inventory")) {
-            itemHandler.deserializeNBT(registries, tag.getCompound("Inventory"));
+            itemHandler.deserializeNBT(tag.getCompound("Inventory"));
         }
         
         // 加载上次兑换日期
@@ -487,7 +487,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
 
         if (tag.contains("SlotExchanged")) {
             CompoundTag exchangedTag = tag.getCompound("SlotExchanged");
-            for (String key : exchangedTag.getAllKeys()) {
+            for (String key : exchangedTag.keySet()) {
                 try {
                     int slot = Integer.parseInt(key);
                     boolean isExchanged = exchangedTag.getBoolean(key);
@@ -501,7 +501,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         // 加载绑定的玩家 UUID
         if (tag.contains("ExchangedItemPrototype")) {
             CompoundTag prototypeTag = tag.getCompound("ExchangedItemPrototype");
-            for (String key : prototypeTag.getAllKeys()) {
+            for (String key : prototypeTag.keySet()) {
                 try {
                     int slot = Integer.parseInt(key);
                     ItemStack stack = ItemStack.parseOptional(registries, prototypeTag.getCompound(key));

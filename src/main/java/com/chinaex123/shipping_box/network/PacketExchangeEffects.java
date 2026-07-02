@@ -7,7 +7,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -15,7 +15,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 /** 兑换特效包 **/
 public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
     public static final Type<PacketExchangeEffects> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_effects")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_effects")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketExchangeEffects> STREAM_CODEC =

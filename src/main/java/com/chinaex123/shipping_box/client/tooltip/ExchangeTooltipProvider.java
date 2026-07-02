@@ -9,7 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
@@ -845,7 +845,7 @@ public class ExchangeTooltipProvider {
      */
     private static Component getLocalizedItemName(String itemIdentifier) {
         try {
-            ResourceLocation itemId = ResourceLocation.parse(itemIdentifier);
+            Identifier itemId = Identifier.parse(itemIdentifier);
             Item item = BuiltInRegistries.ITEM.get(itemId);
 
             return item.getDescription();

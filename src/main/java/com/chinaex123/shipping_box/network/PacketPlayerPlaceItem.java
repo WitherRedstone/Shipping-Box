@@ -7,14 +7,14 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /** 玩家放置物品的数据包记录类 **/
 public record PacketPlayerPlaceItem(BlockPos pos, int slot) implements CustomPacketPayload {
     public static final Type<PacketPlayerPlaceItem> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "player_place_item")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "player_place_item")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketPlayerPlaceItem> STREAM_CODEC =

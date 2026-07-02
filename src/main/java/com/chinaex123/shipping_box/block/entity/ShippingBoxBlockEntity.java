@@ -10,7 +10,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -329,11 +329,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      * 能够正确处理时间重置、时间跳跃等各种边界情况
      */
     public void tick() {
-        if (level == null || level.isClientSide) {
+        if (level == null || level.isClientSide()) {
             return;
         }
 
-        long dayTime = level.getDayTime();
+        long dayTime = level.getLevelData().getGameTime();
         long timeOfDay = dayTime % 24000;
 
         // 检查所有存储中是否存在物品
@@ -365,7 +365,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         // 检测兑换时间窗口
         if (TimeScheduler.shouldExchange(level, lastExchangeDay)) {
             try {
-                long currentDay = level.getDayTime() / 24000;
+                long currentDay = level.getLevelData().getGameTime() / 24000;
                 performExchange(currentDay);
                 lastExchangeDay = currentDay;
                 setChanged(); // 标记数据已变更
@@ -381,9 +381,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      * 主要用于调试和管理员操作
      */
     public void forceExchange() {
-        if (level != null && !level.isClientSide) {
-            performExchange(level.getDayTime() / 24000);
-            lastExchangeDay = level.getDayTime() / 24000;
+        if (level != null && !level.isClientSide()) {
+            performExchange(level.getLevelData().getGameTime() / 24000);
+            lastExchangeDay = level.getLevelData().getGameTime() / 24000;
             setChanged(); // 标记数据已变更
         }
     }
@@ -510,7 +510,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         // 为成功兑换的玩家发送通知和音效
         if (!successfulPlayers.isEmpty()) {
             serverLevel.playSound(null, worldPosition,
-                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
+                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
                     0.5F, 1.0F);
 
@@ -528,15 +528,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         for (UUID playerUUID : successfulPlayers) {
             ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
             if (player != null) {
-                player.playNotifySound(
-                        SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
-                        SoundSource.BLOCKS,
-                        0.5F,
-                        1.0F
-                );
+                player.playSound(
+                        SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.note_block.bell")));
 
                 // 发送个性化的成功消息
-                player.displayClientMessage(Component.translatable("message.shipping_box.exchange_success"), true);
+                player.sendSystemMessage(Component.translatable("message.shipping_box.exchange_success"));
             }
         }
     }
@@ -607,7 +603,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         // 加载槽位所有者信息
         if (tag.contains("SlotOwners")) {
             CompoundTag ownersTag = tag.getCompound("SlotOwners");
-            for (String key : ownersTag.getAllKeys()) {
+            for (String key : ownersTag.keySet()) {
                 try {
                     int slot = Integer.parseInt(key);
                     UUID uuid = UUID.fromString(ownersTag.getString(key));

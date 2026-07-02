@@ -7,7 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,17 +28,17 @@ import org.jetbrains.annotations.NotNull;
 public class ShippingBoxScreen extends AbstractContainerScreen<ShippingBoxMenu> {
 
     /** 中文版贴图资源路径 */
-    private static final ResourceLocation TEXTURE_ZH = ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "textures/gui/shipping_box_zh_cn.png");
+    private static final Identifier TEXTURE_ZH = Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "textures/gui/shipping_box_zh_cn.png");
 
     /** 英文版贴图资源路径 */
-    private static final ResourceLocation TEXTURE_EN = ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "textures/gui/shipping_box_en_us.png");
+    private static final Identifier TEXTURE_EN = Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "textures/gui/shipping_box_en_us.png");
 
     /**
      * 根据当前游戏语言选择对应的贴图
      *
      * @return 对应语言的贴图资源位置
      */
-    private static ResourceLocation selectTexture() {
+    private static Identifier selectTexture() {
         String lang = Minecraft.getInstance().getLanguageManager().getSelected();
         return "zh_cn".equals(lang) ? TEXTURE_ZH : TEXTURE_EN;
     }

@@ -3,7 +3,7 @@ package com.chinaex123.shipping_box.block;
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -87,7 +87,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     @Override
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         // 客户端只返回成功，不执行实际逻辑
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
 
@@ -107,9 +107,9 @@ public class ShippingBoxBlock extends BaseEntityBlock {
             // 使用桶打开的音效，音调随机微调增加真实感
             level.playSound(
                     null, pos,
-                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
+                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.open")),
                     SoundSource.BLOCKS, 0.5F,
-                    level.random.nextFloat() * 0.1F + 0.9F
+                    level.getRandom().nextFloat() * 0.1F + 0.9F
             );
         }
 
@@ -149,7 +149,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             return (lvl, pos, st, be) -> {
                 if (be instanceof ShippingBoxBlockEntity shippingBox) {
                     shippingBox.tick();

@@ -119,7 +119,7 @@ public class ViScriptCoinItemServer extends TooltipItems {
             return InteractionResultHolder.pass(stack);
         }
 
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             return InteractionResultHolder.success(stack);
         }
 
@@ -146,7 +146,7 @@ public class ViScriptCoinItemServer extends TooltipItems {
                 stack.shrink(exchangeAmount);
 
                 // 播放成功音效
-                serverPlayer.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
+                serverPlayer.playSound(SoundEvents.NOTE_BLOCK_BELL.value());
 
                 // 添加粒子效果 - 修正后的位置和参数
                 spawnSuccessParticles(serverPlayer, player);

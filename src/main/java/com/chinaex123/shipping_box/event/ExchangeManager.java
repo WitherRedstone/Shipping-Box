@@ -14,7 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -177,7 +177,7 @@ public class ExchangeManager {
             }
 
             serverLevel.playSound(null, blockPos,
-                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
+                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
                     0.5F, 1.0F);
 

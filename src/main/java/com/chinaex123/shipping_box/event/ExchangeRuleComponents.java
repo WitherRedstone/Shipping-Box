@@ -8,7 +8,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.core.Holder;
@@ -154,7 +154,7 @@ public class ExchangeRuleComponents {
      */
     private static boolean matchesSingleComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
 
             if (componentId == null) {
                 return false;
@@ -343,7 +343,7 @@ public class ExchangeRuleComponents {
                             // 与期望值比较
                             if (expectedFieldValue.isJsonPrimitive()) {
                                 String expectedString = expectedFieldValue.getAsString();
-                                // 比较 ResourceLocation
+                                // 比较 Identifier
                                 return keyString.equals(expectedString);
                             }
                         } catch (Exception e) {
@@ -452,7 +452,7 @@ public class ExchangeRuleComponents {
      */
     private static boolean matchesSingleComponent(ItemStack stack, String componentName, String componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
             if (componentId == null) {
                 return false;
             }
@@ -518,12 +518,12 @@ public class ExchangeRuleComponents {
      * @param componentName 组件名称
      * @return 标准化的ResourceLocation对象，无效时返回null
      */
-    public static ResourceLocation normalizeComponentId(String componentName) {
+    public static Identifier normalizeComponentId(String componentName) {
         // 标准化组件ID
         if (componentName.contains(":")) {
-            return ResourceLocation.tryParse(componentName);
+            return Identifier.tryParse(componentName);
         }
-        return ResourceLocation.tryParse("minecraft:" + componentName);
+        return Identifier.tryParse("minecraft:" + componentName);
     }
 
     /**
@@ -642,7 +642,7 @@ public class ExchangeRuleComponents {
     @SuppressWarnings("unchecked")
     private static void applyComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
             if (componentId == null) {
                 return;
             }
@@ -707,7 +707,7 @@ public class ExchangeRuleComponents {
                 String enchId = entry.getKey();
                 var levelElement = entry.getValue();
                 int level = levelElement.getAsInt();
-                ResourceLocation enchLoc = ResourceLocation.tryParse(enchId);
+                Identifier enchLoc = Identifier.tryParse(enchId);
 
                 if (enchLoc != null) {
                     Optional<Holder.Reference<Enchantment>> enchantment = enchantmentRegistry.getHolder(enchLoc);
@@ -760,7 +760,7 @@ public class ExchangeRuleComponents {
 
                 if (levelElement.isJsonPrimitive() && levelElement.getAsJsonPrimitive().isNumber()) {
                     int level = levelElement.getAsInt();
-                    ResourceLocation enchLoc = ResourceLocation.tryParse(enchId);
+                    Identifier enchLoc = Identifier.tryParse(enchId);
 
                     if (enchLoc != null) {
                         Optional<Holder.Reference<Enchantment>> enchantment = enchantmentRegistry.getHolder(enchLoc);
@@ -786,7 +786,7 @@ public class ExchangeRuleComponents {
      */
     private static void applySingleComponent(DataComponentPatch.Builder patchBuilder, String componentName, String componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
             if (componentId == null) {
                 return;
             }

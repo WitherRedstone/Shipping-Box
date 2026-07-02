@@ -6,7 +6,7 @@ import com.chinaex123.shipping_box.init.ModItems;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.*;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.common.Tags;
@@ -111,30 +111,30 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                         ModItems.COPPER_CREEPER_COIN.get(), 8)
                 .requires(ModItems.IRON_CREEPER_COIN.get())
                 .unlockedBy("has_copper_creeper_coin", has(ModItems.IRON_CREEPER_COIN.get()))
-                .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "copper_creeper_coin_shapeless"));
+                .save(recipeOutput, Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "copper_creeper_coin_shapeless"));
         // 铁爬爬币
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
                         ModItems.IRON_CREEPER_COIN.get(), 2)
                 .requires(ModItems.GOLD_CREEPER_COIN.get())
                 .unlockedBy("has_iron_creeper_coin_shapeless", has(ModItems.GOLD_CREEPER_COIN.get()))
-                .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "iron_creeper_coin_shapeless"));
+                .save(recipeOutput, Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "iron_creeper_coin_shapeless"));
         // 金爬爬币
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
                         ModItems.GOLD_CREEPER_COIN.get(), 4)
                 .requires(ModItems.DIAMOND_CREEPER_COIN.get())
                 .unlockedBy("has_gold_creeper_coin_shapeless", has(ModItems.DIAMOND_CREEPER_COIN.get()))
-                .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "gold_creeper_coin_shapeless"));
+                .save(recipeOutput, Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "gold_creeper_coin_shapeless"));
         // 钻石爬爬币
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
                         ModItems.DIAMOND_CREEPER_COIN.get(), 8)
                 .requires(ModItems.NETHERITE_CREEPER_COIN.get())
                 .unlockedBy("has_diamond_creeper_coin_shapeless", has(ModItems.NETHERITE_CREEPER_COIN.get()))
-                .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "diamond_creeper_coin_shapeless"));
+                .save(recipeOutput, Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "diamond_creeper_coin_shapeless"));
         // 下界合金爬爬币
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
                         ModItems.NETHERITE_CREEPER_COIN.get(), 8)
                 .requires(ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get())
                 .unlockedBy("has_symbols_chaos_creeper_coin_shapeless", has(ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get()))
-                .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "netherite_creeper_coin_shapeless"));
+                .save(recipeOutput, Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "netherite_creeper_coin_shapeless"));
     }
 }

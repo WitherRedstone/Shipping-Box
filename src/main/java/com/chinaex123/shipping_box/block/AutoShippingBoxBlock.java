@@ -8,7 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -110,7 +110,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      */
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (type == ModBlockEntities.AUTOMATED_SHIPPING_BOX.get() && !level.isClientSide) {
+        if (type == ModBlockEntities.AUTOMATED_SHIPPING_BOX.get() && !level.isClientSide()) {
             return (level1, pos, state1, blockEntity) -> ((AutoShippingBoxBlockEntity) blockEntity).tick();
         }
         return null;
@@ -134,7 +134,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
         super.setPlacedBy(level, pos, state, placer, stack);
 
         // 只在服务端执行绑定逻辑
-        if (!level.isClientSide && placer instanceof Player player) {
+        if (!level.isClientSide() && placer instanceof Player player) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
                 // 检查物品是否有绑定信息（从CUSTOM_DATA组件中读取）
@@ -198,7 +198,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @return 交互结果枚举值，CONSUME表示消耗此次交互
      */
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
 
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
@@ -207,16 +207,16 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     // ========== 权限验证通过 ==========
                     // 播放开启声音
                     level.playSound(null, pos,
-                            SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
+                            SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.open")),
                             SoundSource.BLOCKS,
-                            0.5F, level.random.nextFloat() * 0.1F + 0.9F);
+                            0.5F, level.getRandom().nextFloat() * 0.1F + 0.9F);
 
                     // 打开GUI菜单，传递方块位置坐标
                     player.openMenu(autoBox, buf -> buf.writeBlockPos(pos));
                 } else {
                     // ========== 权限验证失败 ==========
                     // 发送拒绝访问消息
-                    player.displayClientMessage(Component.translatable("message.shipping_box.access_denied"), true);
+                    player.sendSystemMessage(Component.translatable("message.shipping_box.access_denied"));
                 }
             }
         }

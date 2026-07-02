@@ -97,7 +97,7 @@ public class GlobalPlayerStorage extends SavedData {
         if (tag.contains("PlayerStorages")) {
             CompoundTag playerStoragesTag = tag.getCompound("PlayerStorages");
 
-            for (String playerUUIDStr : playerStoragesTag.getAllKeys()) {
+            for (String playerUUIDStr : playerStoragesTag.keySet()) {
                 try {
                     UUID playerUUID = UUID.fromString(playerUUIDStr);
                     CompoundTag playerTag = playerStoragesTag.getCompound(playerUUIDStr);

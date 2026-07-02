@@ -5,7 +5,7 @@ import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.io.ByteArrayInputStream;
@@ -18,7 +18,7 @@ import java.util.zip.GZIPOutputStream;
 /** 配方同步数据包记录类 **/
 public record PacketSyncRecipes(String rulesJson) implements CustomPacketPayload {
     public static final Type<PacketSyncRecipes> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketSyncRecipes> STREAM_CODEC = StreamCodec.of(
