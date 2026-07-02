@@ -84,30 +84,48 @@ configurations {
 dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-    // 联动 - ViScriptShop
-    //localRuntime "curse.maven:ldlib-626676:7658151"
-    //localRuntime "curse.maven:viscriptshop-1408178:7594435"
-    implementation "curse.maven:ldlib-626676:8280846"
-    implementation "curse.maven:viscriptshop-1408178:8318336"
-    // 联动 - 节气
-    //localRuntime "curse.maven:ecliptic-seasons-1118306:7733270"
-    localRuntime "curse.maven:ecliptic-seasons-1118306:8291973"
 
-    // 规则测试
-    localRuntime "curse.maven:cloth-config-348521:5729127"
-    localRuntime "curse.maven:tide-884685:8295525" // 潮汐
-    localRuntime "curse.maven:fintastic-supreme-1553548:8143923" // 鳍妙至极
-    localRuntime "curse.maven:quality-food-973932:7653821" // 品质作物
-    localRuntime "curse.maven:kaleidoscope-tavern-1475175:8091783" // 森罗酒馆
+    // ============================================================
+    // 阶段 B 联动库版本匹配 (26.2 迁移)
+    // 规则:有 26.2 构建 → 升级到匹配的 fileId;
+    //       无 26.2 构建 → 注释掉依赖,防止旧版 jar 在 26.2 运行时报 ClassNotFoundException
+    // ============================================================
 
-    // 辅助
-    localRuntime "curse.maven:jei-238222:7420587"
-    localRuntime "curse.maven:jade-324717:7545219"
-    localRuntime "curse.maven:apothic-attributes-898963:7445079"
-    localRuntime "curse.maven:placebo-283644:6926281"
-    localRuntime "curse.maven:pipez-443900:5609056"
-    localRuntime "curse.maven:kubejs-238086:7278501"
-    localRuntime "curse.maven:rhino-416294:7104526"
+    // 联动 - LDLib2 (有 26.2 构建,CurseForge 626676,26.2 最新 fileId=8338951)
+    implementation "curse.maven:ldlib-626676:8338951"
+    // 联动 - 节气 (有 26.2 构建,CurseForge 1118306,26.2 最新 fileId=8350863)
+    localRuntime "curse.maven:ecliptic-seasons-1118306:8350863"
+
+    // 辅助 - JEI (有 26.2 构建,238222 → 8352845)
+    localRuntime "curse.maven:jei-238222:8352845"
+    // 辅助 - Jade (有 26.2 构建,324717 → 8326243)
+    localRuntime "curse.maven:jade-324717:8326243"
+    // 辅助 - Pipez (有 26.2 构建,443900 → 8351639)
+    localRuntime "curse.maven:pipez-443900:8351639"
+
+    // ------------------------ 未发现 26.2 构建的联动/辅助库 ------------------------
+    // 联动 - ViScriptShop;无 26.2(仅 1.21.1) — 暂时禁用,待作者发布兼容版本
+    // implementation "curse.maven:viscriptshop-1408178:8318336"
+
+    // 规则测试 - Cloth Config (无 26.2,仅 1.21.1)
+    // localRuntime "curse.maven:cloth-config-348521:5729127"
+    // 规则测试 - Tide 潮汐 (无 26.2)
+    // localRuntime "curse.maven:tide-884685:8295525"
+    // 规则测试 - 鳍妙至极 (无 26.2)
+    // localRuntime "curse.maven:fintastic-supreme-1553548:8143923"
+    // 规则测试 - 品质作物 (无 26.2)
+    // localRuntime "curse.maven:quality-food-973932:7653821"
+    // 规则测试 - 森罗酒馆 (无 26.2)
+    // localRuntime "curse.maven:kaleidoscope-tavern-1475175:8091783"
+
+    // 辅助 - Apothic Attributes (无 26.2)
+    // localRuntime "curse.maven:apothic-attributes-898963:7445079"
+    // 辅助 - Placebo (无 26.2)
+    // localRuntime "curse.maven:placebo-283644:6926281"
+    // 辅助 - KubeJS (无 26.2,仅 26.1.2)
+    // localRuntime "curse.maven:kubejs-238086:7278501"
+    // 辅助 - Rhino (无 26.2,仅 26.1.2)
+    // localRuntime "curse.maven:rhino-416294:7104526"
 
 }
 
