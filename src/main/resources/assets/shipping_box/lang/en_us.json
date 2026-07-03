@@ -143,5 +143,9 @@
   "command.shipping_box.editor.cache_status.with_error": "Icon cache status: %s (%d/%d) error: %s",
   "command.shipping_box.editor.cache_clear.success": "Icon cache cleared.",
   "command.shipping_box.error.execution": "Error executing command: %s",
-  "command.shipping_box.icon_cache.bossbar.title": "Caching icons... (%s / %s)"
+  "command.shipping_box.icon_cache.bossbar.title": "Caching icons... (%s / %s)",
+
+  "error.shipping_box.json_parse_error": "JSON parse error (%s): %s",
+  "message.shipping_box.dimensional_pouch.use_block_hint": "Please use the Shipping Box block to exchange coins.",
+  "tooltip.shipping_box.season_": "Season"
 }

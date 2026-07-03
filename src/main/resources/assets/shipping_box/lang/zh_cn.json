@@ -143,5 +143,9 @@
   "command.shipping_box.editor.cache_status.with_error": "图标缓存状态：%s（%d/%d）错误：%s",
   "command.shipping_box.editor.cache_clear.success": "图标缓存已清除。",
   "command.shipping_box.error.execution": "命令执行出错：%s",
-  "command.shipping_box.icon_cache.bossbar.title": "正在缓存图标... (%s / %s)"
+  "command.shipping_box.icon_cache.bossbar.title": "正在缓存图标... (%s / %s)",
+
+  "error.shipping_box.json_parse_error": "JSON 解析错误 (%s): %s",
+  "message.shipping_box.dimensional_pouch.use_block_hint": "请使用 Shipping Box 方块来兑换硬币。",
+  "tooltip.shipping_box.season_": "节气"
 }
