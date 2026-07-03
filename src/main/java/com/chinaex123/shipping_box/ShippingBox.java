@@ -45,8 +45,9 @@ public class ShippingBox {
         modContainer.registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
 
         ModCreativeTabs.register(modEventBus); // 注册自定义创造模式物品栏
-        ModBlocks.register(modEventBus); // 注册方块
-        ModItems.register(modEventBus); // 注册物品
+        // 26.2:block 和 block item 注册需要协调 — ModBlocks.register 内部会调用 ModItems.registerBlockItems
+        ModBlocks.register(modEventBus); // 注册方块 + block items
+        ModItems.register(modEventBus); // 注册独立物品(硬币/钱包)
         ModBlockEntities.register(modEventBus); // 注册方块实体
         ModMenuTypes.register(modEventBus); // 注册自定义 MenuType
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册自定义属性系统
