@@ -50,7 +50,7 @@ public class ItemIconPngRenderer {
             }
             return extractSpritePng(mc, sprite, size);
         } catch (Exception e) {
-            LOGGER.warn("[IconRenderer] Failed to render icon for {}", stack.getHoverName().getStringOr(), e);
+            LOGGER.warn("[IconRenderer] Failed to render icon for {}", stack.getHoverName().getString(), e);
             return EditorIconCacheManager.createPlaceholderPng(size, stack.hashCode());
         }
     }
@@ -58,9 +58,10 @@ public class ItemIconPngRenderer {
     /** 取物品对应的 TextureAtlasSprite。 */
     private static TextureAtlasSprite resolveSprite(ItemStack stack, Minecraft mc) {
         Item item = stack.getItem();
-        // 尝试通过 vanilla atlas
+        // 尝试通过 vanilla atlas (26.2: Minecraft.getAtlasManager().getAtlasOrThrow)
         try {
-            var atlas = mc.textureManager.getTextureAtlas(Identifier.withDefaultNamespace("textures/atlas/blocks.png"));
+            var atlas = mc.getAtlasManager().getAtlasOrThrow(
+                    Identifier.withDefaultNamespace("textures/atlas/blocks.png"));
             TextureAtlasSprite sprite = atlas.getSprite(BuiltInRegistries.ITEM.getKey(item));
             if (sprite != null && sprite.contents() != null && sprite.contents().name() != null) {
                 return sprite;
@@ -68,7 +69,7 @@ public class ItemIconPngRenderer {
         } catch (Exception ignored) {}
         // 回退: 用 missing sprite
         try {
-            return mc.textureManager.getTextureAtlas(
+            return mc.getAtlasManager().getAtlasOrThrow(
                     Identifier.withDefaultNamespace("textures/atlas/blocks.png"))
                     .getSprite(Identifier.withDefaultNamespace("missingno"));
         } catch (Exception ignored) {}
@@ -116,7 +117,7 @@ public class ItemIconPngRenderer {
             BufferedImage finalImg = cropped;
             if (outSize != cropW || outSize != cropH) {
                 finalImg = new BufferedImage(outSize, outSize, BufferedImage.TYPE_INT_ARGB);
-                finalImg.getGraphics().drawImage(cropped.getScaledInstance(outSize, outSize, java.awt.Image.NEARESTRESTO), 0, 0, null);
+                finalImg.getGraphics().drawImage(cropped.getScaledInstance(outSize, outSize, java.awt.Image.SCALE_FAST), 0, 0, null);
             }
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();

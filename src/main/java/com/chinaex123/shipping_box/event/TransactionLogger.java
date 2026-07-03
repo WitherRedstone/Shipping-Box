@@ -113,7 +113,7 @@ public class TransactionLogger {
      * 格式化输入物品，使用规则中的组件配置
      */
     private static String formatItemWithRuleComponents(ItemStack stack, ExchangeRule rule, int index) {
-        String itemName = Component.translatable(stack.getItem().getDescriptionId()).getStringOr();
+        String itemName = Component.translatable(stack.getItem().getDescriptionId()).getString();
         StringBuilder result = new StringBuilder();
         result.append(itemName).append(" x").append(stack.getCount());
         
@@ -137,7 +137,7 @@ public class TransactionLogger {
      * 格式化输出物品，使用规则中的组件配置
      */
     private static String formatOutputItem(ItemStack stack, ExchangeRule rule) {
-        String itemName = Component.translatable(stack.getItem().getDescriptionId()).getStringOr();
+        String itemName = Component.translatable(stack.getItem().getDescriptionId()).getString();
         StringBuilder result = new StringBuilder();
         result.append(itemName).append(" x").append(stack.getCount());
         

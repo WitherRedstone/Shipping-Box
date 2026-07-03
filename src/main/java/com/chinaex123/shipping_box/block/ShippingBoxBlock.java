@@ -117,26 +117,6 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     }
 
     /**
-     * 处理方块被移除时的逻辑
-     * 当方块被替换或破坏时，掉落破坏玩家的个人存储物品
-     *
-     * @param state 当前方块状态
-     * @param level 游戏世界实例
-     * @param pos 方块位置坐标
-     * @param newState 新的方块状态
-     * @param isMoving 是否正在被移动（如活塞推动）
-     */
-    @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        // 只有当方块类型发生变化时才执行移除逻辑（即被真正破坏）
-        if (!state.is(newState.getBlock())) {
-            // 调用父类方法处理基础掉落
-            // 由于物品存储在GlobalPlayerStorage中，这里不需要额外处理
-            super.onRemove(state, level, pos, newState, isMoving);
-        }
-    }
-
-    /**
      * 获取方块实体的刻更新器
      * 只在服务端为售货箱方块实体提供tick方法调用
      *

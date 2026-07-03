@@ -15,7 +15,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+// 26.2:AddReloadListenerEvent 已移除,改用 AddServerReloadListenersEvent
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -1697,10 +1698,13 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * 资源重载监听器注册事件
      * 将此管理器注册为资源重载监听器
      *
-     * @param event 资源重载监听器添加事件
+     * 26.2:AddReloadListenerEvent 已移除,改用 AddServerReloadListenersEvent
+     * 需要使用 addListener(Identifier, PreparableReloadListener) 注册
+     *
+     * @param event 服务器资源重载监听器添加事件
      */
     @SubscribeEvent
-    public static void onAddReloadListeners(AddReloadListenerEvent event) {
-        event.addListener(new ExchangeRecipeManager());
+    public static void onAddReloadListeners(AddServerReloadListenersEvent event) {
+        event.addListener(Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_recipe_manager"), new ExchangeRecipeManager());
     }
 }

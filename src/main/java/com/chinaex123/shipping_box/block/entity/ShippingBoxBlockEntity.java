@@ -58,8 +58,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      */
     private GlobalPlayerStorage getGlobalStorage() {
         if (level instanceof ServerLevel serverLevel) {
-            MinecraftServer server = serverLevel.getServer();
-            return GlobalPlayerStorage.get(server);
+            return GlobalPlayerStorage.get(serverLevel);
         }
         return null;
     }
@@ -559,60 +558,52 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      * @param tag NBT标签
      * @param registries 注册表查找提供者
      */
-    @Override
-    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
-        super.saveAdditional(tag, registries);
+    private static final int DATA_VERSION = 1;
 
-        // 保存共享存储
-        ContainerHelper.saveAllItems(tag, sharedItems, registries);
-        tag.putLong("LastExchangeDay", lastExchangeDay);
+    @Override
+    public void saveCustomOnly(@NotNull net.minecraft.world.level.storage.ValueOutput out) {
+        // 保存共享存储 (26.2 ContainerHelper API)
+        net.minecraft.world.ContainerHelper.saveAllItems(out, sharedItems);
+        out.putLong("LastExchangeDay", lastExchangeDay);
 
         // 保存槽位所有者信息
-        CompoundTag ownersTag = new CompoundTag();
+        var ownersChild = out.child("SlotOwners");
         for (Map.Entry<Integer, UUID> entry : slotOwners.entrySet()) {
-            ownersTag.putString(String.valueOf(entry.getKey()), entry.getValue().toString());
+            ownersChild.putString(String.valueOf(entry.getKey()), entry.getValue().toString());
         }
-        tag.put("SlotOwners", ownersTag);
 
         // 保存玩家物品计数
-        CompoundTag countsTag = new CompoundTag();
+        var countsChild = out.child("PlayerCounts");
         for (Map.Entry<UUID, Integer> entry : playerItemCounts.entrySet()) {
-            countsTag.putInt(entry.getKey().toString(), entry.getValue());
+            countsChild.putString(entry.getKey().toString(), String.valueOf(entry.getValue()));
         }
-        tag.put("PlayerCounts", countsTag);
+
+        out.putInt("_DATA_VERSION", DATA_VERSION);
     }
 
-    /**
-     * 从NBT标签中加载方块实体的额外数据
-     *
-     * @param tag NBT标签
-     * @param registries 注册表查找提供者
-     */
     @Override
-    protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
-        super.loadAdditional(tag, registries);
-
-        // 加载共享存储
+    protected void loadAdditional(@NotNull net.minecraft.world.level.storage.ValueInput in) {
+        // 加载共享存储 (26.2 ContainerHelper API)
         sharedItems = NonNullList.withSize(54, ItemStack.EMPTY);
-        ContainerHelper.loadAllItems(tag, sharedItems, registries);
+        net.minecraft.world.ContainerHelper.loadAllItems(in, sharedItems);
 
-        if (tag.contains("LastExchangeDay")) {
-            lastExchangeDay = tag.getLongOr("LastExchangeDay");
-        }
+        lastExchangeDay = in.getLongOr("LastExchangeDay", -1L);
 
         // 加载槽位所有者信息
-        if (tag.contains("SlotOwners")) {
-            CompoundTag ownersTag = tag.getCompound("SlotOwners");
-            for (String key : ownersTag.keySet()) {
+        slotOwners.clear();
+        in.child("SlotOwners").ifPresent(ownersIn -> {
+            for (String key : ownersIn.keySet()) {
                 try {
                     int slot = Integer.parseInt(key);
-                    UUID uuid = UUID.fromString(ownersTag.getStringOr(key));
-                    slotOwners.put(slot, uuid);
+                    String uuidStr = ownersIn.getStringOr(key, "");
+                    if (!uuidStr.isEmpty()) {
+                        slotOwners.put(slot, UUID.fromString(uuidStr));
+                    }
                 } catch (IllegalArgumentException e) {
                     // 静默处理错误
                 }
             }
-        }
+        });
     }
 
     /**

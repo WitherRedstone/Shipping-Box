@@ -424,8 +424,8 @@ public final class WebEditorLocalServer {
 
         // 收集所有标签
         JsonArray tags = new JsonArray();
-        BuiltInRegistries.ITEM.getTags().forEach(pair -> {
-            var tagKey = pair.getFirst();
+        BuiltInRegistries.ITEM.getTags().forEach(named -> {
+            var tagKey = named.key();
             Identifier loc = tagKey.location();
             if (loc != null) {
                 tags.add("#" + loc.getNamespace() + ":" + loc.getPath());

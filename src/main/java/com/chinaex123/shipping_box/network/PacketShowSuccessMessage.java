@@ -26,9 +26,9 @@ public record PacketShowSuccessMessage() implements CustomPacketPayload {
         context.enqueueWork(() -> {
             // 在客户端显示成功消息
             if (context.player() != null) {
+                // 26.2:sendSystemMessage 只接受一个 Component 参数
                 context.player().sendSystemMessage(
-                        Component.translatable("message.shipping_box.exchange_success"),
-                        true // 在行动栏显示
+                        Component.translatable("message.shipping_box.exchange_success")
                 );
             }
         }).exceptionally(e -> null);

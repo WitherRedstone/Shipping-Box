@@ -207,7 +207,8 @@ public class ListRulesCommand {
                     if (item != Items.AIR) {
                         // 创建一个临时的物品堆来获取显示名称
                         ItemStack stack = new ItemStack(item);
-                        return stack.getHoverName().getStringOr();
+                        // 26.2:getStringOr() 已移除,改为 getString()
+                        return stack.getHoverName().getString();
                     } else {
                         // 物品不存在，返回原始 ID（可能是其他模组的物品）
                         String[] parts = itemId.split(":");

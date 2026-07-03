@@ -53,7 +53,7 @@ public class GlobalPlayerStorage extends SavedData {
     public static final SavedDataType<GlobalPlayerStorage> TYPE = new SavedDataType<>(
             Identifier.fromNamespaceAndPath("shipping_box", "global_player_storage"),
             GlobalPlayerStorage::new,
-            () -> CODEC,
+            CODEC,
             DataFixTypes.LEVEL
     );
 

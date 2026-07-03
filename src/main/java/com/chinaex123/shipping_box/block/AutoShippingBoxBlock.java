@@ -144,18 +144,17 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
 
                 if (customData != null) {
                     CompoundTag tag = customData.copyTag();
-                    // 读取绑定的玩家UUID
-                    if (tag.contains("BoundPlayerUUID")) {
+                    // 读取绑定的玩家UUID (26.2: getStringOr() → getString().orElse())
+                    var boundUuidStr = tag.getString("BoundPlayerUUID");
+                    if (boundUuidStr.isPresent()) {
                         try {
-                            boundPlayerUUID = UUID.fromString(tag.getStringOr("BoundPlayerUUID"));
+                            boundPlayerUUID = UUID.fromString(boundUuidStr.get());
                         } catch (IllegalArgumentException e) {
                             // UUID格式错误，忽略
                         }
                     }
                     // 读取绑定的玩家名字
-                    if (tag.contains("BoundPlayerName")) {
-                        boundPlayerName = tag.getStringOr("BoundPlayerName");
-                    }
+                    boundPlayerName = tag.getString("BoundPlayerName").orElse("Unknown");
                 }
 
                 if (boundPlayerUUID != null) {
@@ -166,8 +165,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     // 显示绑定信息，使用读取到的玩家名字
                     player.sendSystemMessage(
                             Component.translatable("message.shipping_box.auto_box_already_bound",
-                                    Component.literal(boundPlayerName).withStyle(style -> style.withColor(0xFFAA00))),
-                            true
+                                    Component.literal(boundPlayerName).withStyle(style -> style.withColor(0xFFAA00)))
                     );
                 } else {
                     // ========== 情况2：没有绑定信息（全新放置） ==========
@@ -175,8 +173,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     autoBox.bindPlayer(player.getUUID());
                     player.sendSystemMessage(
                             Component.translatable("message.shipping_box.auto_box_bound",
-                                    player.getName().copy().withStyle(style -> style.withColor(0xFFAA00))),
-                            true
+                                    player.getName().copy().withStyle(style -> style.withColor(0xFFAA00)))
                     );
                 }
             }
@@ -236,7 +233,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @param newState 破坏后的新方块状态
      * @param isMoving 是否由活塞等机械装置移动
      */
-    @Override
+    // 26.2:Block 不再有 onRemove 方法,移除 @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
@@ -254,7 +251,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                         String playerName = "Unknown Player";
                         Player player = level.getPlayerByUUID(boundPlayer);
                         if (player != null) {
-                            playerName = player.getName().getStringOr();
+                            playerName = player.getName().getString();
                         }
 
                         // ========== 使用CUSTOM_DATA组件存储UUID和玩家名字 ==========
@@ -279,7 +276,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     // ========== 第三步：掉落内部存储的所有物品 ==========
                     // 遍历所有槽位，将物品全部掉落
                     for (int i = 0; i < autoBox.getContainerSize(); i++) {
-                        ItemStack stack = autoBox.getItemHandler().getStackInSlot(i);
+                        ItemStack stack = autoBox.getItem(i);
                         if (!stack.isEmpty()) {
                             Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
                         }
@@ -289,8 +286,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     return;
                 }
             }
-            // 如果是其他情况，调用父类方法处理
-            super.onRemove(state, level, pos, newState, isMoving);
+            // 26.2:super.onRemove 已不存在,不再调用
         }
     }
 }

@@ -64,7 +64,7 @@ public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
      * @param player 玩家实例，作为特效中心点
      */
     private static void spawnMagicCircleEffects(Player player) {
-        RandomSource random = player.level().random;
+        RandomSource random = player.level().getRandom();
         double centerX = player.getX();
         double centerY = player.getY();
         double centerZ = player.getZ();

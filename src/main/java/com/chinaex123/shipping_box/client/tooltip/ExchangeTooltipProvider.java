@@ -94,7 +94,8 @@ public class ExchangeTooltipProvider {
                                 additionalLines.add(seasonLine);
 
                                 // 应季加成（如果有）
-                                if (seasonInfoLines.length > 1 && !seasonInfoLines[1].getStringOr().isEmpty()) {
+                                // 26.2:getStringOr() 已移除,改为 getString()
+                                if (seasonInfoLines.length > 1 && !seasonInfoLines[1].getString().isEmpty()) {
                                     MutableComponent bonusLine = Component.empty()
                                             .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
                                             .append(Component.translatable("tooltip.shipping_box.season_bonus_label").withStyle(ChatFormatting.GRAY))
@@ -105,7 +106,8 @@ public class ExchangeTooltipProvider {
                                 }
 
                                 // 非应季减益（如果有）
-                                if (seasonInfoLines.length > 2 && !seasonInfoLines[2].getStringOr().isEmpty()) {
+                                // 26.2:getStringOr() 已移除,改为 getString()
+                                if (seasonInfoLines.length > 2 && !seasonInfoLines[2].getString().isEmpty()) {
                                     MutableComponent penaltyLine = Component.empty()
                                             .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
                                             .append(Component.translatable("tooltip.shipping_box.season_penalty_label").withStyle(ChatFormatting.GRAY))
@@ -850,7 +852,7 @@ public class ExchangeTooltipProvider {
             Identifier itemId = Identifier.parse(itemIdentifier);
             Item item = BuiltInRegistries.ITEM.get(itemId).map(Holder::value).orElse(null);
 
-            return item.getDescription();
+            return Component.translatable(item.getDescriptionId());
         } catch (Exception e) {
             return Component.literal(itemIdentifier);
         }
@@ -891,7 +893,7 @@ public class ExchangeTooltipProvider {
     private static int getLatestSoldCount(String itemIdentifier) {
         try {
             // 在客户端环境下优先使用缓存数据
-            if (FMLEnvironment.dist == Dist.CLIENT && ClientSoldCountCache.hasCachedData(itemIdentifier)) {
+            if (FMLEnvironment.getDist() == Dist.CLIENT && ClientSoldCountCache.hasCachedData(itemIdentifier)) {
                 return ClientSoldCountCache.getCachedSoldCount(itemIdentifier);
             }
 

@@ -13,7 +13,7 @@ public class ModCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("shipping_box")
-                .requires(source -> source.hasPermission(2))
+                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 
                 // 子命令：force_exchange - 强制兑换
                 .then(Commands.literal("force_exchange")

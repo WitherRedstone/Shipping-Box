@@ -2,6 +2,7 @@ package com.chinaex123.shipping_box.attribute;
 
 import com.chinaex123.shipping_box.ShippingBox;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -28,6 +29,9 @@ public class ModAttributes {
 
     @SubscribeEvent
     public static void addAttributes(EntityAttributeModificationEvent event) {
-        event.add(EntityType.PLAYER, SELLING_PRICE_BOOST);
+        // 26.2: EntityType.PLAYER 字段已移除，改为从注册表获取
+        EntityType<?> playerType = BuiltInRegistries.ENTITY_TYPE.getValue(
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("minecraft", "player"));
+        event.add((EntityType<net.minecraft.world.entity.LivingEntity>) playerType, SELLING_PRICE_BOOST);
     }
 }

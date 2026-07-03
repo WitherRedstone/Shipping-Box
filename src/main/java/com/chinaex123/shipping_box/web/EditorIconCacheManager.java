@@ -361,7 +361,7 @@ public class EditorIconCacheManager {
             Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) return;
             String fileName = toSafeFileName(id);
-            String display = new ItemStack(item).getHoverName().getStringOr();
+            String display = new ItemStack(item).getHoverName().getString();
             pendingEntries.add(new CacheEntry(id, false, display, fileName));
         });
 
@@ -372,7 +372,7 @@ public class EditorIconCacheManager {
             Identifier id = BuiltInRegistries.BLOCK.getKey(block);
             if (id == null) return;
             String fileName = toSafeFileName(id);
-            String display = new ItemStack(item).getHoverName().getStringOr();
+            String display = new ItemStack(item).getHoverName().getString();
             pendingEntries.add(new CacheEntry(id, true, display, fileName));
         });
     }
@@ -402,8 +402,21 @@ public class EditorIconCacheManager {
             try {
                 // 获取物品栈
                 ItemStack stack = entry.isBlock()
-                        ? new ItemStack(BuiltInRegistries.BLOCK.get(entry.id()).map(Holder::value).orElseThrow(() -> new IllegalStateException("Unknown block: " + entry.id())).asItem())
-                        : new ItemStack(BuiltInRegistries.ITEM.get(entry.id()).map(Holder::value).orElseThrow(() -> new IllegalStateException("Unknown item: " + entry.id())));
+                        ? BuiltInRegistries.BLOCK.get(entry.id())
+                                .map(Holder::value)
+                                .map(Block::asItem)
+                                .map(ItemStack::new)
+                                .orElse(ItemStack.EMPTY)
+                        : BuiltInRegistries.ITEM.get(entry.id())
+                                .map(Holder::value)
+                                .map(ItemStack::new)
+                                .orElse(ItemStack.EMPTY);
+
+                if (stack.isEmpty()) {
+                    processed.incrementAndGet();
+                    processedThisTick++;
+                    continue;
+                }
 
                 // 渲染图标为PNG
                 byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE);
@@ -473,7 +486,7 @@ public class EditorIconCacheManager {
                 if (Files.exists(file)) {
                     JsonObject entry = new JsonObject();
                     entry.addProperty("id", id.toString());
-                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getStringOr());
+                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getString());
                     entry.addProperty("path", "/icon/cache/items/" + fileName);
                     itemsArr.add(entry);
                 }
@@ -491,7 +504,7 @@ public class EditorIconCacheManager {
                 if (Files.exists(file)) {
                     JsonObject entry = new JsonObject();
                     entry.addProperty("id", id.toString());
-                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getStringOr());
+                    entry.addProperty("displayName", new ItemStack(item).getHoverName().getString());
                     entry.addProperty("path", "/icon/cache/blocks/" + fileName);
                     blocksArr.add(entry);
                 }
@@ -503,25 +516,23 @@ public class EditorIconCacheManager {
             // 3. 收集标签及其代表性图标
             JsonArray tagsArr = new JsonArray();
             JsonObject tagIcons = new JsonObject();
-            BuiltInRegistries.ITEM.getTags().forEach(pair -> {
-                var tagKey = pair.getFirst();
+            BuiltInRegistries.ITEM.getTags().forEach(named -> {
+                var tagKey = named.key();
                 Identifier loc = tagKey.location();
                 if (loc == null) return;
                 String tagId = "#" + loc.getNamespace() + ":" + loc.getPath();
                 tagsArr.add(tagId);
 
-                // 查找标签中第一个有缓存的物品作为代表性图标
-                var holderSet = BuiltInRegistries.ITEM.getTag(tagKey);
-                if (holderSet.isPresent()) {
-                    for (var holder : holderSet.get()) {
-                        Item item = holder.value();
-                        Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
-                        if (itemId == null) continue;
-                        String fileName = toSafeFileName(itemId) + ".png";
-                        if (Files.exists(itemsDir.resolve(fileName))) {
-                            tagIcons.addProperty(tagId, "/icon/cache/items/" + fileName);
-                            break;
-                        }
+                // 查找标签中第一个有缓存的物品作为代表性图标 (26.2: getTag → getTagOrEmpty)
+                var holders = BuiltInRegistries.ITEM.getTagOrEmpty(tagKey);
+                for (var holder : holders) {
+                    Item item = holder.value();
+                    Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
+                    if (itemId == null) continue;
+                    String fileName = toSafeFileName(itemId) + ".png";
+                    if (Files.exists(itemsDir.resolve(fileName))) {
+                        tagIcons.addProperty(tagId, "/icon/cache/items/" + fileName);
+                        break;
                     }
                 }
             });
