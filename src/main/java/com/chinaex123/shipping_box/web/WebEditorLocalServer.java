@@ -514,18 +514,32 @@ public final class WebEditorLocalServer {
 
         Path manifest = EditorIconCacheManager.getInstance().getManifestFile();
         if (Files.exists(manifest)) {
-            // 返回已有的清单
             byte[] bytes = Files.readAllBytes(manifest);
+            try {
+                JsonObject manifestJson = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
+                int version = manifestJson.has("version") ? manifestJson.get("version").getAsInt() : 0;
+                if (version != EditorIconCacheManager.CACHE_VERSION) {
+                    writeMissingCache(out);
+                    return;
+                }
+            } catch (Exception ignored) {
+                writeMissingCache(out);
+                return;
+            }
+            // 返回已有的清单
             writeBytes(out, 200, "application/json; charset=utf-8", bytes);
         } else {
-            // 返回缺失提示
-            JsonObject resp = new JsonObject();
-            resp.addProperty("status", "missing_cache");
-            resp.addProperty("message", "Icon cache has not been generated yet. " +
-                    "Please run /" + ShippingBox.MOD_ID + " editor cache_icons in game.");
-            writeBytes(out, 200, "application/json; charset=utf-8",
-                    GSON.toJson(resp).getBytes(StandardCharsets.UTF_8));
+            writeMissingCache(out);
         }
+    }
+
+    private static void writeMissingCache(OutputStream out) throws IOException {
+        JsonObject resp = new JsonObject();
+        resp.addProperty("status", "missing_cache");
+        resp.addProperty("message", "Icon cache has not been generated yet. " +
+                "Please run /" + ShippingBox.MOD_ID + " editor cache_icons in game.");
+        writeBytes(out, 200, "application/json; charset=utf-8",
+                GSON.toJson(resp).getBytes(StandardCharsets.UTF_8));
     }
 
     /**

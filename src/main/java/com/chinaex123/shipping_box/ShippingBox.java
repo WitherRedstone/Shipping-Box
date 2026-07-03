@@ -119,12 +119,11 @@ public class ShippingBox {
      */
     @SubscribeEvent
     public void registerCapabilities(RegisterCapabilitiesEvent event) {
-        // 26.2:用 VanillaContainerWrapper 把 BaseContainerBlockEntity 包装成新 ResourceHandler API
         event.registerBlock(
                 net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
                 (level, pos, state, be, side) -> {
                     if (be instanceof AutoShippingBoxBlockEntity autoBox) {
-                        return net.neoforged.neoforge.transfer.item.VanillaContainerWrapper.of(autoBox);
+                        return autoBox.getTransferHandler();
                     }
                     return net.neoforged.neoforge.transfer.EmptyResourceHandler.instance();
                 },
@@ -133,4 +132,3 @@ public class ShippingBox {
     }
 
 }
-

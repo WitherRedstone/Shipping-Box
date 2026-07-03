@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "A": "minecraft:shipping_box",
+    "A": "shipping_box:shipping_box",
     "B": "minecraft:redstone"
   },
   "pattern": [

@@ -3,7 +3,6 @@ package com.chinaex123.shipping_box.menu;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.client.gui.ShippingBoxLayout;
 import com.chinaex123.shipping_box.init.ModMenuTypes;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.Identifier;
@@ -34,8 +33,8 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
     public AutoShippingBoxMenu(int id, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
         super(ModMenuTypes.AUTO_SHIPPING_BOX.get(), id);
         this.menuPos = buf.readBlockPos();
-        this.blockEntity = findBlockEntity(menuPos);
-        this.menuLevel = blockEntity != null ? blockEntity.getLevel() : Minecraft.getInstance().level;
+        this.blockEntity = findBlockEntity(playerInventory.player.level(), menuPos);
+        this.menuLevel = blockEntity != null ? blockEntity.getLevel() : playerInventory.player.level();
         this.shippingContainer = new SimpleContainer(54);
         addAllSlots(playerInventory);
     }
@@ -50,8 +49,7 @@ public class AutoShippingBoxMenu extends AbstractContainerMenu {
         addAllSlots(playerInventory);
     }
 
-    private AutoShippingBoxBlockEntity findBlockEntity(BlockPos pos) {
-        Level level = Minecraft.getInstance().level;
+    private AutoShippingBoxBlockEntity findBlockEntity(Level level, BlockPos pos) {
         if (level != null) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof AutoShippingBoxBlockEntity abe) return abe;

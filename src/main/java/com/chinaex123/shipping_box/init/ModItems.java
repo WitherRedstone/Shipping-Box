@@ -1,8 +1,10 @@
 package com.chinaex123.shipping_box.init;
 
 import com.chinaex123.shipping_box.ShippingBox;
+import com.chinaex123.shipping_box.item.CreeperCoinItem;
 import com.chinaex123.shipping_box.item.DimensionalPouchItem;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -10,7 +12,9 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
- public interface ModItems {
+import java.util.List;
+
+public interface ModItems {
     DeferredRegister.Items ITEMS_REGISTER =
             DeferredRegister.createItems(ShippingBox.MOD_ID);
 
@@ -19,14 +23,27 @@ import net.neoforged.neoforge.registries.DeferredRegister;
             props -> new DimensionalPouchItem(props.stacksTo(1)),
             Item.Properties::new);
 
-    // 26.2:基础 Item 用 registerSimpleItem
-    DeferredItem<Item> COPPER_CREEPER_COIN = ITEMS_REGISTER.registerSimpleItem("copper_creeper_coin", Item.Properties::new);
-    DeferredItem<Item> IRON_CREEPER_COIN = ITEMS_REGISTER.registerSimpleItem("iron_creeper_coin", Item.Properties::new);
-    DeferredItem<Item> GOLD_CREEPER_COIN = ITEMS_REGISTER.registerSimpleItem("gold_creeper_coin", Item.Properties::new);
-    DeferredItem<Item> DIAMOND_CREEPER_COIN = ITEMS_REGISTER.registerSimpleItem("diamond_creeper_coin", Item.Properties::new);
-    DeferredItem<Item> EMERALD_CREEPER_COIN = ITEMS_REGISTER.registerSimpleItem("emerald_creeper_coin", Item.Properties::new);
-    DeferredItem<Item> NETHERITE_CREEPER_COIN = ITEMS_REGISTER.registerSimpleItem("netherite_creeper_coin", Item.Properties::new);
-    DeferredItem<Item> SYMBOLS_CHAOS_CREEPER_COIN = ITEMS_REGISTER.registerSimpleItem("symbols_chaos_creeper_coin", Item.Properties::new);
+    DeferredItem<Item> COPPER_CREEPER_COIN = ITEMS_REGISTER.registerItem("copper_creeper_coin",
+            props -> coin(props, 1, "tooltip.item.shipping_box.copper_creeper_coin"),
+            Item.Properties::new);
+    DeferredItem<Item> IRON_CREEPER_COIN = ITEMS_REGISTER.registerItem("iron_creeper_coin",
+            props -> coin(props, 8, "tooltip.item.shipping_box.iron_creeper_coin"),
+            Item.Properties::new);
+    DeferredItem<Item> GOLD_CREEPER_COIN = ITEMS_REGISTER.registerItem("gold_creeper_coin",
+            props -> coin(props, 16, "tooltip.item.shipping_box.gold_creeper_coin"),
+            Item.Properties::new);
+    DeferredItem<Item> DIAMOND_CREEPER_COIN = ITEMS_REGISTER.registerItem("diamond_creeper_coin",
+            props -> coin(props, 64, "tooltip.item.shipping_box.diamond_creeper_coin"),
+            Item.Properties::new);
+    DeferredItem<Item> EMERALD_CREEPER_COIN = ITEMS_REGISTER.registerItem("emerald_creeper_coin",
+            props -> coin(props, 256, "tooltip.item.shipping_box.emerald_creeper_coin"),
+            Item.Properties::new);
+    DeferredItem<Item> NETHERITE_CREEPER_COIN = ITEMS_REGISTER.registerItem("netherite_creeper_coin",
+            props -> coin(props, 512, "tooltip.item.shipping_box.netherite_creeper_coin"),
+            Item.Properties::new);
+    DeferredItem<Item> SYMBOLS_CHAOS_CREEPER_COIN = ITEMS_REGISTER.registerItem("symbols_chaos_creeper_coin",
+            props -> coin(props, 4096, "tooltip.item.shipping_box.symbols_chaos_creeper_coin"),
+            Item.Properties::new);
 
     static void register(IEventBus eventBus) {
         // 26.2:block item 通过 registerSimpleBlockItem 自动生成,自动继承 block id
@@ -58,5 +75,13 @@ import net.neoforged.neoforge.registries.DeferredRegister;
             total += getCoinValue(s.getItem()) * s.getCount();
         }
         return total;
+    }
+
+    private static CreeperCoinItem coin(Item.Properties properties, int value, String tooltipKey) {
+        return new CreeperCoinItem(properties, value, () -> List.of(
+                Component.translatable(tooltipKey),
+                Component.translatable("tooltip.item.shipping_box.viscriptshop.right_click"),
+                Component.translatable("tooltip.item.shipping_box.viscriptshop.sneak_click")
+        ));
     }
 }

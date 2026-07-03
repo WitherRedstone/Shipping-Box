@@ -10,6 +10,7 @@ import com.chinaex123.shipping_box.compat.EclipticSeasons.EclipticSeasonsUtil;
 // import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.PacketExchangeEffects;
 import com.chinaex123.shipping_box.network.PacketShowSuccessMessage;
+import com.chinaex123.shipping_box.storage.PlayerBalanceManager;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -71,6 +72,10 @@ public class ExchangeManager {
             if (rule != null) {
                 lastMatchedRule = rule;
 
+                if (rule.getOutputItem().isCoin() && !CommonConfig.ENABLE_VIRTUAL_CURRENCY.get()) {
+                    break;
+                }
+
                 // 26.2 迁移:ViScriptShop 联动已注释
                 // if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
                 //     return;
@@ -103,6 +108,7 @@ public class ExchangeManager {
         } while (exchanged);
 
         if (hasValidExchange) {
+            int effectiveVirtualCurrency = CommonConfig.ENABLE_VIRTUAL_CURRENCY.get() ? totalVirtualCurrency : 0;
             List<ItemStack> consumedItems = calculateConsumedItems(initialItems, currentItems);
 
             if (ShippingBoxAPI.onExchange(
@@ -110,7 +116,7 @@ public class ExchangeManager {
                     level,
                     createNonNullList(consumedItems),
                     createNonNullList(results),
-                    totalVirtualCurrency,
+                    effectiveVirtualCurrency,
                     lastMatchedRule)) {
                 for (int i = 0; i < items.size(); i++) {
                     items.set(i, initialSnapshot.get(i).copy());
@@ -118,15 +124,12 @@ public class ExchangeManager {
                 return;
             }
 
-            // 26.2 迁移:ViScriptShop 联动已注释(无 26.2 版联动库)
-            // if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
-            //     ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
-            //     if (player != null && ViScriptShopUtil.isAvailable()) {
-            //         int currentBalance = ViScriptShopUtil.getMoney(player);
-            //         startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
-            //         ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
-            //     }
-            // }
+            if (effectiveVirtualCurrency > 0 && boundPlayerUUID != null) {
+                ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
+                if (player != null) {
+                    PlayerBalanceManager.addBalance(player, effectiveVirtualCurrency);
+                }
+            }
 
             results.addAll(currentItems);
 
@@ -190,7 +193,7 @@ public class ExchangeManager {
                     PacketDistributor.sendToPlayer(player, new PacketShowSuccessMessage());
 
                     if (CommonConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
-                        PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(totalVirtualCurrency));
+                        PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(effectiveVirtualCurrency));
                     }
                 }
             }
@@ -204,18 +207,10 @@ public class ExchangeManager {
                         playerName = logPlayer.getName().getString();
                     }
                 }
-                TransactionLogger.logTransaction(playerName, consumedItems, results, totalVirtualCurrency, level, lastMatchedRule);
+                TransactionLogger.logTransaction(playerName, consumedItems, results, effectiveVirtualCurrency, level, lastMatchedRule);
             }
         }
     }
-    /**
-     * 开始余额动画
-     */
-    // 26.2 迁移:已无调用者(ViScriptShop 联动已注释)
-    // private static void startBalanceAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
-    //     BalanceAnimationManager.startAnimation(player, startBalance, totalValue, exchangeAmount);
-    // }
-
     /**
      * 应用玩家出售价格属性加成到基础数量
      * <p>

@@ -15,6 +15,7 @@
   "message.shipping_box.exchange_success": "§a§lExchange Successful! §rReceived items in shipping box.",
   "message.shipping_box.dimensional_pouch.no_container_coins": "§cNo physical coins found in container!",
   "message.shipping_box.dimensional_pouch.current_balance": "§eCurrent balance: %s◎",
+  "message.shipping_box.virtual_currency.disabled": "§cInternal virtual currency is disabled in the config.",
   "message.shipping_box.viscriptshop.balance_animation": "Current balance: %s◎ (+%s◎)",
   "message.shipping_box.viscriptshop.exchange_failed": "§cExchange failed, please try again later",
   "message.shipping_box.access_denied": "You don't have permission to access this Auto Shipping Box!",
@@ -147,5 +148,7 @@
 
   "error.shipping_box.json_parse_error": "JSON parse error (%s): %s",
   "message.shipping_box.dimensional_pouch.use_block_hint": "Please use the Shipping Box block to exchange coins.",
+  "message.shipping_box.dimensional_pouch.coin_summary": "§eDimensional Pouch Scan: §6Total value %s◎ §7(%s)",
+  "message.shipping_box.dimensional_pouch.no_coins": "§7No coins found in your inventory. Place items in a Shipping Box to earn coins.",
   "tooltip.shipping_box.season_": "Season"
 }

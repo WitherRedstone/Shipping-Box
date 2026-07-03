@@ -6,6 +6,7 @@ import com.chinaex123.shipping_box.menu.AutoShippingBoxMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -13,6 +14,10 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -33,6 +38,7 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
     private final Map<Integer, Boolean> slotIsExchanged = new HashMap<>();
     private final Map<Integer, ItemStack> exchangedItemPrototype = new HashMap<>();
     private boolean skipResetDuringExchange = false;
+    private ResourceHandler<ItemResource> transferHandler;
 
     public AutoShippingBoxBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.AUTOMATED_SHIPPING_BOX.get(), pos, state);
@@ -92,12 +98,19 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
 
     @Override
     public void setItem(int slot, @NotNull ItemStack stack) {
+        setItem(slot, stack, false);
+    }
+
+    @Override
+    public void setItem(int slot, @NotNull ItemStack stack, boolean insideTransaction) {
         items.set(slot, stack);
-        if (!skipResetDuringExchange) {
+        if (!insideTransaction && !skipResetDuringExchange) {
             slotIsExchanged.put(slot, false);
             exchangedItemPrototype.remove(slot);
         }
-        setChanged();
+        if (!insideTransaction) {
+            setChanged();
+        }
     }
 
     @Override
@@ -120,7 +133,28 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
     }
 
     public boolean isSlotExchanged(int slot) { return slotIsExchanged.getOrDefault(slot, false); }
-    public Set<Integer> getExchangedSlots() { return slotIsExchanged.keySet(); }
+    public Set<Integer> getExchangedSlots() {
+        Set<Integer> exchanged = new HashSet<>();
+        slotIsExchanged.forEach((slot, value) -> {
+            if (value) exchanged.add(slot);
+        });
+        return exchanged;
+    }
+
+    public boolean canExternalExtract(int slot, ItemStack currentStack) {
+        if (!slotIsExchanged.getOrDefault(slot, false) || currentStack.isEmpty()) {
+            return false;
+        }
+        ItemStack prototype = exchangedItemPrototype.get(slot);
+        return prototype != null && ItemStack.isSameItemSameComponents(currentStack, prototype);
+    }
+
+    public ResourceHandler<ItemResource> getTransferHandler() {
+        if (transferHandler == null) {
+            transferHandler = new AutoShippingBoxResourceHandler(this);
+        }
+        return transferHandler;
+    }
 
     public void forceExchange() {
         if (level != null && !level.isClientSide()) {
@@ -184,5 +218,54 @@ public class AutoShippingBoxBlockEntity extends BaseContainerBlockEntity impleme
         skipResetDuringExchange = false;
         lastExchangeDay = currentDay;
         setChanged();
+    }
+
+    @Override
+    protected void saveAdditional(@NotNull ValueOutput out) {
+        super.saveAdditional(out);
+        ContainerHelper.saveAllItems(out, items);
+        out.putLong("LastExchangeDay", lastExchangeDay);
+        if (boundPlayerUUID != null) {
+            out.putString("BoundPlayerUUID", boundPlayerUUID.toString());
+        }
+
+        ValueOutput exchangedSlots = out.child("SlotIsExchanged");
+        slotIsExchanged.forEach((slot, exchanged) -> exchangedSlots.putBoolean(String.valueOf(slot), exchanged));
+
+        ValueOutput prototypes = out.child("ExchangedItemPrototype");
+        exchangedItemPrototype.forEach((slot, stack) ->
+                prototypes.store(String.valueOf(slot), ItemStack.OPTIONAL_CODEC, stack));
+    }
+
+    @Override
+    protected void loadAdditional(@NotNull ValueInput in) {
+        super.loadAdditional(in);
+        items.clear();
+        ContainerHelper.loadAllItems(in, items);
+        lastExchangeDay = in.getLongOr("LastExchangeDay", -1L);
+        String boundPlayer = in.getStringOr("BoundPlayerUUID", "");
+        boundPlayerUUID = boundPlayer.isEmpty() ? null : UUID.fromString(boundPlayer);
+
+        slotIsExchanged.clear();
+        in.child("SlotIsExchanged").ifPresent(slotsIn -> {
+            for (String key : slotsIn.keySet()) {
+                try {
+                    slotIsExchanged.put(Integer.parseInt(key), slotsIn.getBooleanOr(key, false));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        });
+
+        exchangedItemPrototype.clear();
+        in.child("ExchangedItemPrototype").ifPresent(prototypesIn -> {
+            for (String key : prototypesIn.keySet()) {
+                try {
+                    prototypesIn.read(key, ItemStack.OPTIONAL_CODEC)
+                            .filter(stack -> !stack.isEmpty())
+                            .ifPresent(stack -> exchangedItemPrototype.put(Integer.parseInt(key), stack));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        });
     }
 }

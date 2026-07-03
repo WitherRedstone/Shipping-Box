@@ -67,6 +67,7 @@ public class EditorIconCacheManager {
 
     public static final int ICON_SIZE = 32; // 生成的图标尺寸
     public static final int ICONS_PER_TICK = 3; // 每个游戏刻最大处理的图标数量
+    public static final int CACHE_VERSION = 5; // v5: slab/stairs/walls/fences also use isometric block icons
 
     // 单例实例
     private static final EditorIconCacheManager INSTANCE = new EditorIconCacheManager();
@@ -182,15 +183,18 @@ public class EditorIconCacheManager {
                 String json = Files.readString(manifestFile, StandardCharsets.UTF_8);
                 JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
                 String statusStr = obj.has("status") ? obj.get("status").getAsString() : "";
+                int version = obj.has("version") ? obj.get("version").getAsInt() : 0;
 
                 // 如果清单状态为 ready 或 done，说明缓存已存在
-                if ("ready".equals(statusStr) || "done".equals(statusStr)) {
+                if (version == CACHE_VERSION && ("ready".equals(statusStr) || "done".equals(statusStr))) {
                     this.status = Status.DONE;
                     int itemCount = obj.has("items") ? obj.getAsJsonArray("items").size() : 0;
                     int blockCount = obj.has("blocks") ? obj.getAsJsonArray("blocks").size() : 0;
                     this.total.set(itemCount + blockCount);
                     this.processed.set(this.total.get());
                     LOGGER.info("[IconCache] 从 manifest 加载就绪状态 ({} items, {} blocks)", itemCount, blockCount);
+                } else if ("ready".equals(statusStr) || "done".equals(statusStr)) {
+                    LOGGER.info("[IconCache] 忽略旧版 manifest cache version {}，等待重建", version);
                 }
             }
         } catch (Exception e) {
@@ -419,7 +423,7 @@ public class EditorIconCacheManager {
                 }
 
                 // 渲染图标为PNG
-                byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE);
+                byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE, entry.isBlock());
                 if (png == null || png.length == 0) {
                     // 渲染失败，使用占位图
                     png = createPlaceholderPng(ICON_SIZE, entry.id().hashCode());
@@ -468,7 +472,7 @@ public class EditorIconCacheManager {
 
             // 构建根JSON对象
             JsonObject root = new JsonObject();
-            root.addProperty("version", 1);
+            root.addProperty("version", CACHE_VERSION);
             root.addProperty("modid", ShippingBox.MOD_ID);
             root.addProperty("iconSize", ICON_SIZE);
             root.addProperty("iconsPerTick", ICONS_PER_TICK);

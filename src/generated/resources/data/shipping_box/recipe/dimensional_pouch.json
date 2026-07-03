@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": "#c:gems/quartz",
+    "B": "#c:gems/amethyst",
+    "C": "#c:gems/emerald"
+  },
+  "pattern": [
+    "BCB",
+    "CAC",
+    "BCB"
+  ],
+  "result": {
+    "count": 1,
+    "id": "shipping_box:dimensional_pouch"
+  }
+}

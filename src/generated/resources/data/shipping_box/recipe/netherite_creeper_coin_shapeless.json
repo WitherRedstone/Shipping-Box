@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "shipping_box:symbols_chaos_creeper_coin"
+  ],
+  "result": {
+    "count": 8,
+    "id": "shipping_box:netherite_creeper_coin"
+  }
+}

@@ -15,6 +15,7 @@
   "message.shipping_box.exchange_success": "§a§l出售成功！§r物品已放入售货箱",
   "message.shipping_box.dimensional_pouch.no_container_coins": "§c容器中未找到实体货币！",
   "message.shipping_box.dimensional_pouch.current_balance": "§e当前余额：%s◎",
+  "message.shipping_box.virtual_currency.disabled": "§c内置虚拟货币已在配置中关闭。",
   "message.shipping_box.viscriptshop.balance_animation": "§e当前余额：%s◎ (+%s◎)",
   "message.shipping_box.viscriptshop.exchange_failed": "§c兑换失败，请稍后重试",
   "message.shipping_box.access_denied": "§c你没有权限访问这个自动售货箱！",
@@ -147,5 +148,7 @@
 
   "error.shipping_box.json_parse_error": "JSON 解析错误 (%s): %s",
   "message.shipping_box.dimensional_pouch.use_block_hint": "请使用 Shipping Box 方块来兑换硬币。",
+  "message.shipping_box.dimensional_pouch.coin_summary": "§e次元钱袋扫描结果：§6总价值 %s◎ §7（%s）",
+  "message.shipping_box.dimensional_pouch.no_coins": "§7背包中未找到硬币。请将物品放入售货箱兑换硬币。",
   "tooltip.shipping_box.season_": "节气"
 }

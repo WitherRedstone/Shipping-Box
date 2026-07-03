@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "shipping_box:iron_creeper_coin"
+  ],
+  "result": {
+    "count": 8,
+    "id": "shipping_box:copper_creeper_coin"
+  }
+}

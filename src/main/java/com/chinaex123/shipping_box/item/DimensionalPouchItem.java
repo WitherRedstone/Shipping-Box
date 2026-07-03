@@ -1,9 +1,11 @@
 package com.chinaex123.shipping_box.item;
 
 import com.chinaex123.shipping_box.client.tooltip.TooltipItems;
+import com.chinaex123.shipping_box.config.CommonConfig;
+import com.chinaex123.shipping_box.storage.PlayerBalanceManager;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -12,34 +14,32 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 次元钱包物品类 — 26.2 重构版。
- *
- * 1.21.1 版硬币兑换依赖 ViScriptShop 联动模组。
- * 26.2 版本作者未升级,因此硬币不再走外部货币体系。
- * 次元钱袋保留"物品"注册,但 use() 逻辑改为仅提示玩家:
- *  - 右击:显示"请直接将硬币放入 Shipping Box 方块"
- *  - 不再清空玩家背包硬币
- *  - 旧存档里的硬币物品仍保持 ID,不会消失
- *
- * 后续重写硬币功能时,应通过 DataComponent 或 SavedData 完全内置实现。
+ * 次元钱袋物品类。
+ * <p>
+ * 26.2 版使用模组内置余额替代旧外部货币依赖，但保留旧版交互：
+ * 右键兑换背包硬币，潜行右键兑换准星容器中的硬币。
  */
 public class DimensionalPouchItem extends TooltipItems {
 
     public DimensionalPouchItem(Properties properties) {
         super(properties, () -> List.of(
-                Component.translatable("tooltip.item.shipping_box.dimensional_pouch.info_26_2")
+                Component.translatable("tooltip.item.shipping_box.dimensional_pouch.oh"),
+                Component.translatable("tooltip.item.shipping_box.dimensional_pouch.right_click"),
+                Component.translatable("tooltip.item.shipping_box.dimensional_pouch.sneak_click")
         ));
     }
 
     /**
-     * MC 26.2:Item.use 不再返回 InteractionResultHolder,
-     * 改为返回 InteractionResult;手里的物品直接通过 setItemInHand 调整。
+     * 右键兑换背包内硬币；潜行右键兑换准星指向容器内硬币。
      */
     @Override
     public @NotNull InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
@@ -48,10 +48,25 @@ public class DimensionalPouchItem extends TooltipItems {
         }
 
         if (player instanceof ServerPlayer serverPlayer) {
-            // 26.2:硬币转换已内置到 Shipping Box 方块
-            serverPlayer.sendSystemMessage(
-                    Component.translatable("message.shipping_box.dimensional_pouch.use_block_hint"));
-            serverPlayer.playSound(SoundEvents.NOTE_BLOCK_HARP.value());
+            if (!CommonConfig.ENABLE_VIRTUAL_CURRENCY.get()) {
+                serverPlayer.sendSystemMessage(Component.translatable("message.shipping_box.virtual_currency.disabled"));
+                return InteractionResult.SUCCESS;
+            }
+            if (player.isShiftKeyDown()) {
+                HitResult hitResult = player.pick(5.0D, 0.0F, false);
+                if (hitResult.getType() == HitResult.Type.BLOCK) {
+                    BlockPos pos = ((BlockHitResult) hitResult).getBlockPos();
+                    BlockEntity blockEntity = level.getBlockEntity(pos);
+                    if (blockEntity instanceof Container container) {
+                        PlayerBalanceManager.convertTargetContainerCoins(serverPlayer, container);
+                        return InteractionResult.SUCCESS;
+                    }
+                }
+                serverPlayer.sendSystemMessage(Component.translatable(
+                        "message.shipping_box.dimensional_pouch.no_container_coins"));
+            } else {
+                PlayerBalanceManager.convertInventoryCoins(serverPlayer, serverPlayer.getInventory());
+            }
         }
 
         return InteractionResult.SUCCESS;
@@ -63,17 +78,7 @@ public class DimensionalPouchItem extends TooltipItems {
      */
     public static int getCoinValue(Item item) {
         if (item == null) return 0;
-        String id = item.getDescriptionId();
-        return switch (id) {
-            case "item.shipping_box.copper_creeper_coin" -> 1;
-            case "item.shipping_box.iron_creeper_coin" -> 8;
-            case "item.shipping_box.gold_creeper_coin" -> 16;
-            case "item.shipping_box.diamond_creeper_coin" -> 64;
-            case "item.shipping_box.emerald_creeper_coin" -> 256;
-            case "item.shipping_box.netherite_creeper_coin" -> 512;
-            case "item.shipping_box.symbols_chaos_creeper_coin" -> 4096;
-            default -> 0;
-        };
+        return PlayerBalanceManager.getCoinValue(new ItemStack(item));
     }
 
     /**
@@ -84,7 +89,7 @@ public class DimensionalPouchItem extends TooltipItems {
         int total = 0;
         for (int i = 0; i < container.getContainerSize(); i++) {
             ItemStack s = container.getItem(i);
-            int coin = getCoinValue(s.getItem());
+            int coin = PlayerBalanceManager.getCoinValue(s);
             if (coin > 0) total += coin * s.getCount();
         }
         return total;
@@ -99,7 +104,7 @@ public class DimensionalPouchItem extends TooltipItems {
         List<Integer> cleared = new ArrayList<>();
         for (int i = 0; i < container.getContainerSize(); i++) {
             ItemStack s = container.getItem(i);
-            int coin = getCoinValue(s.getItem());
+            int coin = PlayerBalanceManager.getCoinValue(s);
             if (coin > 0) {
                 total += coin * s.getCount();
                 cleared.add(i);
@@ -116,7 +121,7 @@ public class DimensionalPouchItem extends TooltipItems {
         int total = 0;
         for (int i = 0; i < inventory.getContainerSize(); i++) {
             ItemStack s = inventory.getItem(i);
-            int coin = getCoinValue(s.getItem());
+            int coin = PlayerBalanceManager.getCoinValue(s);
             if (coin > 0) {
                 total += coin * s.getCount();
                 inventory.setItem(i, ItemStack.EMPTY);
