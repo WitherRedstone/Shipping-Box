@@ -168,54 +168,6 @@
     },
     {
       "input": {
-        "item": "minecraft:apple",
-        "components": {
-          "quality_food:quality": {
-            "level": 3,
-            "type": "quality_food:diamond"
-          }
-        },
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:apple",
-        "count": 1
-      }
-    },
-    {
-      "input": {
-        "item": "minecraft:golden_apple",
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:golden_apple",
-        "components": {
-          "quality_food:quality": {
-            "level": 3,
-            "type": "quality_food:diamond"
-          }
-        },
-        "count": 1
-      }
-    },
-    {
-      "input": {
-        "item": "minecraft:wheat_seeds",
-        "count": 1,
-        "components": {
-          "quality_food:quality": {
-            "level": 3,
-            "type": "quality_food:diamond"
-          }
-        }
-      },
-      "output": {
-        "coin": true,
-        "count": 4
-      }
-    },
-    {
-      "input": {
         "item": "minecraft:potato",
         "count": 1
       },
@@ -233,36 +185,13 @@
     },
     {
       "input": {
-        "item": "kaleidoscope_tavern:wine",
+        "item": "minecraft:enchanted_book",
         "components": {
-          "kaleidoscope_tavern:brew_level": 3
-        },
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:emerald",
-        "count": 1
-      }
-    },
-    {
-      "input": {
-        "item": "kaleidoscope_tavern:wine",
-        "components": {
-          "kaleidoscope_tavern:brew_level": 7
-        },
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:emerald",
-        "count": 10
-      }
-    },
-    {
-      "input": {
-        "item": "tide:ocean_perch",
-        "components": {
-          "tide:fish_length": "[50.0,60.0)",
-          "tide:catch_timestamp": "[2000,3000)"
+          "stored_enchantments": {
+            "levels": {
+              "minecraft:sharpness": 5
+            }
+          }
         },
         "count": 1
       },
@@ -273,5 +202,4 @@
     }
   ]
 }
-
 

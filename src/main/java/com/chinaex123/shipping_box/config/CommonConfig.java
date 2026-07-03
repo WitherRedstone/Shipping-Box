@@ -19,7 +19,7 @@ public class CommonConfig {
                 .defineInRange("exchangeTime", 0, 0, 23999);
         ENABLE_VIRTUAL_CURRENCY = BUILDER
                 .comment("是否启用模组内置虚拟货币余额",
-                        "默认开启，用于替代 26.2 暂不可用的 ViScriptShop 联动",
+                        "默认开启，用于在外部商店联动不可用时提供内置余额",
                         "关闭后：虚拟货币兑换规则不会执行，硬币和次元钱袋不会转换为内置余额")
                 .define("enableVirtualCurrency", true);
         ENABLE_EXCHANGE_EFFECTS = BUILDER

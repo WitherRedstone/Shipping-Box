@@ -138,7 +138,7 @@ public final class PlayerBalanceManager {
             AnimationState state = entry.getValue();
             int currentBalance = state.startBalance + (int) ((state.amount / 20.0D) * state.currentStep);
             player.sendOverlayMessage(Component.translatable(
-                    "message.shipping_box.viscriptshop.balance_animation",
+                    "message.shipping_box.virtual_currency.balance_animation",
                     currentBalance,
                     state.amount));
             state.currentStep++;

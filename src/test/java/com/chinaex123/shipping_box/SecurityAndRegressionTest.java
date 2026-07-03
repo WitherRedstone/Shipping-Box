@@ -107,7 +107,7 @@ class SecurityAndRegressionTest {
                 "player_balances");
     }
 
-    /** 26.2：ViScriptShop 不可用时，内置虚拟货币必须可由配置关闭 */
+    /** 26.2：外部商店联动不可用时，内置虚拟货币必须可由配置关闭 */
     @Test
     void virtualCurrencyCanBeDisabledByConfig() throws Exception {
         assertSourceContains("src/main/java/com/chinaex123/shipping_box/config/CommonConfig.java",

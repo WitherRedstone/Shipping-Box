@@ -4,7 +4,6 @@ import net.minecraft.core.Holder;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
-// import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil; // 26.2:联动注释
 import com.chinaex123.shipping_box.network.ClientSoldCountCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -49,10 +48,6 @@ public class ExchangeTooltipProvider {
                 try {
                     if (input.matches(stack)) {
                         ExchangeRule.OutputItem output = rule.getOutputItem();
-                        // 26.2 迁移:ViScriptShop 联动已注释,硬币默认都有
-                        // if (output.isCoin() && !ViScriptShopUtil.isAvailable()) {
-                        //     continue;
-                        // }
 
                         // 构建主要的兑换信息
                         Component mainInfo = buildMainExchangeInfo(input, output, rule);

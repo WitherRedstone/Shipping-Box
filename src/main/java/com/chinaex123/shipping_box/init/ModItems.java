@@ -80,8 +80,8 @@ public interface ModItems {
     private static CreeperCoinItem coin(Item.Properties properties, int value, String tooltipKey) {
         return new CreeperCoinItem(properties, value, () -> List.of(
                 Component.translatable(tooltipKey),
-                Component.translatable("tooltip.item.shipping_box.viscriptshop.right_click"),
-                Component.translatable("tooltip.item.shipping_box.viscriptshop.sneak_click")
+                Component.translatable("tooltip.item.shipping_box.virtual_currency.right_click"),
+                Component.translatable("tooltip.item.shipping_box.virtual_currency.sneak_click")
         ));
     }
 }

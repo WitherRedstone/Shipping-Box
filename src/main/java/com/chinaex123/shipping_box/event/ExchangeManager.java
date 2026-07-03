@@ -6,8 +6,6 @@ import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
 import com.chinaex123.shipping_box.compat.EclipticSeasons.EclipticSeasonsUtil;
-// 26.2 迁移:ViScriptShop 联动已注释(无 26.2 版本)
-// import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.PacketExchangeEffects;
 import com.chinaex123.shipping_box.network.PacketShowSuccessMessage;
 import com.chinaex123.shipping_box.storage.PlayerBalanceManager;
@@ -75,11 +73,6 @@ public class ExchangeManager {
                 if (rule.getOutputItem().isCoin() && !CommonConfig.ENABLE_VIRTUAL_CURRENCY.get()) {
                     break;
                 }
-
-                // 26.2 迁移:ViScriptShop 联动已注释
-                // if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
-                //     return;
-                // }
 
                 if (rule.getOutputItem().getEclipticSeasonsProperties() != null) {
                     var ecsProps = rule.getOutputItem().getEclipticSeasonsProperties();
