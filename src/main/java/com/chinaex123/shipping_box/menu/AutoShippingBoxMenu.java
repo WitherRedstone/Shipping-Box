@@ -20,7 +20,14 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
-/** Automated shipping box menu. */
+/**
+ * 自动售货箱容器菜单
+ * <p>
+ * 管理自动售货箱的 GUI 交互逻辑。与普通售货箱不同，
+ * 自动售货箱使用方块实体自身作为 Container 实现，
+ * 所有玩家共享同一个存储空间（但只有绑定的玩家可以打开箱子）。
+ * 使用距离验证防止玩家在超出交互距离后操作箱子。
+ */
 public class AutoShippingBoxMenu extends AbstractContainerMenu {
 
     private static final double MAX_INTERACTION_DISTANCE_SQR = 64.0D;

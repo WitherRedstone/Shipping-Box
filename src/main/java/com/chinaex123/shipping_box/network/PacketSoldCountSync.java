@@ -8,7 +8,13 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** 销售计数同步数据包记录类 **/
+/**
+ * 销售计数同步数据包（服务端→客户端）
+ * <p>
+ * 当物品的销售计数发生变化时，服务端向所有客户端广播此数据包，
+ * 以更新客户端的本地缓存。销售计数用于动态定价模式下
+ * 在 Tooltip 中显示当前销量和价格信息。
+ */
 public record PacketSoldCountSync(String itemIdentifier, int soldCount) implements CustomPacketPayload {
     public static final Type<PacketSoldCountSync> TYPE = new Type<>(
             Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "sold_count_sync")

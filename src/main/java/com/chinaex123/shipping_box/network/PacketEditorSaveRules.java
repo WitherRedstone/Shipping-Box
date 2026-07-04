@@ -26,7 +26,14 @@ import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-/** 编辑器保存规则包 **/
+/**
+ * 编辑器保存规则数据包（客户端→服务端）
+ * <p>
+ * Web 编辑器通过此数据包将修改后的兑换规则保存到服务端文件系统。
+ * 需要发送端处于创造模式才能执行。
+ * 数据使用 GZIP 压缩传输，支持 KubeJS 和独立配置两种保存路径。
+ * 保存后自动执行 /reload 命令使规则生效，若安装了 KubeJS 则先执行 KubeJS 重载。
+ */
 public record PacketEditorSaveRules(String requestId, String relativePath, String rulesJson) implements CustomPacketPayload {
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketEditorSaveRules.class);
 

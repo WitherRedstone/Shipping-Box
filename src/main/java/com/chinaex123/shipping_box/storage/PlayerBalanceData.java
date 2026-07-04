@@ -12,7 +12,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** Persistent internal currency balances, replacing the old external shop dependency. */
+/**
+ * 玩家余额持久化数据类 — 26.2 SavedData + Codec 适配。
+ * <p>
+ * 使用 Minecraft 26.2 的 SavedDataType + Codec 机制存储和管理
+ * 玩家虚拟货币余额数据。数据以 UUID→Integer 的映射形式持久化，
+ * 支持自动保存和加载。替代了旧版的外部商店依赖。
+ * <p>
+ * 使用示例：{@code PlayerBalanceData.get(serverLevel).addBalance(playerUUID, amount)}
+ */
 public class PlayerBalanceData extends SavedData {
     private static final Codec<Map<String, Integer>> BALANCES_CODEC =
             Codec.unboundedMap(Codec.STRING, Codec.INT);

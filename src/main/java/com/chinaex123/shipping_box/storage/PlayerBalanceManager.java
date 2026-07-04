@@ -16,7 +16,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-/** Server-side internal currency API for coin and exchange payouts. */
+/**
+ * 玩家余额管理器（服务端）
+ * <p>
+ * 提供虚拟货币余额的查询、增加、硬币转换等功能。
+ * 管理余额变化时的动画效果，在服务端游戏刻中驱动动画进度更新。
+ * 包含硬币价值识别和容器/背包扫描的静态工具方法。
+ */
 public final class PlayerBalanceManager {
     private static final Map<UUID, AnimationState> ANIMATIONS = new HashMap<>();
 

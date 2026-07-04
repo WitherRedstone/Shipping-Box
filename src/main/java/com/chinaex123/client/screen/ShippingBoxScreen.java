@@ -11,7 +11,12 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 
 /**
- * 普通售货箱 GUI — 26.2 extract 渲染 API。
+ * 普通售货箱 GUI 屏幕
+ * <p>
+ * 使用 Minecraft 26.2 的 extract 渲染 API 绘制普通售货箱的界面。
+ * 根据游戏语言环境自动选择中文或英文贴图资源。
+ * 继承自 AbstractContainerScreen，使用 ShippingBoxLayout 中的布局常量
+ * 确定各个 UI 元素的位置。
  */
 public class ShippingBoxScreen extends AbstractContainerScreen<ShippingBoxMenu> {
 

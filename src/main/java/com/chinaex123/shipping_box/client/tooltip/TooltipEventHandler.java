@@ -8,7 +8,14 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.List;
 
-/**工具提示事件处理器 **/
+/**
+ * 工具提示事件处理器
+ * <p>
+ * 通过监听 NeoForge 的 ItemTooltipEvent 事件，
+ * 为支持兑换的物品添加详细的兑换信息到 Tooltip 中。
+ * 包括兑换产出、动态定价信息、权重物品列表、节气联动信息等。
+ * 所有处理逻辑均捕获异常，避免因 Tooltip 生成错误导致游戏崩溃。
+ */
 @EventBusSubscriber
 public class TooltipEventHandler {
 

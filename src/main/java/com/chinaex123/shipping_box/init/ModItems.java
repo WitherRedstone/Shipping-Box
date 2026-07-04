@@ -14,6 +14,20 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.List;
 
+/**
+ * 物品注册接口
+ * <p>
+ * 负责注册售货箱模组的所有物品到游戏中。
+ * 使用 NeoForge 的 DeferredRegister 系统进行延迟注册。
+ * 同时包含硬币工具方法，用于扫描容器中的硬币总价值。
+ * <p>
+ * 注册的物品包括：
+ * <ul>
+ *   <li>次元钱袋（dimensional_pouch）</li>
+ *   <li>7种面值的苦力怕硬币（铜/铁/金/钻石/绿宝石/下界合金/混沌符印）</li>
+ *   <li>方块的物品形式（通过 registerSimpleBlockItem 自动生成）</li>
+ * </ul>
+ */
 public interface ModItems {
     DeferredRegister.Items ITEMS_REGISTER =
             DeferredRegister.createItems(ShippingBox.MOD_ID);

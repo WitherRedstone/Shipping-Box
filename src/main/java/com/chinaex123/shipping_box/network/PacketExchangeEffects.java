@@ -12,7 +12,14 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** 兑换特效包 **/
+/**
+ * 兑换特效数据包（服务端→客户端）
+ * <p>
+ * 当兑换成功且配置启用了特效时，服务端发送此数据包通知客户端
+ * 在玩家位置播放粒子特效。特效包括多阶段的烟花绽放效果、
+ * 螺旋光环和散落光点，营造丰富的视觉反馈。
+ * 需要在配置中启用 ENABLE_EXCHANGE_EFFECTS 才会生效。
+ */
 public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
     public static final Type<PacketExchangeEffects> TYPE = new Type<>(
             Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_effects")

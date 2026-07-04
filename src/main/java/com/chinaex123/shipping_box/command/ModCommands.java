@@ -9,6 +9,18 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 
+/**
+ * 模组命令注册类
+ * <p>
+ * 注册售货箱模组的所有管理命令，所有命令需要 OP 权限（LEVEL_GAMEMASTERS）才能执行。
+ * 根命令为 {@code /shipping_box}，包含以下子命令：
+ * <ul>
+ *   <li>{@code force_exchange} - 强制玩家指向的售货箱立即执行兑换</li>
+ *   <li>{@code rules count} - 统计当前加载的兑换规则数量</li>
+ *   <li>{@code rules list [page]} - 分页列出所有兑换规则</li>
+ *   <li>{@code web} - 启动本地 Web 规则编辑器</li>
+ * </ul>
+ */
 public class ModCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {

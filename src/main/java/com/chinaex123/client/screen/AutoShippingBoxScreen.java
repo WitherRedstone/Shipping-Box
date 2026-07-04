@@ -11,7 +11,11 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 
 /**
- * 自动售货箱 GUI — 26.2 extract 渲染 API。
+ * 自动售货箱 GUI 屏幕
+ * <p>
+ * 使用 Minecraft 26.2 的 extract 渲染 API 绘制自动售货箱的界面。
+ * 根据游戏语言环境自动选择中文或英文贴图资源。
+ * 与普通售货箱共享相同的贴图和布局配置，但绑定的菜单类型不同。
  */
 public class AutoShippingBoxScreen extends AbstractContainerScreen<AutoShippingBoxMenu> {
 

@@ -15,7 +15,14 @@ import org.lwjgl.glfw.GLFW;
 
 import java.net.URI;
 
-/** 启动本地 Web 编辑器包 — 26.2 重构。 */
+/**
+ * 启动本地 Web 编辑器数据包（服务端→客户端）
+ * <p>
+ * 当玩家执行 {@code /shipping_box web} 命令时，服务端发送此数据包
+ * 通知客户端在本地启动 Web 编辑器 HTTP 服务器。
+ * 客户端收到后会在本地绑定端口并打开默认浏览器访问编辑器界面。
+ * 使用安全令牌验证请求，防止未授权访问。
+ */
 public record PacketStartLocalWebEditor(String token) implements CustomPacketPayload {
     public static final Type<PacketStartLocalWebEditor> TYPE = new Type<>(
             Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "start_local_web_editor")

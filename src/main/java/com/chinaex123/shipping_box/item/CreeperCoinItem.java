@@ -17,7 +17,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.function.Supplier;
 
-/** Physical coin item that converts into the mod's internal balance on use. */
+/**
+ * 苦力怕硬币物品
+ * <p>
+ * 可使用的物理硬币物品，右键点击可将其价值转换为模组内置虚拟货币余额。
+ * 普通右键转换1个硬币，潜行右键转换全部堆叠的硬币。
+ * 每种硬币有不同的面值（铜1、铁8、金16、钻石64、绿宝石256、下界合金512、混沌符印4096）。
+ * 如果配置中禁用了虚拟货币功能，则无法使用。
+ */
 public class CreeperCoinItem extends TooltipItems {
     private final int coinValue;
 

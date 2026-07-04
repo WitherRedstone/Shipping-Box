@@ -12,7 +12,11 @@ import net.minecraft.server.level.ServerPlayerGameMode;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * 编辑器重载请求数据包
+ * 编辑器重载请求数据包（客户端→服务端）
+ * <p>
+ * Web 编辑器通过此数据包请求重载服务端的数据包和配置。
+ * 需要发送端处于创造模式才能执行。
+ * 服务端收到后会执行 {@code /reload} 命令使最新配置生效。
  */
 public record PacketEditorReloadRequest() implements CustomPacketPayload {
 

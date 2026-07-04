@@ -12,6 +12,18 @@ import net.neoforged.neoforge.common.PercentageAttribute;
 import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+/**
+ * 自定义属性注册类
+ * <p>
+ * 负责注册售货箱模组使用的自定义属性系统。
+ * 使用 NeoForge 的 DeferredRegister 系统进行延迟注册，
+ * 并通过 {@link EntityAttributeModificationEvent} 将属性添加到玩家实体上。
+ * <p>
+ * 当前注册的属性：
+ * <ul>
+ *   <li>出售价格加成（selling_price_boost）- 影响物品兑换时的产出加成百分比</li>
+ * </ul>
+ */
 @EventBusSubscriber(modid = ShippingBox.MOD_ID)
 public class ModAttributes {
     public static final DeferredRegister<Attribute> ATTRIBUTES = DeferredRegister.create(Registries.ATTRIBUTE, ShippingBox.MOD_ID);

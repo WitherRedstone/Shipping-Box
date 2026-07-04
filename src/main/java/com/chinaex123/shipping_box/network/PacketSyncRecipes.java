@@ -15,7 +15,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-/** 配方同步数据包记录类 **/
+/**
+ * 配方同步数据包（服务端→客户端）
+ * <p>
+ * 在玩家登录时，服务端将当前加载的兑换规则序列化为 JSON，
+ * 经过 GZIP 压缩后发送给客户端。客户端解压后设置到本地缓存，
+ * 用于在物品 Tooltip 中显示兑换信息。
+ * 使用 GZIP 压缩减少网络传输量，适用于大量兑换规则的场景。
+ */
 public record PacketSyncRecipes(String rulesJson) implements CustomPacketPayload {
     public static final Type<PacketSyncRecipes> TYPE = new Type<>(
             Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")

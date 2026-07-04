@@ -21,7 +21,14 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.UUID;
 
-/** Regular shipping box menu with player-specific storage. */
+/**
+ * 普通售货箱容器菜单
+ * <p>
+ * 管理普通售货箱的 GUI 交互逻辑。关键特性是使用 {@link PlayerSpecificContainer}
+ * 封装每个玩家的独立物品存储。每个玩家打开普通售货箱时看到的是自己的物品，
+ * 但所有玩家共享同一个方块实体。
+ * 使用距离验证防止玩家在超出交互距离后操作箱子。
+ */
 public class ShippingBoxMenu extends AbstractContainerMenu {
 
     private static final double MAX_INTERACTION_DISTANCE_SQR = 64.0D;
