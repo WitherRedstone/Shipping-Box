@@ -36,8 +36,8 @@ public class ForceExchangeCommand {
             HitResult hitResult = player.pick(20.0D, 0.0F, false);
 
             if (hitResult.getType() != HitResult.Type.BLOCK) {
-                player.displayClientMessage(Component.translatable("command.shipping_box.no_block_target")
-                        .withStyle(ChatFormatting.RED), true);
+                player.sendSystemMessage(Component.translatable("command.shipping_box.no_block_target")
+                        .withStyle(ChatFormatting.RED));
                 return 0;
             }
 
@@ -46,17 +46,17 @@ public class ForceExchangeCommand {
 
             if (blockEntity instanceof ShippingBoxBlockEntity shippingBox) {
                 shippingBox.forceExchange();
-                player.displayClientMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
+                player.sendSystemMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
                         .withStyle(ChatFormatting.GOLD), true);
                 return 1;
             } else if (blockEntity instanceof AutoShippingBoxBlockEntity autoShippingBox) {
                 autoShippingBox.forceExchange();
-                player.displayClientMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
+                player.sendSystemMessage(Component.translatable("command.shipping_box.force_exchange_success", pos.toShortString())
                         .withStyle(ChatFormatting.GOLD), true);
                 return 1;
             } else {
-                player.displayClientMessage(Component.translatable("command.shipping_box.invalid_block_entity")
-                        .withStyle(ChatFormatting.RED), true);
+                player.sendSystemMessage(Component.translatable("command.shipping_box.invalid_block_entity")
+                        .withStyle(ChatFormatting.RED));
                 return 0;
             }
 

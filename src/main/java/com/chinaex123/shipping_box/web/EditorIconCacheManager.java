@@ -11,8 +11,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.BossHealthOverlay;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -66,6 +67,7 @@ public class EditorIconCacheManager {
 
     public static final int ICON_SIZE = 32; // 生成的图标尺寸
     public static final int ICONS_PER_TICK = 3; // 每个游戏刻最大处理的图标数量
+    public static final int CACHE_VERSION = 5; // v5: slab/stairs/walls/fences also use isometric block icons
 
     // 单例实例
     private static final EditorIconCacheManager INSTANCE = new EditorIconCacheManager();
@@ -143,7 +145,7 @@ public class EditorIconCacheManager {
             Field eventsField = BossHealthOverlay.class.getDeclaredField("events");
             eventsField.setAccessible(true);
             @SuppressWarnings("unchecked")
-            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.getBossOverlay());
+            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.hud.getBossOverlay());
             events.put(bossBarId, event);
         } catch (Exception e) {
             // 反射失败则忽略，不影响功能
@@ -163,7 +165,7 @@ public class EditorIconCacheManager {
             Field eventsField = BossHealthOverlay.class.getDeclaredField("events");
             eventsField.setAccessible(true);
             @SuppressWarnings("unchecked")
-            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.getBossOverlay());
+            Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.hud.getBossOverlay());
             events.remove(bossBarId);
         } catch (Exception e) {
             // 忽略异常
@@ -181,15 +183,18 @@ public class EditorIconCacheManager {
                 String json = Files.readString(manifestFile, StandardCharsets.UTF_8);
                 JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
                 String statusStr = obj.has("status") ? obj.get("status").getAsString() : "";
+                int version = obj.has("version") ? obj.get("version").getAsInt() : 0;
 
                 // 如果清单状态为 ready 或 done，说明缓存已存在
-                if ("ready".equals(statusStr) || "done".equals(statusStr)) {
+                if (version == CACHE_VERSION && ("ready".equals(statusStr) || "done".equals(statusStr))) {
                     this.status = Status.DONE;
                     int itemCount = obj.has("items") ? obj.getAsJsonArray("items").size() : 0;
                     int blockCount = obj.has("blocks") ? obj.getAsJsonArray("blocks").size() : 0;
                     this.total.set(itemCount + blockCount);
                     this.processed.set(this.total.get());
                     LOGGER.info("[IconCache] 从 manifest 加载就绪状态 ({} items, {} blocks)", itemCount, blockCount);
+                } else if ("ready".equals(statusStr) || "done".equals(statusStr)) {
+                    LOGGER.info("[IconCache] 忽略旧版 manifest cache version {}，等待重建", version);
                 }
             }
         } catch (Exception e) {
@@ -222,7 +227,7 @@ public class EditorIconCacheManager {
      * @param displayName 显示名称
      * @param fileName 安全的文件名
      */
-    private record CacheEntry(ResourceLocation id, boolean isBlock, String displayName, String fileName) {}
+    private record CacheEntry(Identifier id, boolean isBlock, String displayName, String fileName) {}
 
     /**
      * 启动缓存生成任务
@@ -357,7 +362,7 @@ public class EditorIconCacheManager {
         // 1. 处理所有物品
         BuiltInRegistries.ITEM.forEach(item -> {
             if (item == Items.AIR) return; // 跳过空气
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) return;
             String fileName = toSafeFileName(id);
             String display = new ItemStack(item).getHoverName().getString();
@@ -368,7 +373,7 @@ public class EditorIconCacheManager {
         BuiltInRegistries.BLOCK.forEach(block -> {
             Item item = block.asItem();
             if (item == Items.AIR) return; // 跳过没有物品形式的方块
-            ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
+            Identifier id = BuiltInRegistries.BLOCK.getKey(block);
             if (id == null) return;
             String fileName = toSafeFileName(id);
             String display = new ItemStack(item).getHoverName().getString();
@@ -381,7 +386,7 @@ public class EditorIconCacheManager {
      * @param id 资源位置
      * @return 安全的文件名（不含扩展名）
      */
-    private String toSafeFileName(ResourceLocation id) {
+    private String toSafeFileName(Identifier id) {
         // 替换可能引起路径问题的字符
         return (id.getNamespace() + "_" + id.getPath()).replace(':', '_').replace('/', '_');
     }
@@ -401,11 +406,24 @@ public class EditorIconCacheManager {
             try {
                 // 获取物品栈
                 ItemStack stack = entry.isBlock()
-                        ? new ItemStack(BuiltInRegistries.BLOCK.get(entry.id()).asItem())
-                        : new ItemStack(BuiltInRegistries.ITEM.get(entry.id()));
+                        ? BuiltInRegistries.BLOCK.get(entry.id())
+                                .map(Holder::value)
+                                .map(Block::asItem)
+                                .map(ItemStack::new)
+                                .orElse(ItemStack.EMPTY)
+                        : BuiltInRegistries.ITEM.get(entry.id())
+                                .map(Holder::value)
+                                .map(ItemStack::new)
+                                .orElse(ItemStack.EMPTY);
+
+                if (stack.isEmpty()) {
+                    processed.incrementAndGet();
+                    processedThisTick++;
+                    continue;
+                }
 
                 // 渲染图标为PNG
-                byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE);
+                byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE, entry.isBlock());
                 if (png == null || png.length == 0) {
                     // 渲染失败，使用占位图
                     png = createPlaceholderPng(ICON_SIZE, entry.id().hashCode());
@@ -454,7 +472,7 @@ public class EditorIconCacheManager {
 
             // 构建根JSON对象
             JsonObject root = new JsonObject();
-            root.addProperty("version", 1);
+            root.addProperty("version", CACHE_VERSION);
             root.addProperty("modid", ShippingBox.MOD_ID);
             root.addProperty("iconSize", ICON_SIZE);
             root.addProperty("iconsPerTick", ICONS_PER_TICK);
@@ -465,7 +483,7 @@ public class EditorIconCacheManager {
             JsonArray itemsArr = new JsonArray();
             BuiltInRegistries.ITEM.forEach(item -> {
                 if (item == Items.AIR) return;
-                ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+                Identifier id = BuiltInRegistries.ITEM.getKey(item);
                 if (id == null) return;
                 String fileName = toSafeFileName(id) + ".png";
                 Path file = itemsDir.resolve(fileName);
@@ -483,7 +501,7 @@ public class EditorIconCacheManager {
             BuiltInRegistries.BLOCK.forEach(block -> {
                 Item item = block.asItem();
                 if (item == Items.AIR) return;
-                ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
+                Identifier id = BuiltInRegistries.BLOCK.getKey(block);
                 if (id == null) return;
                 String fileName = toSafeFileName(id) + ".png";
                 Path file = blocksDir.resolve(fileName);
@@ -502,25 +520,23 @@ public class EditorIconCacheManager {
             // 3. 收集标签及其代表性图标
             JsonArray tagsArr = new JsonArray();
             JsonObject tagIcons = new JsonObject();
-            BuiltInRegistries.ITEM.getTags().forEach(pair -> {
-                var tagKey = pair.getFirst();
-                ResourceLocation loc = tagKey.location();
+            BuiltInRegistries.ITEM.getTags().forEach(named -> {
+                var tagKey = named.key();
+                Identifier loc = tagKey.location();
                 if (loc == null) return;
                 String tagId = "#" + loc.getNamespace() + ":" + loc.getPath();
                 tagsArr.add(tagId);
 
-                // 查找标签中第一个有缓存的物品作为代表性图标
-                var holderSet = BuiltInRegistries.ITEM.getTag(tagKey);
-                if (holderSet.isPresent()) {
-                    for (var holder : holderSet.get()) {
-                        Item item = holder.value();
-                        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
-                        if (itemId == null) continue;
-                        String fileName = toSafeFileName(itemId) + ".png";
-                        if (Files.exists(itemsDir.resolve(fileName))) {
-                            tagIcons.addProperty(tagId, "/icon/cache/items/" + fileName);
-                            break;
-                        }
+                // 查找标签中第一个有缓存的物品作为代表性图标 (26.2: getTag → getTagOrEmpty)
+                var holders = BuiltInRegistries.ITEM.getTagOrEmpty(tagKey);
+                for (var holder : holders) {
+                    Item item = holder.value();
+                    Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
+                    if (itemId == null) continue;
+                    String fileName = toSafeFileName(itemId) + ".png";
+                    if (Files.exists(itemsDir.resolve(fileName))) {
+                        tagIcons.addProperty(tagId, "/icon/cache/items/" + fileName);
+                        break;
                     }
                 }
             });
@@ -586,7 +602,7 @@ public class EditorIconCacheManager {
             // 填充整个图片
             for (int x = 0; x < size; x++) {
                 for (int y = 0; y < size; y++) {
-                    image.setPixelRGBA(x, y, color);
+                    image.setPixel(x, y, color);
                 }
             }
             // 编码为PNG

@@ -7,7 +7,20 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
-/** 售货箱网络通信管理类 **/
+/**
+ * 售货箱网络通信管理类
+ * <p>
+ * 负责注册和处理模组的所有自定义网络数据包。
+ * 使用 NeoForge 的 PayloadRegistrar 系统进行数据包注册，
+ * 支持客户端→服务端和服务端→客户端双向通信。
+ * <p>
+ * 注册的数据包包括：
+ * <ul>
+ *   <li>兑换成功提示、玩家放置物品、配方同步</li>
+ *   <li>销售计数同步、兑换特效</li>
+ *   <li>Web 编辑器相关：启动编辑器、读取文件、保存规则、重载等</li>
+ * </ul>
+ */
 public class ShippingBoxNetworking {
 
     /**

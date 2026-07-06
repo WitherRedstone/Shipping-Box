@@ -2,15 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "A": {
-      "tag": "c:gems/quartz"
-    },
-    "B": {
-      "tag": "c:gems/amethyst"
-    },
-    "C": {
-      "tag": "c:gems/emerald"
-    }
+    "A": "#c:gems/quartz",
+    "B": "#c:gems/amethyst",
+    "C": "#c:gems/emerald"
   },
   "pattern": [
     "BCB",

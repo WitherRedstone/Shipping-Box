@@ -2,9 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "A": {
-      "item": "shipping_box:copper_creeper_coin"
-    }
+    "A": "shipping_box:copper_creeper_coin"
   },
   "pattern": [
     "AAA",

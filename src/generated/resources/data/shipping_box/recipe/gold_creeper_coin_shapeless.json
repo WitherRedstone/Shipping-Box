@@ -2,9 +2,7 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    {
-      "item": "shipping_box:diamond_creeper_coin"
-    }
+    "shipping_box:diamond_creeper_coin"
   ],
   "result": {
     "count": 4,

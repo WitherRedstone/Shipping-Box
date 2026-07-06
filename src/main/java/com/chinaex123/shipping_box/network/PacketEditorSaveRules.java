@@ -8,7 +8,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
@@ -26,12 +26,19 @@ import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-/** 编辑器保存规则包 **/
+/**
+ * 编辑器保存规则数据包（客户端→服务端）
+ * <p>
+ * Web 编辑器通过此数据包将修改后的兑换规则保存到服务端文件系统。
+ * 需要发送端处于创造模式才能执行。
+ * 数据使用 GZIP 压缩传输，支持 KubeJS 和独立配置两种保存路径。
+ * 保存后自动执行 /reload 命令使规则生效，若安装了 KubeJS 则先执行 KubeJS 重载。
+ */
 public record PacketEditorSaveRules(String requestId, String relativePath, String rulesJson) implements CustomPacketPayload {
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketEditorSaveRules.class);
 
     public static final Type<PacketEditorSaveRules> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_save_rules")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_save_rules")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketEditorSaveRules> STREAM_CODEC = StreamCodec.of(
@@ -64,7 +71,7 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
 
     public static void handle(PacketEditorSaveRules packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.hasPermissions(2)) {
+            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.gameMode.isCreative()) {
                 sendResult(context, packet.requestId(), false, "", "Permission denied");
                 return;
             }
@@ -102,9 +109,10 @@ public record PacketEditorSaveRules(String requestId, String relativePath, Strin
                 Files.createDirectories(file.getParent());
                 Files.writeString(file, packet.rulesJson(), StandardCharsets.UTF_8);
 
-                var server = serverPlayer.getServer();
+                var server = serverPlayer.level().getServer();
                 server.execute(() -> {
-                    var commandSource = server.createCommandSourceStack().withPermission(4);
+                    var commandSource = server.createCommandSourceStack()
+                            .withPermission(net.minecraft.server.permissions.PermissionSet.ALL_PERMISSIONS);
                     try {
                         if (ModList.get().isLoaded("kubejs")) {
                             server.getCommands().performPrefixedCommand(commandSource, "kubejs reload server_scripts");

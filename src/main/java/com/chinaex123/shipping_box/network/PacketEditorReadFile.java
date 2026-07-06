@@ -5,7 +5,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
@@ -16,11 +16,18 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** 编辑器读取文件包 **/
+/**
+ * 编辑器读取文件数据包（客户端→服务端）
+ * <p>
+ * Web 编辑器通过此数据包请求读取服务端上的配置文件。
+ * 需要发送端处于创造模式（Creative Mode）才能执行。
+ * 文件路径经过安全性校验，防止目录遍历攻击。
+ * 支持 KubeJS 和独立配置两种读取路径。
+ */
 public record PacketEditorReadFile(String requestId, String relativePath) implements CustomPacketPayload {
 
     public static final Type<PacketEditorReadFile> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_read_file")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "editor_read_file")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketEditorReadFile> STREAM_CODEC = StreamCodec.composite(
@@ -36,7 +43,7 @@ public record PacketEditorReadFile(String requestId, String relativePath) implem
 
     public static void handle(PacketEditorReadFile packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.hasPermissions(2)) {
+            if (!(context.player() instanceof ServerPlayer serverPlayer) || !serverPlayer.gameMode.isCreative()) {
                 if (context.player() instanceof ServerPlayer player) {
                     PacketDistributor.sendToPlayer(
                             player,

@@ -14,7 +14,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/** 售货箱通用 API **/
+/**
+ * 售货箱通用 API
+ * <p>
+ * 提供给其他模组和脚本使用的公开接口，用于与售货箱系统进行交互。
+ * 支持兑换事件监听、槽位状态查询、物品访问等功能。
+ * 通过事件监听机制，其他模组可以在兑换前/后执行自定义逻辑，
+ * 甚至取消兑换事件。
+ */
 public class ShippingBoxAPI {
     
     // 存储兑换事件处理器列表

@@ -6,15 +6,15 @@ import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
 import com.chinaex123.shipping_box.compat.EclipticSeasons.EclipticSeasonsUtil;
-import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.PacketExchangeEffects;
 import com.chinaex123.shipping_box.network.PacketShowSuccessMessage;
+import com.chinaex123.shipping_box.storage.PlayerBalanceManager;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -70,8 +70,8 @@ public class ExchangeManager {
             if (rule != null) {
                 lastMatchedRule = rule;
 
-                if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
-                    return;
+                if (rule.getOutputItem().isCoin() && !CommonConfig.ENABLE_VIRTUAL_CURRENCY.get()) {
+                    break;
                 }
 
                 if (rule.getOutputItem().getEclipticSeasonsProperties() != null) {
@@ -101,6 +101,7 @@ public class ExchangeManager {
         } while (exchanged);
 
         if (hasValidExchange) {
+            int effectiveVirtualCurrency = CommonConfig.ENABLE_VIRTUAL_CURRENCY.get() ? totalVirtualCurrency : 0;
             List<ItemStack> consumedItems = calculateConsumedItems(initialItems, currentItems);
 
             if (ShippingBoxAPI.onExchange(
@@ -108,7 +109,7 @@ public class ExchangeManager {
                     level,
                     createNonNullList(consumedItems),
                     createNonNullList(results),
-                    totalVirtualCurrency,
+                    effectiveVirtualCurrency,
                     lastMatchedRule)) {
                 for (int i = 0; i < items.size(); i++) {
                     items.set(i, initialSnapshot.get(i).copy());
@@ -116,12 +117,10 @@ public class ExchangeManager {
                 return;
             }
 
-            if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
+            if (effectiveVirtualCurrency > 0 && boundPlayerUUID != null) {
                 ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
-                if (player != null && ViScriptShopUtil.isAvailable()) {
-                    int currentBalance = ViScriptShopUtil.getMoney(player);
-                    startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
-                    ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
+                if (player != null) {
+                    PlayerBalanceManager.addBalance(player, effectiveVirtualCurrency);
                 }
             }
 
@@ -177,7 +176,7 @@ public class ExchangeManager {
             }
 
             serverLevel.playSound(null, blockPos,
-                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
+                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
                     0.5F, 1.0F);
 
@@ -187,7 +186,7 @@ public class ExchangeManager {
                     PacketDistributor.sendToPlayer(player, new PacketShowSuccessMessage());
 
                     if (CommonConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
-                        PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(totalVirtualCurrency));
+                        PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(effectiveVirtualCurrency));
                     }
                 }
             }
@@ -197,20 +196,14 @@ public class ExchangeManager {
                 if (boundPlayerUUID != null) {
                     ServerPlayer logPlayer = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
                     if (logPlayer != null) {
+                        // 26.2:getStringOr() 已移除,改为 getString()
                         playerName = logPlayer.getName().getString();
                     }
                 }
-                TransactionLogger.logTransaction(playerName, consumedItems, results, totalVirtualCurrency, level, lastMatchedRule);
+                TransactionLogger.logTransaction(playerName, consumedItems, results, effectiveVirtualCurrency, level, lastMatchedRule);
             }
         }
     }
-    /**
-     * 开始余额动画
-     */
-    private static void startBalanceAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
-        BalanceAnimationManager.startAnimation(player, startBalance, totalValue, exchangeAmount);
-    }
-
     /**
      * 应用玩家出售价格属性加成到基础数量
      * <p>

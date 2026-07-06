@@ -7,8 +7,9 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.core.Holder;
@@ -23,31 +24,31 @@ import java.util.Optional;
 /** 组件匹配器 **/
 public class ExchangeRuleComponents {
 
-    // 缓存附魔注册表，避免重复查找
-    private static Registry<Enchantment> enchantmentRegistry = null;
+    // 缓存附魔注册表查找器，避免重复查找
+    private static HolderGetter<Enchantment> enchantmentLookup = null;
 
     /**
-     * 辅助方法：安全地获取附魔注册表
-     * 优先使用已初始化的注册表，如果没有则尝试从当前服务器获取
+     * 辅助方法：安全地获取附魔注册表查找器
+     * 优先使用已初始化的查找器，如果没有则尝试从当前服务器获取
      */
-    private static Registry<Enchantment> getEnchantmentRegistry() {
-        // 如果已有注册表，直接返回
-        if (enchantmentRegistry != null) {
-            return enchantmentRegistry;
+    private static HolderGetter<Enchantment> getEnchantmentLookup() {
+        // 如果已有查找器，直接返回
+        if (enchantmentLookup != null) {
+            return enchantmentLookup;
         }
-        
+
         // 尝试从当前运行的服务器获取
         try {
             var server = ServerLifecycleHooks.getCurrentServer();
             if (server != null) {
                 RegistryAccess registryAccess = server.registryAccess();
-                enchantmentRegistry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
-                return enchantmentRegistry;
+                enchantmentLookup = registryAccess.lookupOrThrow(Registries.ENCHANTMENT);
+                return enchantmentLookup;
             }
         } catch (Exception e) {
             // 忽略异常
         }
-        
+
         return null;
     }
 
@@ -154,14 +155,14 @@ public class ExchangeRuleComponents {
      */
     private static boolean matchesSingleComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
 
             if (componentId == null) {
                 return false;
             }
 
             // 获取组件类型
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
 
             if (componentType == null) {
                 // 组件类型不存在，宽松匹配
@@ -343,7 +344,7 @@ public class ExchangeRuleComponents {
                             // 与期望值比较
                             if (expectedFieldValue.isJsonPrimitive()) {
                                 String expectedString = expectedFieldValue.getAsString();
-                                // 比较 ResourceLocation
+                                // 比较 Identifier
                                 return keyString.equals(expectedString);
                             }
                         } catch (Exception e) {
@@ -452,13 +453,13 @@ public class ExchangeRuleComponents {
      */
     private static boolean matchesSingleComponent(ItemStack stack, String componentName, String componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
             if (componentId == null) {
                 return false;
             }
 
             // 获取组件类型
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
             if (componentType == null) {
                 return true;
             }
@@ -518,12 +519,12 @@ public class ExchangeRuleComponents {
      * @param componentName 组件名称
      * @return 标准化的ResourceLocation对象，无效时返回null
      */
-    public static ResourceLocation normalizeComponentId(String componentName) {
+    public static Identifier normalizeComponentId(String componentName) {
         // 标准化组件ID
         if (componentName.contains(":")) {
-            return ResourceLocation.tryParse(componentName);
+            return Identifier.tryParse(componentName);
         }
-        return ResourceLocation.tryParse("minecraft:" + componentName);
+        return Identifier.tryParse("minecraft:" + componentName);
     }
 
     /**
@@ -642,7 +643,7 @@ public class ExchangeRuleComponents {
     @SuppressWarnings("unchecked")
     private static void applyComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
             if (componentId == null) {
                 return;
             }
@@ -659,7 +660,7 @@ public class ExchangeRuleComponents {
             }
 
             // 获取通用组件类型
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
             if (componentType == null) {
                 return;
             }
@@ -696,10 +697,10 @@ public class ExchangeRuleComponents {
             var levelsObj = enchantmentsObj.getAsJsonObject("levels");
             var mutableEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
-            // 获取附魔注册表
-            Registry<Enchantment> enchantmentRegistry = getEnchantmentRegistry();
+            // 获取附魔注册表查找器
+            HolderGetter<Enchantment> enchantmentLookup = getEnchantmentLookup();
 
-            if (enchantmentRegistry == null) {
+            if (enchantmentLookup == null) {
                 return;
             }
 
@@ -707,10 +708,11 @@ public class ExchangeRuleComponents {
                 String enchId = entry.getKey();
                 var levelElement = entry.getValue();
                 int level = levelElement.getAsInt();
-                ResourceLocation enchLoc = ResourceLocation.tryParse(enchId);
+                Identifier enchLoc = Identifier.tryParse(enchId);
 
                 if (enchLoc != null) {
-                    Optional<Holder.Reference<Enchantment>> enchantment = enchantmentRegistry.getHolder(enchLoc);
+                    ResourceKey<Enchantment> key = ResourceKey.create(Registries.ENCHANTMENT, enchLoc);
+                    var enchantment = enchantmentLookup.get(key);
                     enchantment.ifPresent(enchantmentReference -> mutableEnchants.set(enchantmentReference, level));
                 }
             }
@@ -736,21 +738,19 @@ public class ExchangeRuleComponents {
             }
 
             var enchantmentsObj = jsonElement.getAsJsonObject();
-            
+
             if (!enchantmentsObj.has("levels") || !enchantmentsObj.get("levels").isJsonObject()) {
                 return;
             }
 
             var levelsObj = enchantmentsObj.getAsJsonObject("levels");
-            
-            var mutableEnchants = new net.minecraft.world.item.enchantment.ItemEnchantments.Mutable(
-                    net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY
-            );
 
-            // 获取附魔注册表
-            Registry<Enchantment> enchantmentRegistry = getEnchantmentRegistry();
-            
-            if (enchantmentRegistry == null) {
+            var mutableEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+
+            // 获取附魔注册表查找器
+            HolderGetter<Enchantment> enchantmentLookup = getEnchantmentLookup();
+
+            if (enchantmentLookup == null) {
                 return;
             }
 
@@ -760,10 +760,11 @@ public class ExchangeRuleComponents {
 
                 if (levelElement.isJsonPrimitive() && levelElement.getAsJsonPrimitive().isNumber()) {
                     int level = levelElement.getAsInt();
-                    ResourceLocation enchLoc = ResourceLocation.tryParse(enchId);
+                    Identifier enchLoc = Identifier.tryParse(enchId);
 
                     if (enchLoc != null) {
-                        Optional<Holder.Reference<Enchantment>> enchantment = enchantmentRegistry.getHolder(enchLoc);
+                        ResourceKey<Enchantment> key = ResourceKey.create(Registries.ENCHANTMENT, enchLoc);
+                        var enchantment = enchantmentLookup.get(key);
                         enchantment.ifPresent(enchantmentReference -> mutableEnchants.set(enchantmentReference, level));
                     }
                 }
@@ -786,12 +787,12 @@ public class ExchangeRuleComponents {
      */
     private static void applySingleComponent(DataComponentPatch.Builder patchBuilder, String componentName, String componentValue) {
         try {
-            ResourceLocation componentId = normalizeComponentId(componentName);
+            Identifier componentId = normalizeComponentId(componentName);
             if (componentId == null) {
                 return;
             }
 
-            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId);
+            DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(componentId).map(Holder::value).orElse(null);
             if (componentType == null) {
                 return;
             }
