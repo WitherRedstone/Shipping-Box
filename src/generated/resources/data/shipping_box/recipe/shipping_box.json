@@ -2,10 +2,18 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "A": "#minecraft:logs",
-    "B": "minecraft:diamond",
-    "C": "minecraft:crafting_table",
-    "D": "minecraft:emerald"
+    "A": {
+      "tag": "minecraft:logs"
+    },
+    "B": {
+      "tag": "c:gems/diamond"
+    },
+    "C": {
+      "item": "minecraft:crafting_table"
+    },
+    "D": {
+      "tag": "c:gems/emerald"
+    }
   },
   "pattern": [
     "DBD",

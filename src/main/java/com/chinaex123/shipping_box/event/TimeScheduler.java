@@ -9,9 +9,9 @@ import net.minecraft.world.level.Level;
  */
 public class TimeScheduler {
     public static boolean shouldExchange(Level level, long lastExchangeDay) {
-        if (level == null || level.isClientSide()) return false;
+        if (level == null || level.isClientSide) return false;
 
-        long dayTime = level.getLevelData().getGameTime();
+        long dayTime = level.getDayTime();
         long timeOfDay = dayTime % 24000;
         int configExchangeTime = CommonConfig.EXCHANGE_TIME.get();
         // 设置一个合理的时间窗口（例如180 ticks = 9秒）

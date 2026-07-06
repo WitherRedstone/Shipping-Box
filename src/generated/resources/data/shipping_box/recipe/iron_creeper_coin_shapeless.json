@@ -2,7 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "shipping_box:gold_creeper_coin"
+    {
+      "item": "shipping_box:gold_creeper_coin"
+    }
   ],
   "result": {
     "count": 2,

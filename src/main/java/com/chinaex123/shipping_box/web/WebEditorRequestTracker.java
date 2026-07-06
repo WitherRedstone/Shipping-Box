@@ -8,26 +8,26 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Web 编辑器请求追踪器
+ * Web编辑器请求追踪器
  *
  * <p>功能说明：</p>
  * <ul>
- *   <li>用于追踪和管理 Web 编辑器发起的异步请求</li>
- *   <li>将请求 ID 与 CompletableFuture 关联，实现请求-响应的配对</li>
- *   <li>支持多线程并发访问，使用 ConcurrentHashMap 保证线程安全</li>
+ *   <li>用于追踪和管理Web编辑器发起的异步请求</li>
+ *   <li>将请求ID与CompletableFuture关联，实现请求-响应的配对</li>
+ *   <li>支持多线程并发访问，使用ConcurrentHashMap保证线程安全</li>
  * </ul>
  *
  * <p>工作流程：</p>
  * <ol>
- *   <li>Web 服务器收到前端请求后，生成唯一的请求 ID</li>
- *   <li>调用 {@link #create(String)} 创建 CompletableFuture 并注册</li>
+ *   <li>Web服务器收到前端请求后，生成唯一的请求ID</li>
+ *   <li>调用 {@link #create(String)} 创建CompletableFuture并注册</li>
  *   <li>通过网络包将请求发送到游戏服务端</li>
  *   <li>服务端处理完成后，通过响应包返回结果</li>
- *   <li>响应处理器调用 {@link #complete(String, Response)} 完成 Future</li>
- *   <li>Web 服务器从 Future 获取结果并返回给前端</li>
+ *   <li>响应处理器调用 {@link #complete(String, Response)} 完成Future</li>
+ *   <li>Web服务器从Future获取结果并返回给前端</li>
  * </ol>
  *
- * @see WebEditorLocalServer 使用此追踪器处理 HTTP 请求
+ * @see WebEditorLocalServer 使用此追踪器处理HTTP请求
  * @see PacketEditorReadFile 读取文件的网络包
  * @see PacketEditorSaveRules 保存规则的网络包
  */

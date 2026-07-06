@@ -5,7 +5,7 @@ import com.google.gson.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -15,8 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.loading.FMLPaths;
-// 26.2:AddReloadListenerEvent 已移除,改用 AddServerReloadListenersEvent
-import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -78,7 +77,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             // 遍历所有匹配的资源配置文件（数据包）
             var resources = resourceManager.listResources(CONFIG_FOLDER, path -> path.getPath().endsWith(".json"));
 
-            for (Identifier resourceLocation : resources.keySet()) {
+            for (ResourceLocation resourceLocation : resources.keySet()) {
                 try {
                     // 正确处理 Optional<Resource>
                     Optional<Resource> resourceOptional = resourceManager.getResource(resourceLocation);
@@ -167,13 +166,13 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                     return "invalid_input_item";
                 }
                 if (input.getItem() != null && !input.getItem().isEmpty()) {
-                    if (!BuiltInRegistries.ITEM.containsKey(Objects.requireNonNull(Identifier.tryParse(input.getItem())))) {
+                    if (!BuiltInRegistries.ITEM.containsKey(Objects.requireNonNull(ResourceLocation.tryParse(input.getItem())))) {
                         return "unknown_item|" + input.getItem();
                     }
                 }
                 if (input.getTag() != null && !input.getTag().isEmpty()) {
                     String tagId = input.getTag().startsWith("#") ? input.getTag().substring(1) : input.getTag();
-                    if (Identifier.tryParse(tagId) == null) {
+                    if (ResourceLocation.tryParse(tagId) == null) {
                         return "invalid_tag|" + input.getTag();
                     }
                 }
@@ -310,16 +309,16 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 if (ServerLifecycleHooks.getCurrentServer() != null && !ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers().isEmpty()) {
                     for (ServerPlayer player : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers()) {
                         // 发送标题提示
-                        player.sendSystemMessage(Component.translatable("message.shipping_box.recipe_error_title"));
+                        player.displayClientMessage(Component.translatable("message.shipping_box.recipe_error_title"), false);
 
                         // 发送具体错误信息（解析本地化键）
                         for (String errorMsg : pendingErrorMessages) {
                             Component errorComponent = parseLocalizedError(errorMsg);
-                            player.sendSystemMessage(errorComponent);
+                            player.displayClientMessage(errorComponent, false);
                         }
 
                         // 发送帮助信息
-                        player.sendSystemMessage(Component.translatable("message.shipping_box.recipe_error_help"));
+                        player.displayClientMessage(Component.translatable("message.shipping_box.recipe_error_help"), false);
                     }
                     // 清空已发送的错误信息
                     pendingErrorMessages.clear();
@@ -678,7 +677,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         if (input.getTag() != null && !input.getTag().isEmpty()) {
             try {
                 String tagId = input.getTag().startsWith("#") ? input.getTag().substring(1) : input.getTag();
-                Identifier tagResource = Identifier.tryParse(tagId);
+                ResourceLocation tagResource = ResourceLocation.tryParse(tagId);
                 return tagResource != null;
             } catch (Exception e) {
                 return false;
@@ -800,7 +799,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             }
 
             // 验证物品ID
-            Identifier itemResource = Identifier.tryParse(itemId);
+            ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
             if (itemResource == null) {
                 return false;
             }
@@ -837,7 +836,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
             // 检查组件名称
             String componentName = comp.substring(0, equalsIndex).trim();
-            Identifier componentId = Identifier.tryParse(componentName);
+            ResourceLocation componentId = ResourceLocation.tryParse(componentName);
             if (componentId == null) {
                 return false;
             }
@@ -1698,13 +1697,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
      * 资源重载监听器注册事件
      * 将此管理器注册为资源重载监听器
      *
-     * 26.2:AddReloadListenerEvent 已移除,改用 AddServerReloadListenersEvent
-     * 需要使用 addListener(Identifier, PreparableReloadListener) 注册
-     *
-     * @param event 服务器资源重载监听器添加事件
+     * @param event 资源重载监听器添加事件
      */
     @SubscribeEvent
-    public static void onAddReloadListeners(AddServerReloadListenersEvent event) {
-        event.addListener(Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_recipe_manager"), new ExchangeRecipeManager());
+    public static void onAddReloadListeners(AddReloadListenerEvent event) {
+        event.addListener(new ExchangeRecipeManager());
     }
 }

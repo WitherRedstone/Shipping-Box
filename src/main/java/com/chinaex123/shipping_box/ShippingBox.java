@@ -1,5 +1,7 @@
 package com.chinaex123.shipping_box;
 
+import com.chinaex123.shipping_box.client.screen.AutoShippingBoxScreen;
+import com.chinaex123.shipping_box.client.screen.ShippingBoxScreen;
 import com.chinaex123.shipping_box.attribute.ModAttributes;
 import com.chinaex123.shipping_box.init.ModBlocks;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
@@ -16,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
@@ -41,13 +44,13 @@ public class ShippingBox {
 
         modEventBus.addListener(this::registerCapabilities); // 能力注册事件
         modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
+        modEventBus.addListener(this::registerScreens); // 注册自定义 Screen
         // 注册配置文件
         modContainer.registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
 
         ModCreativeTabs.register(modEventBus); // 注册自定义创造模式物品栏
-        // 26.2:block 和 block item 注册需要协调 — ModBlocks.register 内部会调用 ModItems.registerBlockItems
-        ModBlocks.register(modEventBus); // 注册方块 + block items
-        ModItems.register(modEventBus); // 注册独立物品(硬币/钱包)
+        ModBlocks.register(modEventBus); // 注册方块
+        ModItems.register(modEventBus); // 注册物品
         ModBlockEntities.register(modEventBus); // 注册方块实体
         ModMenuTypes.register(modEventBus); // 注册自定义 MenuType
         ModAttributes.ATTRIBUTES.register(modEventBus); // 注册自定义属性系统
@@ -76,7 +79,7 @@ public class ShippingBox {
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
             // 延迟一小段时间再同步，确保客户端完全加载
-            serverPlayer.level().getServer().execute(() -> {
+            serverPlayer.getServer().execute(() -> {
                 ShippingBoxNetworking.syncRecipesToClient(serverPlayer);
             });
         }
@@ -119,16 +122,25 @@ public class ShippingBox {
      */
     @SubscribeEvent
     public void registerCapabilities(RegisterCapabilitiesEvent event) {
+        // 注册自动售货箱的能力
         event.registerBlock(
-                net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
+                Capabilities.ItemHandler.BLOCK,
                 (level, pos, state, be, side) -> {
                     if (be instanceof AutoShippingBoxBlockEntity autoBox) {
-                        return autoBox.getTransferHandler();
+                        return autoBox.getCapabilityHandler();
                     }
-                    return net.neoforged.neoforge.transfer.EmptyResourceHandler.instance();
+                    return null;
                 },
                 ModBlocks.AUTO_SHIPPING_BOX.get()
         );
     }
 
+    /**
+     * 注册自定义 Screen 与 MenuType 的绑定（仅客户端触发）
+     */
+    @SubscribeEvent
+    public void registerScreens(RegisterMenuScreensEvent event) {
+        event.register(ModMenuTypes.SHIPPING_BOX.get(), ShippingBoxScreen::new);
+        event.register(ModMenuTypes.AUTO_SHIPPING_BOX.get(), AutoShippingBoxScreen::new);
+    }
 }

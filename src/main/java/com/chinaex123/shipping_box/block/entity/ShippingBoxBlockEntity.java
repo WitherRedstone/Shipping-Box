@@ -10,7 +10,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -58,7 +58,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      */
     private GlobalPlayerStorage getGlobalStorage() {
         if (level instanceof ServerLevel serverLevel) {
-            return GlobalPlayerStorage.get(serverLevel);
+            MinecraftServer server = serverLevel.getServer();
+            return GlobalPlayerStorage.get(server);
         }
         return null;
     }
@@ -328,11 +329,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      * 能够正确处理时间重置、时间跳跃等各种边界情况
      */
     public void tick() {
-        if (level == null || level.isClientSide()) {
+        if (level == null || level.isClientSide) {
             return;
         }
 
-        long dayTime = level.getLevelData().getGameTime();
+        long dayTime = level.getDayTime();
         long timeOfDay = dayTime % 24000;
 
         // 检查所有存储中是否存在物品
@@ -364,7 +365,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         // 检测兑换时间窗口
         if (TimeScheduler.shouldExchange(level, lastExchangeDay)) {
             try {
-                long currentDay = level.getLevelData().getGameTime() / 24000;
+                long currentDay = level.getDayTime() / 24000;
                 performExchange(currentDay);
                 lastExchangeDay = currentDay;
                 setChanged(); // 标记数据已变更
@@ -380,9 +381,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      * 主要用于调试和管理员操作
      */
     public void forceExchange() {
-        if (level != null && !level.isClientSide()) {
-            performExchange(level.getLevelData().getGameTime() / 24000);
-            lastExchangeDay = level.getLevelData().getGameTime() / 24000;
+        if (level != null && !level.isClientSide) {
+            performExchange(level.getDayTime() / 24000);
+            lastExchangeDay = level.getDayTime() / 24000;
             setChanged(); // 标记数据已变更
         }
     }
@@ -509,7 +510,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         // 为成功兑换的玩家发送通知和音效
         if (!successfulPlayers.isEmpty()) {
             serverLevel.playSound(null, worldPosition,
-                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.note_block.bell")),
+                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
                     SoundSource.BLOCKS,
                     0.5F, 1.0F);
 
@@ -527,11 +528,15 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
         for (UUID playerUUID : successfulPlayers) {
             ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
             if (player != null) {
-                player.playSound(
-                        SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.note_block.bell")));
+                player.playNotifySound(
+                        SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
+                        SoundSource.BLOCKS,
+                        0.5F,
+                        1.0F
+                );
 
                 // 发送个性化的成功消息
-                player.sendSystemMessage(Component.translatable("message.shipping_box.exchange_success"));
+                player.displayClientMessage(Component.translatable("message.shipping_box.exchange_success"), true);
             }
         }
     }
@@ -558,52 +563,60 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
      * @param tag NBT标签
      * @param registries 注册表查找提供者
      */
-    private static final int DATA_VERSION = 1;
-
     @Override
-    public void saveCustomOnly(@NotNull net.minecraft.world.level.storage.ValueOutput out) {
-        // 保存共享存储 (26.2 ContainerHelper API)
-        net.minecraft.world.ContainerHelper.saveAllItems(out, sharedItems);
-        out.putLong("LastExchangeDay", lastExchangeDay);
+    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
+        super.saveAdditional(tag, registries);
+
+        // 保存共享存储
+        ContainerHelper.saveAllItems(tag, sharedItems, registries);
+        tag.putLong("LastExchangeDay", lastExchangeDay);
 
         // 保存槽位所有者信息
-        var ownersChild = out.child("SlotOwners");
+        CompoundTag ownersTag = new CompoundTag();
         for (Map.Entry<Integer, UUID> entry : slotOwners.entrySet()) {
-            ownersChild.putString(String.valueOf(entry.getKey()), entry.getValue().toString());
+            ownersTag.putString(String.valueOf(entry.getKey()), entry.getValue().toString());
         }
+        tag.put("SlotOwners", ownersTag);
 
         // 保存玩家物品计数
-        var countsChild = out.child("PlayerCounts");
+        CompoundTag countsTag = new CompoundTag();
         for (Map.Entry<UUID, Integer> entry : playerItemCounts.entrySet()) {
-            countsChild.putString(entry.getKey().toString(), String.valueOf(entry.getValue()));
+            countsTag.putInt(entry.getKey().toString(), entry.getValue());
         }
-
-        out.putInt("_DATA_VERSION", DATA_VERSION);
+        tag.put("PlayerCounts", countsTag);
     }
 
+    /**
+     * 从NBT标签中加载方块实体的额外数据
+     *
+     * @param tag NBT标签
+     * @param registries 注册表查找提供者
+     */
     @Override
-    protected void loadAdditional(@NotNull net.minecraft.world.level.storage.ValueInput in) {
-        // 加载共享存储 (26.2 ContainerHelper API)
-        sharedItems = NonNullList.withSize(54, ItemStack.EMPTY);
-        net.minecraft.world.ContainerHelper.loadAllItems(in, sharedItems);
+    protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
+        super.loadAdditional(tag, registries);
 
-        lastExchangeDay = in.getLongOr("LastExchangeDay", -1L);
+        // 加载共享存储
+        sharedItems = NonNullList.withSize(54, ItemStack.EMPTY);
+        ContainerHelper.loadAllItems(tag, sharedItems, registries);
+
+        if (tag.contains("LastExchangeDay")) {
+            lastExchangeDay = tag.getLong("LastExchangeDay");
+        }
 
         // 加载槽位所有者信息
-        slotOwners.clear();
-        in.child("SlotOwners").ifPresent(ownersIn -> {
-            for (String key : ownersIn.keySet()) {
+        if (tag.contains("SlotOwners")) {
+            CompoundTag ownersTag = tag.getCompound("SlotOwners");
+            for (String key : ownersTag.getAllKeys()) {
                 try {
                     int slot = Integer.parseInt(key);
-                    String uuidStr = ownersIn.getStringOr(key, "");
-                    if (!uuidStr.isEmpty()) {
-                        slotOwners.put(slot, UUID.fromString(uuidStr));
-                    }
+                    UUID uuid = UUID.fromString(ownersTag.getString(key));
+                    slotOwners.put(slot, uuid);
                 } catch (IllegalArgumentException e) {
                     // 静默处理错误
                 }
             }
-        });
+        }
     }
 
     /**

@@ -5,7 +5,7 @@ import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.io.ByteArrayInputStream;
@@ -15,17 +15,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-/**
- * 配方同步数据包（服务端→客户端）
- * <p>
- * 在玩家登录时，服务端将当前加载的兑换规则序列化为 JSON，
- * 经过 GZIP 压缩后发送给客户端。客户端解压后设置到本地缓存，
- * 用于在物品 Tooltip 中显示兑换信息。
- * 使用 GZIP 压缩减少网络传输量，适用于大量兑换规则的场景。
- */
+/** 配方同步数据包记录类 **/
 public record PacketSyncRecipes(String rulesJson) implements CustomPacketPayload {
     public static final Type<PacketSyncRecipes> TYPE = new Type<>(
-            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")
+            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "sync_recipes")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketSyncRecipes> STREAM_CODEC = StreamCodec.of(

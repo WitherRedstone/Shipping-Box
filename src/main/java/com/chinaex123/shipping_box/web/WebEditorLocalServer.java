@@ -13,8 +13,8 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -396,7 +396,7 @@ public final class WebEditorLocalServer {
 
             // 10. 重新加载规则
             if ("POST".equals(req.method) && "/api/reload".equals(path)) {
-                ClientPacketDistributor.sendToServer(new PacketEditorReloadRequest());
+                PacketDistributor.sendToServer(new PacketEditorReloadRequest());
                 writeBytes(out, 200, "application/json; charset=utf-8",
                         "{\"ok\":true}".getBytes(StandardCharsets.UTF_8));
                 return;
@@ -416,7 +416,7 @@ public final class WebEditorLocalServer {
         // 收集所有物品ID
         JsonArray items = new JsonArray();
         BuiltInRegistries.ITEM.forEach(item -> {
-            Identifier id = BuiltInRegistries.ITEM.getKey(item);
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             if (id != null) {
                 items.add(id.toString());
             }
@@ -424,9 +424,9 @@ public final class WebEditorLocalServer {
 
         // 收集所有标签
         JsonArray tags = new JsonArray();
-        BuiltInRegistries.ITEM.getTags().forEach(named -> {
-            var tagKey = named.key();
-            Identifier loc = tagKey.location();
+        BuiltInRegistries.ITEM.getTags().forEach(pair -> {
+            var tagKey = pair.getFirst();
+            ResourceLocation loc = tagKey.location();
             if (loc != null) {
                 tags.add("#" + loc.getNamespace() + ":" + loc.getPath());
             }
@@ -451,7 +451,7 @@ public final class WebEditorLocalServer {
 
         // 尝试从缓存目录获取图标
         if (!itemId.isBlank()) {
-            Identifier rl = Identifier.tryParse(itemId);
+            ResourceLocation rl = ResourceLocation.tryParse(itemId);
             if (rl != null) {
                 String fileName = (rl.getNamespace() + "_" + rl.getPath())
                         .replace(':', '_').replace('/', '_') + ".png";
@@ -486,7 +486,7 @@ public final class WebEditorLocalServer {
         try {
             // 创建1x1透明图像
             NativeImage img = new NativeImage(NativeImage.Format.RGBA, 1, 1, false);
-            img.setPixel(0, 0, 0);
+            img.setPixelRGBA(0, 0, 0);
             Path tempFile = Files.createTempFile("sbox_transparent_", ".png");
             img.writeToFile(tempFile);
             byte[] result = Files.readAllBytes(tempFile);
@@ -514,32 +514,18 @@ public final class WebEditorLocalServer {
 
         Path manifest = EditorIconCacheManager.getInstance().getManifestFile();
         if (Files.exists(manifest)) {
-            byte[] bytes = Files.readAllBytes(manifest);
-            try {
-                JsonObject manifestJson = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
-                int version = manifestJson.has("version") ? manifestJson.get("version").getAsInt() : 0;
-                if (version != EditorIconCacheManager.CACHE_VERSION) {
-                    writeMissingCache(out);
-                    return;
-                }
-            } catch (Exception ignored) {
-                writeMissingCache(out);
-                return;
-            }
             // 返回已有的清单
+            byte[] bytes = Files.readAllBytes(manifest);
             writeBytes(out, 200, "application/json; charset=utf-8", bytes);
         } else {
-            writeMissingCache(out);
+            // 返回缺失提示
+            JsonObject resp = new JsonObject();
+            resp.addProperty("status", "missing_cache");
+            resp.addProperty("message", "Icon cache has not been generated yet. " +
+                    "Please run /" + ShippingBox.MOD_ID + " editor cache_icons in game.");
+            writeBytes(out, 200, "application/json; charset=utf-8",
+                    GSON.toJson(resp).getBytes(StandardCharsets.UTF_8));
         }
-    }
-
-    private static void writeMissingCache(OutputStream out) throws IOException {
-        JsonObject resp = new JsonObject();
-        resp.addProperty("status", "missing_cache");
-        resp.addProperty("message", "Icon cache has not been generated yet. " +
-                "Please run /" + ShippingBox.MOD_ID + " editor cache_icons in game.");
-        writeBytes(out, 200, "application/json; charset=utf-8",
-                GSON.toJson(resp).getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -610,7 +596,7 @@ public final class WebEditorLocalServer {
         String file = getRequestedFile(uri);
         String requestId = UUID.randomUUID().toString();
         CompletableFuture<WebEditorRequestTracker.Response> future = WebEditorRequestTracker.create(requestId);
-        ClientPacketDistributor.sendToServer(new PacketEditorReadFile(requestId, file));
+        PacketDistributor.sendToServer(new PacketEditorReadFile(requestId, file));
 
         // 等待服务器响应，超时5秒
         WebEditorRequestTracker.Response response;
@@ -671,7 +657,7 @@ public final class WebEditorLocalServer {
         String file = getRequestedFile(uri);
         String requestId = UUID.randomUUID().toString();
         CompletableFuture<WebEditorRequestTracker.Response> future = WebEditorRequestTracker.create(requestId);
-        ClientPacketDistributor.sendToServer(new PacketEditorSaveRules(requestId, file, GSON.toJson(obj)));
+        PacketDistributor.sendToServer(new PacketEditorSaveRules(requestId, file, GSON.toJson(obj)));
 
         // 等待响应
         WebEditorRequestTracker.Response response;

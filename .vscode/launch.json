@@ -6,19 +6,19 @@
       "request": "launch",
       "name": "Client",
       "presentation": {
-        "group": "Mod Development - Shipping-Box--1",
+        "group": "Mod Development - Shipping-Box-",
         "order": 0
       },
-      "projectName": "Shipping-Box--1",
+      "projectName": "Shipping-Box-",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/clientRunProgramArgs.txt"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\clientRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dshipping_box%%/Users/a1111/Desktop/code/Shipping-Box--1/bin/main"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dshipping_box%%D:\\Code\\Shipping-Box-\\bin\\main"
       ],
-      "cwd": "${workspaceFolder}/run",
+      "cwd": "${workspaceFolder}\\run",
       "env": {},
       "console": "internalConsole",
       "shortenCommandLine": "none"
@@ -28,19 +28,19 @@
       "request": "launch",
       "name": "Data",
       "presentation": {
-        "group": "Mod Development - Shipping-Box--1",
+        "group": "Mod Development - Shipping-Box-",
         "order": 1
       },
-      "projectName": "Shipping-Box--1",
+      "projectName": "Shipping-Box-",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/dataRunProgramArgs.txt"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\dataRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/dataRunVmArgs.txt",
-        "-Dfml.modFolders\u003dshipping_box%%/Users/a1111/Desktop/code/Shipping-Box--1/bin/main"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dshipping_box%%D:\\Code\\Shipping-Box-\\bin\\main"
       ],
-      "cwd": "${workspaceFolder}/run",
+      "cwd": "${workspaceFolder}\\run",
       "env": {},
       "console": "internalConsole",
       "shortenCommandLine": "none"
@@ -50,19 +50,19 @@
       "request": "launch",
       "name": "GameTestServer",
       "presentation": {
-        "group": "Mod Development - Shipping-Box--1",
+        "group": "Mod Development - Shipping-Box-",
         "order": 2
       },
-      "projectName": "Shipping-Box--1",
+      "projectName": "Shipping-Box-",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/gameTestServerRunProgramArgs.txt"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\gameTestServerRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/gameTestServerRunVmArgs.txt",
-        "-Dfml.modFolders\u003dshipping_box%%/Users/a1111/Desktop/code/Shipping-Box--1/bin/main"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\gameTestServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dshipping_box%%D:\\Code\\Shipping-Box-\\bin\\main"
       ],
-      "cwd": "${workspaceFolder}/run",
+      "cwd": "${workspaceFolder}\\run",
       "env": {},
       "console": "internalConsole",
       "shortenCommandLine": "none"
@@ -72,19 +72,19 @@
       "request": "launch",
       "name": "Server",
       "presentation": {
-        "group": "Mod Development - Shipping-Box--1",
+        "group": "Mod Development - Shipping-Box-",
         "order": 3
       },
-      "projectName": "Shipping-Box--1",
+      "projectName": "Shipping-Box-",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/serverRunProgramArgs.txt"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\serverRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@/Users/a1111/Desktop/code/Shipping-Box--1/build/moddev/serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dshipping_box%%/Users/a1111/Desktop/code/Shipping-Box--1/bin/main"
+        "@D:\\Code\\Shipping-Box-\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dshipping_box%%D:\\Code\\Shipping-Box-\\bin\\main"
       ],
-      "cwd": "${workspaceFolder}/run",
+      "cwd": "${workspaceFolder}\\run",
       "env": {},
       "console": "internalConsole",
       "shortenCommandLine": "none"

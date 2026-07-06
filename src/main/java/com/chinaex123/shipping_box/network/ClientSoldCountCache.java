@@ -3,14 +3,7 @@ package com.chinaex123.shipping_box.network;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 客户端销售计数缓存
- * <p>
- * 在客户端本地缓存物品的销售计数数据，避免频繁的网络请求。
- * 当服务端同步销售计数时，数据被更新到此缓存中。
- * 客户端可以通过此缓存快速获取物品的最新销量，用于 Tooltip 显示。
- * 玩家登出时自动清空缓存。
- */
+/** 客户端销售计数缓存 **/
 public class ClientSoldCountCache {
     private static final Map<String, Integer> cache = new HashMap<>();
 

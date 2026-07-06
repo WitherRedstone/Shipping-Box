@@ -45,7 +45,7 @@ public class OpenWebEditorCommand {
         PacketDistributor.sendToPlayer(player, new PacketStartLocalWebEditor(token));
 
         // 向玩家发送反馈消息
-        player.sendSystemMessage(Component.translatable("command.shipping_box.web.starting"));
+        player.displayClientMessage(Component.translatable("command.shipping_box.web.starting"), false);
 
         return 1;
     }

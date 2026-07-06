@@ -10,13 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * 物品动态定价兑换策略
- * <p>
- * 根据输出物品的累计售出数量动态调整每单位输入可兑换的输出数量。
- * 销量越高，兑换效率越低，模拟市场供需关系。
- * 支持按重置天数周期性重置累计销量统计，实现价格周期性波动。
- */
+/** 物品 + 动态定价 **/
 public class ItemDynamicPricingStrategy implements ExchangeStrategy {
     @Override
     public void execute(ExchangeRule rule, int maxExchanges, Level level, UUID playerUUID, List<ItemStack> results, AtomicInteger totalVirtualCurrency) {

@@ -10,23 +10,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.List;
 
-/**
- * 节气模组（Ecliptic Seasons）兼容工具类
- * <p>
- * 通过反射机制与 Ecliptic Seasons 模组进行交互，
- * 在不直接依赖该模组的情况下获取当前世界的节气、季节信息。
- * 包含缓存机制减少反射调用次数。
- * <p>
- * 主要功能：
- * <ul>
- *   <li>检查节气模组是否已加载</li>
- *   <li>获取当前世界的节气（SolarTerm）对象</li>
- *   <li>获取当前季节名称（spring/summer/autumn/winter）</li>
- *   <li>获取季节索引</li>
- *   <li>检查当前世界是否处于特定季节</li>
- *   <li>获取节气持续天数配置</li>
- * </ul>
- */
+/** 节气兼容工具类 **/
 public class EclipticSeasonsUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(EclipticSeasonsUtil.class);
 

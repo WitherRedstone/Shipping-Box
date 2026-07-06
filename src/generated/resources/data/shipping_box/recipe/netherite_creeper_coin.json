@@ -2,7 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "A": "shipping_box:diamond_creeper_coin"
+    "A": {
+      "item": "shipping_box:diamond_creeper_coin"
+    }
   },
   "pattern": [
     "AAA",

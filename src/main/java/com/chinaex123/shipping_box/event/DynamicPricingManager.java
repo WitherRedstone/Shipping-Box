@@ -2,6 +2,7 @@ package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.network.PacketSoldCountSync;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -17,13 +18,36 @@ public class DynamicPricingManager {
     private static final String DATA_NAME = "dynamic_pricing_data";
 
     /**
-     * 获取或创建持久化数据实例。
-     * MC 26.2:不再用 Factory + computeIfAbsent;改用 SavedDataType 对应的 get(ServerLevel)。
+     * 获取服务器的持久化存储管理器
+     * <p>
+     * 通过ServerLifecycleHooks获取当前运行的Minecraft服务器实例，
+     * 并返回主世界的维度数据存储管理器。如果服务器未启动或不可用，
+     * 则返回null。
+     *
+     * @return DimensionDataStorage 服务器主世界的持久化存储管理器，如果服务器不可用则返回null
+     */
+    private static DimensionDataStorage getStorage() {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server != null) {
+            return server.overworld().getDataStorage();
+        }
+        return null;
+    }
+
+    /**
+     * 获取或创建持久化数据实例
+     * <p>
+     * 通过获取服务器的持久化存储管理器，使用指定的数据工厂和数据名称
+     * 来获取或创建PricingData实例。如果无法获取存储管理器，则返回null。
+     *
+     * @return PricingData 持久化数据实例，如果存储管理器不可用则返回null
      */
     private static PricingData getPricingData() {
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server == null) return null;
-        return PricingData.get(server.overworld());
+        DimensionDataStorage storage = getStorage();
+        if (storage != null) {
+            return storage.computeIfAbsent(PricingData.FACTORY, DATA_NAME);
+        }
+        return null;
     }
 
     /**

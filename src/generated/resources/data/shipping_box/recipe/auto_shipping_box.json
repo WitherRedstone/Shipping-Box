@@ -2,8 +2,12 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "A": "shipping_box:shipping_box",
-    "B": "minecraft:redstone"
+    "A": {
+      "item": "shipping_box:shipping_box"
+    },
+    "B": {
+      "tag": "c:dusts/redstone"
+    }
   },
   "pattern": [
     "BBB",

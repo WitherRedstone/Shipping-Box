@@ -79,7 +79,7 @@ public class TransactionLogger {
                 // 输出物品（带规则组件信息）
                 logEntry.append("输出：[");
                 if (virtualCurrency > 0) {
-                    logEntry.append("内置余额：").append(virtualCurrency);
+                    logEntry.append("VSS 货币：").append(virtualCurrency);
                     long validOutputCount = outputs.stream().filter(s -> !s.isEmpty() && s.getCount() > 0).count();
                     if (validOutputCount > 0) logEntry.append(", ");
                 }

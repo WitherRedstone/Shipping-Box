@@ -9,13 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * 普通物品兑换策略
- * <p>
- * 处理最简单的物品兑换逻辑：输入物品按固定比例兑换为输出物品。
- * 使用配置中指定的固定输出数量乘以兑换次数，并应用属性加成后生成结果物品。
- * 适用于无动态定价、无权重的简单物品兑换场景。
- */
+/** 普通物品 **/
 public class ItemSimpleStrategy implements ExchangeStrategy {
     @Override
     public void execute(ExchangeRule rule, int maxExchanges, Level level, UUID playerUUID, List<ItemStack> results, AtomicInteger totalVirtualCurrency) {

@@ -1,15 +1,15 @@
 package com.chinaex123.shipping_box.client.tooltip;
 
-import net.minecraft.core.Holder;
 import com.chinaex123.shipping_box.event.DynamicPricingManager;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
+import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.network.ClientSoldCountCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
@@ -48,6 +48,9 @@ public class ExchangeTooltipProvider {
                 try {
                     if (input.matches(stack)) {
                         ExchangeRule.OutputItem output = rule.getOutputItem();
+                        if (output.isCoin() && !ViScriptShopUtil.isAvailable()) {
+                            continue;
+                        }
 
                         // 构建主要的兑换信息
                         Component mainInfo = buildMainExchangeInfo(input, output, rule);
@@ -89,7 +92,6 @@ public class ExchangeTooltipProvider {
                                 additionalLines.add(seasonLine);
 
                                 // 应季加成（如果有）
-                                // 26.2:getStringOr() 已移除,改为 getString()
                                 if (seasonInfoLines.length > 1 && !seasonInfoLines[1].getString().isEmpty()) {
                                     MutableComponent bonusLine = Component.empty()
                                             .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
@@ -101,7 +103,6 @@ public class ExchangeTooltipProvider {
                                 }
 
                                 // 非应季减益（如果有）
-                                // 26.2:getStringOr() 已移除,改为 getString()
                                 if (seasonInfoLines.length > 2 && !seasonInfoLines[2].getString().isEmpty()) {
                                     MutableComponent penaltyLine = Component.empty()
                                             .append(Component.literal("[").withStyle(ChatFormatting.WHITE))
@@ -844,10 +845,10 @@ public class ExchangeTooltipProvider {
      */
     private static Component getLocalizedItemName(String itemIdentifier) {
         try {
-            Identifier itemId = Identifier.parse(itemIdentifier);
-            Item item = BuiltInRegistries.ITEM.get(itemId).map(Holder::value).orElse(null);
+            ResourceLocation itemId = ResourceLocation.parse(itemIdentifier);
+            Item item = BuiltInRegistries.ITEM.get(itemId);
 
-            return Component.translatable(item.getDescriptionId());
+            return item.getDescription();
         } catch (Exception e) {
             return Component.literal(itemIdentifier);
         }
@@ -888,7 +889,7 @@ public class ExchangeTooltipProvider {
     private static int getLatestSoldCount(String itemIdentifier) {
         try {
             // 在客户端环境下优先使用缓存数据
-            if (FMLEnvironment.getDist() == Dist.CLIENT && ClientSoldCountCache.hasCachedData(itemIdentifier)) {
+            if (FMLEnvironment.dist == Dist.CLIENT && ClientSoldCountCache.hasCachedData(itemIdentifier)) {
                 return ClientSoldCountCache.getCachedSoldCount(itemIdentifier);
             }
 
