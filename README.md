@@ -1,610 +1,294 @@
-# 📦 售货箱（Shipping Box）功能分类文档
+<!-- omit in toc -->
+<div align="center">
 
-[English](#english) | [中文](#中文)
+# 📦 Shipping Box · 售货箱
 
----
+*Place it. Ship it. Collect the rewards.*
 
-# **English**
+*放下箱子，寄出物品，坐等收菜。*
 
-### Adding a Shipping Box for Item-to-Item Exchange
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen?style=flat-square)](https://minecraft.net)
+[![NeoForge](https://img.shields.io/badge/NeoForge-26.2-blue?style=flat-square)](https://neoforged.net)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
-## I. Core Mechanics
-- **Exchange Logic**
-  - Define "exchange rules" through data packs
-  - After placing items in the shipping box, exchange will occur at 6:00 the next day according to the rules set in the "exchange rules"
-
-- **Output Dynamic Threshold Mode**
-  - **Type**: `dynamic_pricing`
-  - **Threshold array** `threshold`: Defines sales volume critical points for price changes (e.g., [64, 128, 256, 512])
-  - **Value array** `value`: Corresponding output quantities after each threshold (e.g., [4, 3, 2, 1])
-  - **Reset time** `day`: Number of days until threshold reset
-    - `day = -1`: Sales count never resets, accumulates indefinitely
-    - `day = 0`: Sales count automatically resets to 0 daily
-    - `day = N` (N > 0): Sales count resets every N days
-  - **Correspondence**: Threshold array and value array must correspond one-to-one
-  - **Price Calculation Rules**:
-    - Sales volume < minimum threshold → Use first tier price
-    - Sales volume ≥ maximum threshold → Use last tier price
-    - Sales volume between thresholds → Use corresponding tier price
-  - **Statistics Scope**: Sales statistics shared among all players
-  - Can be configured per item in JSON whether to enable
-  - **Configuration Example**:
-    ```json
-    {
-      "input": {
-        "item": "minecraft:stone",
-        "count": 1
-      },
-      "output": {
-        "type": "dynamic_pricing",
-        "item": "minecraft:diamond",
-        "dynamic_properties": {
-          "threshold": [64, 128, 256, 512],
-          "value": [4, 3, 2, 1],
-          "day": 3
-        }
-      }
-    }
-    ```
-
-- **Output Weight Mode**
-  - **Type**: `weight`
-  - In this mode, item output randomly obtains an item based on weight
-  - **Configuration Example**:
-    ```json
-    {
-      "input": {
-        "item": "minecraft:nether_star",
-        "count": 1
-      },
-      "output": {
-        "type": "weight",
-        "items": [
-          {"item": "minecraft:diamond", "count": 1, "weight": 1},
-          {"item": "minecraft:emerald", "count": 2, "weight": 2},
-          {"item": "minecraft:iron_ingot", "count": 5, "weight": 3},
-          {"item": "minecraft:redstone", "count": 5, "weight": 3}
-        ]
-      }
-    }
-    ```
-
-## II. User Interface & Interaction
-- **JEI Integration**
-  - Items automatically have exchange information, supporting JEI list display of item exchange information
-- **Configuration Error Alerts**
-  - In-game alerts when "exchange rules" are configured incorrectly
-
-## III. Configuration Method
-- **Rule File Path**
-  - "Exchange rules" must be placed in the `data/shipping_box/exchange_rules/` folder
-  - **File Format**
-  - Files must be JSON, multiple JSON files are supported
-  - **Rule Structure**: Use `"rules"` array containing multiple exchange rules
-    ```json
-      {
-        "rules": [
-          {
-            "input": {
-              "item": "minecraft:stone",
-              "count": 1
-            },
-            "output": {
-              "item": "minecraft:diamond",
-              "count": 1
-            }
-          }
-        ]
-      }
-      ```
- - **Visual Editing System**
- - Execute `/shipping_box editor cache_icons` and wait for the icon cache to finish building. 
- - After the cache is ready, execute `/shipping_box web` to launch the visual editor in your browser. 
- - If any mods are added, removed, or updated, you will need to re-run the cache command to regenerate the icon cache. 
- - All cached assets are saved under the `config/shipping_box` directory.
- - Use the /shipping_box editor cache_clear command to clear the icon cache.
-
-### Item Attribute System
-
-#### Selling Price Boost Attribute
-- **Attribute Name**: `selling_price:selling_price_boost`
-- **Default Value**: `0.0`
-- **Maximum Value**: `10.0`
-- **Function Description**: This attribute affects item selling price as a percentage, higher values yield more when selling
-  - For example: `selling_price_boost = 0.5` means a 50% price increase
-  - `selling_price_boost = 2.0` means a 200% price increase
-- **Application Scope**: Applies to all exchangeable items, including:
-  - Item-to-item exchange mode
-  - Virtual currency exchange mode
-- **Configuration Method**: Currently unobtainable in normal game modes
-
-### Input Configuration Types
-| Type               | Description                         | Example                                                                                  |
-|--------------------|-------------------------------------|------------------------------------------------------------------------------------------|
-| **Single Item**    | Single item as input                | `{"item": "minecraft:stone", "count": 1}`                                                |
-| **Multiple Items** | Multiple items combination as input | `[{"item": "minecraft:emerald", "count": 1}, {"item": "minecraft:diamond", "count": 2}]` |
-| **Tag**            | Use item tag as input               | `{"tag": "#minecraft:logs", "count": 1}`                                                 |
-
-### Output Configuration Types
-| Type                  | Description                          | Example                                                                   |
-|-----------------------|--------------------------------------|---------------------------------------------------------------------------|
-| **Single Item**       | Output single item                   | `{"item": "shipping_box:copper_creeper_coin", "count": 1}`                |
-| **Weight Mode**       | Random output based on weight        | `{"type": "weight", "items": [...]}`                                      |
-| **Dynamic Threshold** | Sales volume affects output quantity | `{"type": "dynamic_pricing", "item": "...", "dynamic_properties": {...}}` |
-
-### Component System
-- **Supports input/output data components**
-- **Component Formats**:
-  - **String Format**: `"components": "damage=100"`
-  - **JSON Object Format (Recommended)**: `"components": {...}`
-
-### Standard Component Examples
-| Type               | String Format                                                          | JSON Object Format                                                                           |
-|--------------------|------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| **Potion**         | `"{\"potion_contents\":{\"potion\":\"minecraft:night_vision\"}}"`      | `{"potion_contents": {"potion": "minecraft:night_vision"}}`                                  |
-| **Enchanted Item** | `"{\"enchantments\":{\"levels\":{\"minecraft:unbreaking\":1}}}"`       | `{"enchantments": {"levels": {"minecraft:sharpness": 3, "minecraft:unbreaking": 3}}}`        |
-| **Enchanted Book** | `"{\"stored_enchantments\":{\"levels\":{\"minecraft:sharpness\":5}}}"` | `{"stored_enchantments": {"levels": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3}}}` |
-
-### Interval Format Description
-Used for numerical range matching (such as durability, fish length, etc.):
-
-| Format      | Description             | Example       |
-|-------------|-------------------------|---------------|
-| `[min,max]` | Inclusive boundaries    | `[40.0,50.0]` |
-| `(min,max)` | Exclusive boundaries    | `(40.0,50.0)` |
-| `(min,max]` | Left-open, right-closed | `(40.0,50.0]` |
-| `[min,max)` | Left-closed, right-open | `[40.0,50.0)` |
-
-### Other Mod Component Examples
-[MOD] Quality Food - Crop quality
-- Support input and output
-```json
-{
-  "components": {
-    "quality_food:quality": {
-      "level": 3,
-      "type": "quality_food:diamond"
-    }
-  }
-}
-```
-
-[MOD] Tide - The length of the fish
-  **If Fintastic Supreme is installed, the weight component can be used.**
-- Support input and output
-```json
-{
-  "components": {
-    "tide:fish_length": "[40.0,50.0)",
-    "fintastic_supreme:fish_weight": "[500,1000]"
-  }
-}
-```
-
-[MOD]Kaleidoscope Tavern - Brewing quality
-- Support input and output
-```json
-{
-  "components": {
-    "kaleidoscope_tavern:brew_level": 6
-  }
-}
-```
-
-## IV. Commands
-- `shipping_box force_exchange`: Allows the player to point at a shipping box and immediately trigger its shipping logic, ignoring time restrictions.
-- `shipping_box rules count`: Counts and displays the number of rules by category
-- `shipping_box rules list [page]`: View all exchange rules page by page
-- `shipping_box editor cache_clear`: Clears all cached icons.
-- `shipping_box editor cache_icons`: Builds the icon cache for all items and blocks.
-- `shipping_box editor cache_status`: Shows the current progress of the cache generation.
-
-
-## V. Integrated Mod
-
-## **ViScriptShop**
-
-### 1. Crawler Coin
-- **Right-click**: Exchange for virtual currency based on the currency price displayed in the item tooltip
-- **Sneak + Right-click**: Exchange one full stack
-
-### 2. Secondary Coin Pouch
-- **Right-click**: Convert physical currency or check balance
-- **Sneak + Right-click**: Exchange physical currency from containers
-
-### 3. Exchange Rule Extensions
-
-#### Virtual Currency Exchange Mode
-- **Identifier**: Replace `item` in output with `"coin": true`
-- **Function**: Directly exchange input items for the mod's virtual currency
-- **Amount**: `count` field specifies the amount of virtual currency to exchange
-- **Basic Example**:
-  ```json
-  {
-    "input": {
-      "item": "minecraft:stone",
-      "count": 1
-    },
-    "output": {
-      "coin": true,
-      "count": 10
-    }
-  }
-  ```
-
-#### Dynamic Threshold + Virtual Currency Exchange Mode
-- **Function**: Sales volume affects the amount of virtual currency exchanged
-- **Configuration**: `value` array specifies virtual currency amounts for corresponding price tiers
-- **Example**:
-  ```json
-  {
-    "input": {
-      "item": "minecraft:cobblestone",
-      "count": 1
-    },
-    "output": {
-      "type": "dynamic_pricing",
-      "coin": true,
-      "dynamic_properties": {
-        "threshold": [64, 128, 256, 512],
-        "value": [10, 5, 3, 1],
-        "day": 5
-      }
-    }
-  }
-  ```
-
-## Ecliptic Seasons
-
-### Seasonal Influence System
-- **Function Description**: Determines whether the sold item is in the current season and adjusts the selling price based on seasonal status
-- **Compatibility Note**: This mode is **NOT compatible** with ViScriptShop's virtual currency (VSS) mode
-- **Core Mechanics**:
-  - In-season items: Receive selling price bonus
-  - Off-season items: Receive selling price reduction
-  - Configurable option to allow selling only in specific seasons
-
-### Seasonal Configuration Parameters
-| Parameter             | Type    | Description                                                                                                 |
-|-----------------------|---------|-------------------------------------------------------------------------------------------------------------|
-| `season`              | Array   | Sets the seasonal属性 of the item. Available values: `spring`, `summer`, `autumn`, `winter`, `all`            |
-| `seasonal_only`       | Boolean | `true`: Can only be sold during set seasons; `false`: Available year-round, but price is affected by season |
-| `add_season_bonus`    | Integer | Price bonus percentage when in-season (e.g., 30 means 30% price increase)                                   |
-| `reduce_season_bonus` | Integer | Price reduction percentage when off-season (e.g., 20 means 20% price decrease)                              |
-
-### Configuration Example
-```json
-{
-  "input": {
-    "item": "minecraft:carrot",
-    "count": 1
-  },
-  "output": {
-    "type": "ecliptic_seasons",
-    "item": "minecraft:emerald",
-    "ecliptic_seasons": {
-      "season": ["winter"],
-      "seasonal_only": false,
-      "add_season_bonus": 30,
-      "reduce_season_bonus": 20
-    }
-  }
-}
-```
-
-### Seasonal Configuration Notes
-- **season field**: Must use array format, multiple seasons can be set simultaneously
-  - Example: `["spring", "autumn"]` represents spring and autumn
-- **seasonal_only function**:
-  - `true`: Items can only be sold during set seasons, cannot be exchanged in other seasons
-  - `false`: Items can be sold year-round, but prices fluctuate based on season
-- **Price Calculation Formula**:
-  - In-season: Final price = Base price × (1 + add_season_bonus/100)
-  - Off-season: Final price = Base price × (1 - reduce_season_bonus/100)
+</div>
 
 ---
 
-# **中文**
+<!-- omit in toc -->
+## 📖 目录 · Table of Contents
 
-### 添加一个用于物品兑换物品的售货箱
-
-## 一、核心机制
-- **兑换逻辑**
-  - 通过数据包定义"兑换规则"
-  - 将物品放入售货箱后，在第二天6:00会按照"兑换规则"内设置的规则进行兑换
-
-- **输出动态阈值模式**
-  - **类型**：`dynamic_pricing`（动态定价）
-  - **阈值数组** `threshold`：定义价格变更的销量临界点（如 [64, 128, 256, 512]）
-  - **价值数组** `value`：对应每个阈值后的输出数量（如 [4, 3, 2, 1]）
-  - **重置时间** `day`：阈值重置所需天数
-    - `day = -1`：销售计数永不重置，会一直累加
-    - `day = 0`：每天自动重置销售计数为0
-    - `day = N`（N > 0）：每N天重置一次销售计数
-  - **对应关系**：阈值数组和价值数组必须一一对应
-  - **价格计算规则**：
-    - 销量 < 最小阈值 → 使用第一档价格
-    - 销量 ≥ 最大阈值 → 使用最后一档价格
-    - 销量介于阈值之间 → 使用对应档位价格
-  - **统计范围**：所有玩家共享销售统计
-  - 可在JSON中为每个物品配置是否启用
-  - **配置示例**：
-    ```json
-    {
-      "input": {
-        "item": "minecraft:stone",
-        "count": 1
-      },
-      "output": {
-        "type": "dynamic_pricing",
-        "item": "minecraft:diamond",
-        "dynamic_properties": {
-          "threshold": [64, 128, 256, 512],
-          "value": [4, 3, 2, 1],
-          "day": 3
-        }
-      }
-    }
-    ```
-
-- **输出权重模式**
-  - **类型**：`weight`（权重模式）
-  - 在这个模式下，物品输出会根据权重来随机获得一个物品
-  - **配置示例**：
-    ```json
-    {
-      "input": {
-        "item": "minecraft:nether_star",
-        "count": 1
-      },
-      "output": {
-        "type": "weight",
-        "items": [
-          {"item": "minecraft:diamond", "count": 1, "weight": 1},
-          {"item": "minecraft:emerald", "count": 2, "weight": 2},
-          {"item": "minecraft:iron_ingot", "count": 5, "weight": 3},
-          {"item": "minecraft:redstone", "count": 5, "weight": 3}
-        ]
-      }
-    }
-    ```
-
-## 二、用户界面与交互
-- **JEI集成**
-  - 物品自动有兑换信息，支持jei列表显示物品的兑换信息
-- **配置错误提醒**
-  - "兑换规则"配置错误时会在游戏内提醒
-
-## 三、配置方式
-- **规则文件路径**
-  - 需要将“兑换规则”放入到`data/shipping_box/exchange_rules/`文件夹内
-  - **文件格式**
-  - 文件必须是json，可以有多个json
-  - **规则结构**：使用`"rules"`数组包含多条兑换规则
-    ```json
-      {
-        "rules": [
-          {
-            "input": {
-              "item": "minecraft:stone",
-              "count": 1
-            },
-            "output": {
-              "item": "minecraft:diamond",
-              "count": 1
-            }
-          }
-        ]
-      }
-      ```
-- **可视化编写系统**
-  - 使用 /shipping_box editor cache_icons 命令等待图标缓存完成； 
-  - 缓存完成后使用 /shipping_box web 命令打开浏览器使用可视化编写； 
-  - 当模组改动(包括删除/加入和更新mod)时，需要重新输入命令等待图标缓存； 
-  - 缓存的内容在 config/shipping_box 文件夹内；
-  - 输入 /shipping_box editor cache_clear 命令可以清除图标缓存
-
-### 物品属性系统
-
-#### 售价加成属性
-- **属性名称**：`selling_price:selling_price_boost`
-- **默认值**：`0.0`
-- **最大值**：`10.0`
-- **功能说明**：该属性以百分比形式影响物品售价，数值越高，出售所得越多
-  - 例如：`selling_price_boost = 0.5` 表示售价提升 50%
-  - `selling_price_boost = 2.0` 表示售价提升 200%
-- **应用范围**：适用于所有可兑换物品，包括：
-  - 物品兑换物品模式
-  - 虚拟货币兑换模式
-- **配置方式**：暂时无法在常规模式下获得
-
-### 输入配置类型
-| 类型      | 说明         | 示例                                                                                       |
-|---------|------------|------------------------------------------------------------------------------------------|
-| **单物品** | 单个物品作为输入   | `{"item": "minecraft:stone", "count": 1}`                                                |
-| **多物品** | 多个物品组合作为输入 | `[{"item": "minecraft:emerald", "count": 1}, {"item": "minecraft:diamond", "count": 2}]` |
-| **标签**  | 使用物品标签作为输入 | `{"tag": "#minecraft:logs", "count": 1}`                                                 |
-
-### 输出配置类型
-| 类型       | 说明       | 示例                                                                        |
-|----------|----------|---------------------------------------------------------------------------|
-| **单物品**  | 输出单个物品   | `{"item": "shipping_box:copper_creeper_coin", "count": 1}`                |
-| **权重模式** | 按权重随机输出  | `{"type": "weight", "items": [...]}`                                      |
-| **动态阈值** | 销量影响输出数量 | `{"type": "dynamic_pricing", "item": "...", "dynamic_properties": {...}}` |
-
-### 组件系统
-- **支持输入/输出数据组件**
-- **组件格式**：
-  - **字符串格式**：`"components": "damage=100"`
-  - **JSON对象格式（推荐）**：`"components": {...}`
-
-### 标准组件示例
-| 类型       | 字符串格式                                                                  | JSON对象格式                                                                                     |
-|----------|------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| **药水**   | `"{\"potion_contents\":{\"potion\":\"minecraft:night_vision\"}}"`      | `{"potion_contents": {"potion": "minecraft:night_vision"}}`                                  |
-| **附魔物品** | `"{\"enchantments\":{\"levels\":{\"minecraft:unbreaking\":1}}}"`       | `{"enchantments": {"levels": {"minecraft:sharpness": 3, "minecraft:unbreaking": 3}}}`        |
-| **附魔书**  | `"{\"stored_enchantments\":{\"levels\":{\"minecraft:sharpness\":5}}}"` | `{"stored_enchantments": {"levels": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3}}}` |
-
-### 区间格式说明
-用于数值范围匹配（如耐久度、鱼长度等）：
-
-| 格式            | 说明   | 示例          |
-|:--------------|:-----|:------------|
-| `[40.0,50.0]` | 包含边界 | [40.0,50.0] |
-| `(40.0,50.0)` | 排除边界 | (40.0,50.0) |
-| `(40.0,50.0]` | 左开右闭 | (40.0,50.0] |
-| `[40.0,50.0)` | 左闭右开 | [40.0,50.0) |
-
-### 其他模组组件示例
-[MOD]Quality Food - 作物的品质
-- 支持输入输出
-```json
-{
-  "components": {
-    "quality_food:quality": {
-      "level": 3,
-      "type": "quality_food:diamond"
-    }
-  }
-}
-```
-
-[MOD]潮汐 - 鱼的长度
-  **如果安装Fintastic Supreme，则可以使用重量组件**
-- 支持输入输出
-```json
-{
-  "components": {
-    "tide:fish_length": "[40.0,50.0)",
-    "fintastic_supreme:fish_weight": "[500,1000]"
-  }
-}
-```
-
-[MOD]森罗物语：酒馆 - 酿酒品质
-- 支持输入输出
-```json
-{
-  "components": {
-    "kaleidoscope_tavern:brew_level": 6
-  }
-}
-```
-
-## 四、命令
-- shipping_box force_exchange：允许玩家指向售货箱并立即触发其出货逻辑，忽略时间限制。
-- shipping_box rules count：统计并显示规则数量分类
-- shipping_box rules list [page]：分页查看所有兑换规则
-- shipping_box editor cache_clear：用于清除图标缓存
-- shipping_box editor cache_icons：用于图标缓存
-- shipping_box editor cache_status：用于查看图标缓存进度
-
-## 五、联动模组
-
-## **ViScriptShop**
-
-### 1. 爬爬币
-- **右键**：根据物品提示显示的货币价格兑换虚拟货币
-- **潜行右键**：换取一组
-
-### 2. 次元钱袋
-- **右键**：转换实体货币或查询余额
-- **潜行右键**：兑换容器内的实体货币
-
-### 3. 兑换规则扩展
-
-#### 虚拟货币兑换模式
-- **标识**：在output中将`item`替换为`"coin": true`
-- **功能**：直接将输入物品兑换为模组的虚拟货币
-- **金额**：`count`字段指定兑换的虚拟货币数量
-- **基础示例**：
-  ```json
-  {
-    "input": {
-      "item": "minecraft:stone",
-      "count": 1
-    },
-    "output": {
-      "coin": true,
-      "count": 10
-    }
-  }
-  ```
-
-#### 动态阈值 + 虚拟货币兑换模式
-- **功能**：销量影响虚拟货币的兑换数量
-- **配置**：`value`数组指定对应价格区间的虚拟货币数量
-- **示例**：
-  ```json
-  {
-    "input": {
-      "item": "minecraft:cobblestone",
-      "count": 1
-    },
-    "output": {
-      "type": "dynamic_pricing",
-      "coin": true,
-      "dynamic_properties": {
-        "threshold": [64, 128, 256, 512],
-        "value": [10, 5, 3, 1],
-        "day": 5
-      }
-    }
-  }
-  ```
-
-## 节气联动
-
-### 季节影响系统
-- **功能说明**：判断售卖的物品是否在当前季节，根据季节状态调整售价
-- **兼容性说明**：此模式**不兼容**ViScriptShop的虚拟货币（VSS）模式
-- **核心机制**：
-  - 应季物品：获得售价加成
-  - 非应季物品：受到售价减益
-  - 可配置是否仅允许在特定季节出售
-
-### 季节配置参数
-| 参数                    | 类型  | 说明                                                                        |
-|-----------------------|-----|---------------------------------------------------------------------------|
-| `season`              | 数组  | 设定物品的季节属性，可选值：`spring`(春)、`summer`(夏)、`autumn`(秋)、`winter`(冬)、`all`(所有季节) |
-| `seasonal_only`       | 布尔值 | `true`：仅限设定的季节才能出售；`false`：全年可售，但价格受季节影响                                  |
-| `add_season_bonus`    | 整数  | 应季时的价格加成百分比（如30表示售价提升30%）                                                 |
-| `reduce_season_bonus` | 整数  | 非应季时的价格减益百分比（如20表示售价降低20%）                                                |
-
-### 配置示例
-```json
-{
-  "input": {
-    "item": "minecraft:carrot",
-    "count": 1
-  },
-  "output": {
-    "type": "ecliptic_seasons",
-    "item": "minecraft:emerald",
-    "ecliptic_seasons": {
-      "season": ["winter"],
-      "seasonal_only": false,
-      "add_season_bonus": 30,
-      "reduce_season_bonus": 20
-    }
-  }
-}
-```
-
-### 季节配置说明
-- **season字段**：必须使用数组格式，可同时设置多个季节
-  - 例如：`["spring", "autumn"]` 表示春季和秋季
-- **seasonal_only功能**：
-  - `true`：物品只在设定的季节可以出售，其他季节无法兑换
-  - `false`：物品全年可出售，但价格会根据季节浮动
-- **价格计算公式**：
-  - 应季时：最终售价 = 基础价格 × (1 + add_season_bonus/100)
-  - 非应季时：最终售价 = 基础价格 × (1 - reduce_season_bonus/100)
+- [这是什么？· What is this?](#-这是什么--what-is-this)
+- [快速上手 · Getting Started](#-快速上手--getting-started)
+  - [玩家篇 · For Players](#-玩家篇--for-players)
+  - [服主篇 · For Server Owners](#-服主篇--for-server-owners)
+- [游戏内容 · Gameplay](#-游戏内容--gameplay)
+  - [售货箱 · Shipping Box](#-售货箱--shipping-box)
+  - [自动售货箱 · Auto Shipping Box](#-自动售货箱--auto-shipping-box)
+  - [爬爬币 · Creeper Coins](#-爬爬币--creeper-coins)
+  - [次元钱袋 · Dimensional Pouch](#-次元钱袋--dimensional-pouch)
+  - [售价加成 · Selling Price Boost](#-售价加成--selling-price-boost)
+- [兑换模式 · Exchange Modes](#-兑换模式--exchange-modes)
+- [命令 · Commands](#-命令--commands)
+- [联动模组 · Mod Integrations](#-联动模组--mod-integrations)
+- [配置 · Configuration](#-配置--configuration)
+- [License](#license)
 
 ---
 
-## License | 许可证
+# 🇬🇧 English
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🤔 What is this?
 
-本项目采用MIT许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。
+**Shipping Box** adds an automated trading system to Minecraft. Place items in a box, go do something else, and when the sun rises at 6:00 AM — your items have been magically exchanged for rewards.
+
+- 🎯 **No redstone, no machines** — just place and wait
+- 💰 **Built-in virtual currency** — earn coins and spend them
+- 📈 **Dynamic economy** — prices shift with supply and demand
+- 🎲 **Weighted loot tables** — random rewards with adjustable odds
+- 🌱 **Seasonal pricing** — crops worth more in-season (with Ecliptic Seasons)
+- 🖥️ **Visual rule editor** — edit exchange rules right in your browser
+- 🔧 **Data pack driven** — fully customizable exchange rates
+
+## 🏃 Quick Start
+
+### 🎮 For Players
+
+1. **Get a Shipping Box** — craft it or ask your server admin
+2. **Open it** — right-click to access the 54-slot inventory
+3. **Put items in** — deposit items that have exchange rules configured
+4. **Wait** — each day at 6:00 AM, your items are exchanged
+5. **Collect** — come back to find new items waiting for you!
+
+> 💡 Hover over any item in your inventory — if it's exchangeable, the tooltip will show you what you'll get!
+
+### 🛠️ For Server Owners
+
+1. Drop the mod into `mods/`
+2. Configure exchange rules in `data/shipping_box/exchange_rules/` (data pack)
+3. Or use the **visual editor**:
+   ```
+   /shipping_box editor cache_icons
+   /shipping_box web
+   ```
+4. Tweak settings in `config/shipping_box-common.toml`
+
+## 🎮 Gameplay
+
+### 📬 Shipping Box
+
+The basic 54-slot shipping box. Place it anywhere — on a wall or on the ground. All players can use it, but each player sees only their own deposited items. Hopper input is blocked to prevent accidental insertion.
+
+### 🔒 Auto Shipping Box
+
+A player-bound variant. The first player to open it becomes the owner — no one else can access it. The binding survives being broken and placed again. Perfect for player shops or personal storage.
+
+### 🪙 Creeper Coins
+
+Physical coins that convert into your **built-in virtual currency balance**. Right-click to exchange one coin, sneak + right-click to exchange a stack.
+
+| Coin | Value |
+|------|-------|
+| Copper Creeper Coin | 1◎ |
+| Iron Creeper Coin | 8◎ |
+| Gold Creeper Coin | 16◎ |
+| Diamond Creeper Coin | 64◎ |
+| Emerald Creeper Coin | 256◎ |
+| Netherite Creeper Coin | 512◎ |
+| Chaos Symbol Creeper Coin | 4096◎ |
+
+### 👛 Dimensional Pouch
+
+Converts physical coins in your inventory to virtual balance with a single click.
+- **Right-click** — convert coins in your inventory
+- **Sneak + Right-click** — convert coins in a container you're pointing at
+
+### ⚡ Selling Price Boost
+
+A player attribute (`selling_price:selling_price_boost`) that increases all exchange output by a percentage. Higher boost = more items from every exchange.
+
+## 📊 Exchange Modes
+
+| Mode | Description | Example |
+|------|-------------|---------|
+| **Simple** | Fixed input → fixed output | 1 Stone → 1 Diamond |
+| **Coin** | Input items → virtual currency | 1 Dirt → 10◎ |
+| **Dynamic Pricing** | Output decreases as more items are sold globally | 1 Cobblestone → decreasing◎ |
+| **Weight** | Random reward from a weighted pool | Nether Star → random treasure |
+| **Seasonal** | Price changes with the seasons | Carrots sell for +30% in winter |
+
+> 🔍 **Precision Matching** — rules match the most specific item first. A rule with component requirements beats a plain item rule, and a plain item rule beats a tag match.
+
+## 📋 Commands
+
+> All commands require OP level 2+
+
+| Command | Description |
+|---------|-------------|
+| `/shipping_box force_exchange` | Force-exchange the box you're looking at right now |
+| `/shipping_box rules count` | Show how many rules are loaded |
+| `/shipping_box rules list [page]` | Browse all rules (5 per page) |
+| `/shipping_box web` | Open the visual rule editor in your browser |
+| `/shipping_box editor cache_icons` | Build item icon cache for the editor |
+| `/shipping_box editor cache_icons force` | Force rebuild icon cache |
+| `/shipping_box editor cache_status` | Check icon cache progress |
+| `/shipping_box editor cache_clear` | Clear icon cache |
+
+## 🔗 Mod Integrations
+
+### 🌱 Ecliptic Seasons *(optional)*
+
+Crops with seasonal tags earn a bonus when sold in their preferred season — and take a penalty when out of season. Configure per-rule with the `ecliptic_seasons` output type.
+
+### 📜 KubeJS *(optional)*
+
+When KubeJS is installed, exchange rules saved via the web editor go to `kubejs/data/shipping_box/exchange_rules/` and trigger `kubejs reload server_scripts` automatically.
+
+## ⚙️ Configuration
+
+Edit `config/shipping_box-common.toml`:
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `exchangeTime` | int (0–23999) | `0` | Exchange trigger time in ticks (0 = 6:00 AM) |
+| `enableVirtualCurrency` | bool | `true` | Enable the built-in virtual currency system |
+| `enableExchangeEffects` | bool | `false` | Firework particles on successful exchange |
+| `enableTransactionLogging` | bool | `false` | Log all transactions to `config/shipping_box/logs/` |
+
+---
+
+# 🇨🇳 中文
+
+## 🤔 这是什么？
+
+**售货箱**为 Minecraft 添加了一套自动化交易系统。把物品放入箱子，该干嘛干嘛，次日清晨 **6:00**——你的物品已经变魔法似的换成了奖励。
+
+- 🎯 **无需红石，无需机器**——放下箱子等着就行
+- 💰 **内置虚拟货币**——赚币、花币一气呵成
+- 📈 **动态经济**——供需影响价格，全服联动
+- 🎲 **权重随机**——像抽奖一样的随机奖励
+- 🌱 **季节定价**——应季作物更值钱（需节气模组）
+- 🖥️ **可视化编辑**——在浏览器里写兑换规则
+- 🔧 **数据包驱动**——兑换表完全可自定义
+
+## 🏃 快速上手
+
+### 🎮 玩家篇
+
+1. **获取售货箱**——合成或找服主领取
+2. **打开**——右键打开 54 格的箱子界面
+3. **放东西**——放入有兑换规则的物品
+4. **等**——每天 6:00 自动兑换
+5. **拿**——回来打开箱子，奖励已经在里面了！
+
+> 💡 把鼠标悬停在物品上——如果有兑换规则，提示框会告诉你能换到什么！
+
+### 🛠️ 服主篇
+
+1. 把模组丢进 `mods/`
+2. 在 `data/shipping_box/exchange_rules/` 里配置规则（数据包）
+3. 或者用**可视化编辑器**：
+   ```
+   /shipping_box editor cache_icons
+   /shipping_box web
+   ```
+4. 在 `config/shipping_box-common.toml` 调整设置
+
+## 🎮 游戏内容
+
+### 📬 售货箱
+
+基础 54 格售货箱。放墙上、放地上都行。所有人都能用，但**每个人只能看到自己存入的物品**。禁止漏斗输入，防止误操作。
+
+### 🔒 自动售货箱
+
+绑定玩家的高级售货箱。谁先打开就归谁——其他人打不开。被挖掉再放置也**不掉绑定**。适合做玩家商店或个人仓库。
+
+### 🪙 爬爬币
+
+实体硬币，右键兑换为**内置虚拟货币余额**。右键换一枚，潜行右键换一组。
+
+| 硬币 | 价值 |
+|------|------|
+| 铜爬爬币 | 1◎ |
+| 铁爬爬币 | 8◎ |
+| 金爬爬币 | 16◎ |
+| 钻石爬爬币 | 64◎ |
+| 绿宝石爬爬币 | 256◎ |
+| 下界合金爬爬币 | 512◎ |
+| 混沌立方爬爬币 | 4096◎ |
+
+### 👛 次元钱袋
+
+一键把背包里的硬币转为虚拟余额。
+- **右键**——转换背包内硬币
+- **潜行右键**——转换指向容器内的硬币
+
+### ⚡ 出售价格加成
+
+一个玩家属性（`selling_price:selling_price_boost`），按百分比增加所有兑换产出。加成越高，每次兑换获得的物品越多。
+
+## 📊 兑换模式
+
+| 模式 | 效果 | 例子 |
+|------|------|------|
+| **基础兑换** | 固定换固定 | 1 石头 → 1 钻石 |
+| **虚拟货币** | 物品 → 虚拟币 | 1 泥土 → 10◎ |
+| **动态定价** | 全服卖越多，产出越少 | 1 圆石 → 递减◎ |
+| **权重随机** | 从奖池里随机抽 | 下界之星 → 随机宝藏 |
+| **季节定价** | 应季涨，过季跌 | 胡萝卜冬天 +30% |
+
+> 🔍 **精准匹配**——最具体的规则优先匹配。带组件条件的 > 精确物品 > 标签匹配。
+
+## 📋 命令
+
+> 需要 OP 2 级以上
+
+| 命令 | 效果 |
+|------|------|
+| `/shipping_box force_exchange` | 立即强制兑换你看着的售货箱 |
+| `/shipping_box rules count` | 查看加载了多少条规则 |
+| `/shipping_box rules list [页数]` | 分页查看规则（每页 5 条） |
+| `/shipping_box web` | 在浏览器中打开可视化编辑器 |
+| `/shipping_box editor cache_icons` | 构建图标缓存 |
+| `/shipping_box editor cache_icons force` | 强制重建图标缓存 |
+| `/shipping_box editor cache_status` | 查看图标缓存进度 |
+| `/shipping_box editor cache_clear` | 清除图标缓存 |
+
+## 🔗 联动模组
+
+### 🌱 节气联动 *(可选)*
+
+带季节标签的作物在当季出售有加成，过季有减益。通过 `ecliptic_seasons` 输出类型配置。
+
+### 📜 KubeJS *(可选)*
+
+安装 KubeJS 后，Web 编辑器保存的规则会写入 `kubejs/data/shipping_box/exchange_rules/` 并自动执行 `/kubejs reload server_scripts`。
+
+## ⚙️ 配置
+
+编辑 `config/shipping_box-common.toml`：
+
+| 设置 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `exchangeTime` | int (0–23999) | `0` | 兑换触发时间 tick（0=6:00） |
+| `enableVirtualCurrency` | bool | `true` | 启用内置虚拟货币系统 |
+| `enableExchangeEffects` | bool | `false` | 兑换成功时播放烟花粒子 |
+| `enableTransactionLogging` | bool | `false` | 交易日志记录到 `config/shipping_box/logs/` |
+
+---
+
+<br>
+<div align="center">
+
+**[CurseForge](https://www.curseforge.com/minecraft/mc-mods/shipping-box)** · **[GitHub](https://github.com/WitherRedstone/Shipping-Box)**
+
+Made with 💚 by [ChinaEX123](https://github.com/WitherRedstone)
+
+<br>
+
+## License
+
+**MIT** — see [LICENSE](LICENSE)
+
+</div>
