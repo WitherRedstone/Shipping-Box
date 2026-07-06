@@ -283,7 +283,7 @@ Edit `config/shipping_box-common.toml`:
 
 **[CurseForge](https://www.curseforge.com/minecraft/mc-mods/shipping-box)** · **[GitHub](https://github.com/WitherRedstone/Shipping-Box)**
 
-Made with 💚 by [ChinaEX123](https://github.com/WitherRedstone)
+Made with 💚 by [Wither_Redstone](https://github.com/WitherRedstone)
 
 <br>
 
