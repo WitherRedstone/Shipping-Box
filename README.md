@@ -9,6 +9,7 @@
 
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen?style=flat-square)](https://minecraft.net)
 [![NeoForge](https://img.shields.io/badge/NeoForge-26.2-blue?style=flat-square)](https://neoforged.net)
+[![Wiki](https://img.shields.io/badge/Wiki-📖-orange?style=flat-square)](https://github.com/WitherRedstone/Shipping-Box/wiki)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 </div>
