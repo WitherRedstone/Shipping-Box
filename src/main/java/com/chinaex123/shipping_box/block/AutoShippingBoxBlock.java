@@ -8,7 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -110,7 +110,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      */
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (type == ModBlockEntities.AUTOMATED_SHIPPING_BOX.get() && !level.isClientSide) {
+        if (type == ModBlockEntities.AUTOMATED_SHIPPING_BOX.get() && !level.isClientSide()) {
             return (level1, pos, state1, blockEntity) -> ((AutoShippingBoxBlockEntity) blockEntity).tick();
         }
         return null;
@@ -134,7 +134,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
         super.setPlacedBy(level, pos, state, placer, stack);
 
         // 只在服务端执行绑定逻辑
-        if (!level.isClientSide && placer instanceof Player player) {
+        if (!level.isClientSide() && placer instanceof Player player) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
                 // 检查物品是否有绑定信息（从CUSTOM_DATA组件中读取）
@@ -144,18 +144,17 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
 
                 if (customData != null) {
                     CompoundTag tag = customData.copyTag();
-                    // 读取绑定的玩家UUID
-                    if (tag.contains("BoundPlayerUUID")) {
+                    // 读取绑定的玩家UUID (26.2: getStringOr() → getString().orElse())
+                    var boundUuidStr = tag.getString("BoundPlayerUUID");
+                    if (boundUuidStr.isPresent()) {
                         try {
-                            boundPlayerUUID = UUID.fromString(tag.getString("BoundPlayerUUID"));
+                            boundPlayerUUID = UUID.fromString(boundUuidStr.get());
                         } catch (IllegalArgumentException e) {
                             // UUID格式错误，忽略
                         }
                     }
                     // 读取绑定的玩家名字
-                    if (tag.contains("BoundPlayerName")) {
-                        boundPlayerName = tag.getString("BoundPlayerName");
-                    }
+                    boundPlayerName = tag.getString("BoundPlayerName").orElse("Unknown");
                 }
 
                 if (boundPlayerUUID != null) {
@@ -164,19 +163,17 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     autoBox.bindPlayer(boundPlayerUUID);
 
                     // 显示绑定信息，使用读取到的玩家名字
-                    player.displayClientMessage(
+                    player.sendSystemMessage(
                             Component.translatable("message.shipping_box.auto_box_already_bound",
-                                    Component.literal(boundPlayerName).withStyle(style -> style.withColor(0xFFAA00))),
-                            true
+                                    Component.literal(boundPlayerName).withStyle(style -> style.withColor(0xFFAA00)))
                     );
                 } else {
                     // ========== 情况2：没有绑定信息（全新放置） ==========
                     // 将当前放置玩家绑定到该自动售货箱
                     autoBox.bindPlayer(player.getUUID());
-                    player.displayClientMessage(
+                    player.sendSystemMessage(
                             Component.translatable("message.shipping_box.auto_box_bound",
-                                    player.getName().copy().withStyle(style -> style.withColor(0xFFAA00))),
-                            true
+                                    player.getName().copy().withStyle(style -> style.withColor(0xFFAA00)))
                     );
                 }
             }
@@ -198,7 +195,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @return 交互结果枚举值，CONSUME表示消耗此次交互
      */
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
 
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
@@ -207,16 +204,16 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     // ========== 权限验证通过 ==========
                     // 播放开启声音
                     level.playSound(null, pos,
-                            SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
+                            SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.open")),
                             SoundSource.BLOCKS,
-                            0.5F, level.random.nextFloat() * 0.1F + 0.9F);
+                            0.5F, level.getRandom().nextFloat() * 0.1F + 0.9F);
 
                     // 打开GUI菜单，传递方块位置坐标
                     player.openMenu(autoBox, buf -> buf.writeBlockPos(pos));
                 } else {
                     // ========== 权限验证失败 ==========
                     // 发送拒绝访问消息
-                    player.displayClientMessage(Component.translatable("message.shipping_box.access_denied"), true);
+                    player.sendSystemMessage(Component.translatable("message.shipping_box.access_denied"));
                 }
             }
         }
@@ -236,7 +233,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @param newState 破坏后的新方块状态
      * @param isMoving 是否由活塞等机械装置移动
      */
-    @Override
+    // 26.2:Block 不再有 onRemove 方法,移除 @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
@@ -279,7 +276,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     // ========== 第三步：掉落内部存储的所有物品 ==========
                     // 遍历所有槽位，将物品全部掉落
                     for (int i = 0; i < autoBox.getContainerSize(); i++) {
-                        ItemStack stack = autoBox.getItemHandler().getStackInSlot(i);
+                        ItemStack stack = autoBox.getItem(i);
                         if (!stack.isEmpty()) {
                             Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
                         }
@@ -289,8 +286,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                     return;
                 }
             }
-            // 如果是其他情况，调用父类方法处理
-            super.onRemove(state, level, pos, newState, isMoving);
+            // 26.2:super.onRemove 已不存在,不再调用
         }
     }
 }

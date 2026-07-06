@@ -1,310 +1,431 @@
 package com.chinaex123.shipping_box.util;
 
 import com.chinaex123.shipping_box.web.EditorIconCacheManager;
-import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.item.ItemStack;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
-import org.lwjgl.opengl.GL11;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.Polygon;
+import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 /**
- * 物品图标PNG渲染器
+ * 物品图标 PNG 渲染器。
  *
- * <p>功能说明：</p>
- * <ul>
- *   <li>将 Minecraft 的 ItemStack 渲染为 PNG 图片字节数组</li>
- *   <li>使用离屏渲染（Off-screen Rendering）避免影响游戏主画面</li>
- *   <li>支持自定义输出尺寸，采用最近邻放大保持像素锐利</li>
- *   <li>渲染尺寸固定为16x16（原生物品GUI尺寸），然后放大到目标尺寸</li>
- * </ul>
- *
- * <p>技术实现：</p>
- * <ul>
- *   <li>创建独立的 RenderTarget 进行离屏渲染</li>
- *   <li>设置正交投影矩阵，在16x16的虚拟画布上绘制物品</li>
- *   <li>使用 GuiGraphics 的 renderFakeItem 方法渲染物品</li>
- *   <li>从 RenderTarget 读取像素数据并编码为PNG</li>
- *   <li>采用最近邻插值算法放大图像，保持像素风格</li>
- * </ul>
- *
- * <p>使用场景：</p>
- * <ul>
- *   <li>为Web编辑器生成物品/方块图标缓存</li>
- *   <li>需要在游戏外展示游戏内物品图标</li>
- *   <li>批量生成图标时的渲染引擎</li>
- * </ul>
- *
- * @see EditorIconCacheManager 使用此渲染器生成图标缓存
- * @see GuiGraphics #renderFakeItem 底层渲染方法
+ * <p>26.2 的 item 模型入口变成 assets/<namespace>/items/*.json。这里不再从 atlas
+ * 坐标反裁剪单张材质，因为 atlas 坐标和源 PNG 坐标不是同一个坐标系。</p>
  */
 public class ItemIconPngRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger(ItemIconPngRenderer.class);
 
-    public static final int DEFAULT_SIZE = 32; // 默认输出尺寸
-    public static final int RENDER_SIZE = 16; // 内部渲染尺寸
+    public static final int DEFAULT_SIZE = 32;
 
-    /**
-     * 离屏渲染目标（RenderTarget）
-     * 用于在独立缓冲区中渲染，不影响主画面
-     * 使用静态变量实现复用，避免频繁创建销毁
-     */
-    private static RenderTarget renderTarget;
+    private static final String[] PREFERRED_TEXTURE_KEYS = {
+            "layer0", "all", "particle", "side", "top", "front", "end", "texture"
+    };
 
-    /**
-     * 当前渲染目标的尺寸
-     * 用于判断是否需要重新创建 RenderTarget
-     */
-    private static int currentSize = 0;
-
-    /**
-     * 将给定的物品栈渲染为PNG图片
-     *
-     * <p>这是对外的主要接口，处理了异常情况并自动降级到占位图</p>
-     *
-     * @param stack 要渲染的物品栈（不能为空）
-     * @param size 输出图片的尺寸（像素），建议使用 DEFAULT_SIZE
-     * @return PNG图片的字节数组，如果渲染失败返回占位图
-     */
+    /** 把物品对应的模型主材质导出为 PNG。 */
     public static byte[] renderStackToPng(ItemStack stack, int size) {
-        // 参数验证
+        return renderStackToPng(stack, size, false);
+    }
+
+    /** 把物品或方块栈导出为 PNG。方块缓存使用等距立方体合成，避免退化成平面材质。 */
+    public static byte[] renderStackToPng(ItemStack stack, int size, boolean renderAsBlock) {
         if (stack == null || stack.isEmpty()) {
             return null;
         }
-
         Minecraft mc = Minecraft.getInstance();
         if (mc == null) {
             return null;
         }
 
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (itemId == null) {
+            return null;
+        }
+
         try {
-            // 执行实际渲染
-            return renderInternal(stack, size, mc);
+            if (renderAsBlock) {
+                byte[] blockIcon = renderBlockIcon(mc, itemId, size);
+                if (blockIcon != null && blockIcon.length > 0) {
+                    return blockIcon;
+                }
+            }
+            Identifier textureId = resolveItemTexture(mc, itemId);
+            if (textureId == null) {
+                return EditorIconCacheManager.createPlaceholderPng(size, itemId.hashCode());
+            }
+            return textureToPng(mc, textureId, size, itemId.hashCode());
         } catch (Exception e) {
-            // 渲染失败，使用占位图作为降级方案
-            LOGGER.warn("[IconRenderer] Failed to render icon for {}", stack.getHoverName().getString(), e);
-            return EditorIconCacheManager.createPlaceholderPng(size, stack.hashCode());
+            LOGGER.warn("[IconRenderer] Failed to export icon for {}", itemId, e);
+            return EditorIconCacheManager.createPlaceholderPng(size, itemId.hashCode());
         }
     }
 
-    /**
-     * 释放当前缓存的 RenderTarget
-     *
-     * <p>在游戏关闭或资源重载时调用，释放GPU内存</p>
-     * 调用时机：
-     * <ul>
-     *   <li>游戏关闭时</li>
-     *   <li>切换资源包后</li>
-     *   <li>渲染目标尺寸变化时</li>
-     * </ul>
-     */
-    public static void disposeRenderTarget() {
-        if (renderTarget != null) {
-            renderTarget.destroyBuffers();
-            renderTarget = null;
-            currentSize = 0;
+    private static byte[] renderBlockIcon(Minecraft mc, Identifier itemId, int size) {
+        Identifier modelId = resolveItemModelId(mc, itemId);
+        if (modelId == null) {
+            modelId = Identifier.fromNamespaceAndPath(itemId.getNamespace(), "block/" + itemId.getPath());
         }
-    }
-
-    /**
-     * 内部渲染实现
-     *
-     * <p>渲染流程：</p>
-     * <ol>
-     *   <li>检查是否在渲染线程中执行</li>
-     *   <li>创建/复用 16x16 的 RenderTarget</li>
-     *   <li>清空为透明背景</li>
-     *   <li>设置16x16的正交投影矩阵</li>
-     *   <li>使用 GuiGraphics 渲染物品</li>
-     *   <li>从 RenderTarget 读取像素数据</li>
-     *   <li>放大到目标尺寸（如需要）</li>
-     *   <li>编码为PNG格式</li>
-     * </ol>
-     *
-     * @param stack 要渲染的物品栈
-     * @param targetSize 目标输出尺寸
-     * @param mc Minecraft客户端实例
-     * @return PNG字节数组，失败返回null
-     */
-    private static byte[] renderInternal(ItemStack stack, int targetSize, Minecraft mc) {
-        // 确保在渲染线程中执行
-        if (!RenderSystem.isOnRenderThread()) {
-            return EditorIconCacheManager.createPlaceholderPng(targetSize, stack.hashCode());
+        if (!isCubeLikeModel(mc, modelId, 0)) {
+            return null;
         }
 
-        // 准备渲染目标
-        ensureRenderTarget(RENDER_SIZE, mc);
+        Map<String, String> textures = new HashMap<>();
+        collectModelTextures(mc, modelId, textures, 0);
+        if (textures.isEmpty()) {
+            return null;
+        }
 
-        // 保存主渲染目标引用
-        RenderTarget mainTarget = mc.getMainRenderTarget();
-        NativeImage raw16 = null;
-        NativeImage finalImage = null;
-
-        // 备份和保存渲染状态
-        RenderSystem.backupProjectionMatrix();
-        Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushMatrix();
+        BufferedImage top = loadTextureImage(mc, pickTexture(textures, "top", "all", "end", "side", "particle"));
+        BufferedImage side = loadTextureImage(mc, pickTexture(textures, "side", "all", "end", "front", "particle", "top"));
+        BufferedImage end = loadTextureImage(mc, pickTexture(textures, "end", "side", "all", "front", "particle", "top"));
+        if (top == null || side == null || end == null) {
+            return null;
+        }
 
         try {
-            // ===== 绑定离屏渲染目标 =====
-            renderTarget.bindWrite(true);
-
-            // ===== 清屏为透明背景 =====
-            RenderSystem.clearColor(0f, 0f, 0f, 0f);
-            RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
-
-            // ===== 设置16x16正交投影 =====
-            // 坐标范围：(0,0) 到 (16,16)，Y轴向下为正
-            Matrix4f projectionMatrix = new Matrix4f().setOrtho(
-                    0.0F, RENDER_SIZE, RENDER_SIZE, 0.0F,
-                    -10000.0F, 10000.0F
-            );
-            RenderSystem.setProjectionMatrix(projectionMatrix, VertexSorting.ORTHOGRAPHIC_Z);
-
-            // ===== 重置模型视图矩阵 =====
-            modelViewStack.identity();
-            RenderSystem.applyModelViewMatrix();
-
-            // ===== 配置渲染状态 =====
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            RenderSystem.enableBlend();          // 启用混合（支持透明度）
-            RenderSystem.defaultBlendFunc();     // 默认混合函数
-            RenderSystem.enableDepthTest();      // 启用深度测试
-            RenderSystem.depthMask(true);        // 写入深度缓冲
-
-            // ===== 渲染物品 =====
-            MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-            GuiGraphics guiGraphics = new GuiGraphics(mc, buffers);
-
-            // 在(0,0)位置渲染物品，不进行缩放
-            Lighting.setupFor3DItems(); // 设置3D物品光照
-            guiGraphics.renderFakeItem(stack, 0, 0);
-            guiGraphics.flush(); // 刷新所有待处理的渲染
-            Lighting.setupLevel(); // 恢复普通光照
-
-            // 读取16x16的像素数据
-            renderTarget.bindRead();
-            raw16 = new NativeImage(NativeImage.Format.RGBA, RENDER_SIZE, RENDER_SIZE, false);
-            raw16.downloadTexture(0, false); // 从GPU下载纹理数据
-            raw16.flipY(); // 翻转Y轴
-
-            // ===== 放大到目标尺寸 =====
-            if (targetSize == RENDER_SIZE) {
-                // 尺寸一致，直接使用
-                finalImage = raw16;
-            } else {
-                // 最近邻放大，保持像素锐利
-                finalImage = upscaleNearest(raw16, targetSize);
-            }
-
-            // ===== 编码为PNG =====
-            byte[] png = encodePng(finalImage);
-            if (png == null || png.length == 0) {
-                return EditorIconCacheManager.createPlaceholderPng(targetSize, stack.hashCode());
-            }
-            return png;
-        } finally {
-            // ===== 清理资源 =====
-            if (finalImage != null && finalImage != raw16) {
-                finalImage.close();
-            }
-            if (raw16 != null) {
-                raw16.close();
-            }
-            // 恢复渲染状态
-            modelViewStack.popMatrix();
-            RenderSystem.applyModelViewMatrix();
-            RenderSystem.restoreProjectionMatrix();
-            RenderSystem.disableBlend();
-            // 恢复主渲染目标
-            mainTarget.bindWrite(true);
-        }
-    }
-
-    /**
-     * 最近邻插值放大图像
-     *
-     * @param src 源图像（16x16）
-     * @param targetSize 目标尺寸
-     * @return 放大后的图像
-     */
-    private static NativeImage upscaleNearest(NativeImage src, int targetSize) {
-        int srcW = src.getWidth();
-        int srcH = src.getHeight();
-
-        // 创建目标图像
-        NativeImage dst = new NativeImage(NativeImage.Format.RGBA, targetSize, targetSize, false);
-
-        // 最近邻放大
-        for (int y = 0; y < targetSize; y++) {
-            // 计算在源图像中对应的Y坐标（整数除法实现最近邻）
-            int srcY = y * srcH / targetSize;
-            for (int x = 0; x < targetSize; x++) {
-                // 计算在源图像中对应的X坐标
-                int srcX = x * srcW / targetSize;
-                // 直接复制像素值
-                dst.setPixelRGBA(x, y, src.getPixelRGBA(srcX, srcY));
-            }
-        }
-
-        return dst;
-    }
-
-    /**
-     * 确保渲染目标存在且尺寸正确
-     *
-     * <p>如果 RenderTarget 不存在或尺寸不匹配，则重新创建</p>
-     *
-     * @param size 需要的尺寸
-     * @param mc Minecraft客户端实例
-     */
-    private static void ensureRenderTarget(int size, Minecraft mc) {
-        // 如果已存在且尺寸匹配，直接复用
-        if (renderTarget != null && currentSize == size) {
-            return;
-        }
-        // 否则释放旧的并创建新的
-        disposeRenderTarget();
-
-        // 创建带深度附件的 RenderTarget
-        renderTarget = new RenderTarget(true) {};
-        renderTarget.createBuffers(size, size, Minecraft.ON_OSX);
-        currentSize = size;
-    }
-
-    /**
-     * 将 NativeImage 编码为 PNG 格式
-     *
-     * @param image 要编码的图像
-     * @return PNG字节数组，失败返回null
-     */
-    private static byte[] encodePng(NativeImage image) {
-        try {
-            // 创建临时文件
-            Path tempFile = Files.createTempFile("shipping_box_icon_", ".png");
-            // 写入PNG
-            image.writeToFile(tempFile);
-            // 读取字节
-            byte[] result = Files.readAllBytes(tempFile);
-            // 删除临时文件
-            Files.deleteIfExists(tempFile);
-            if (result.length > 0) {
-                return result;
-            }
+            BufferedImage icon = drawIsometricCube(firstSquareFrame(top), firstSquareFrame(side), firstSquareFrame(end), Math.max(size, 1));
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            ImageIO.write(icon, "png", output);
+            return output.toByteArray();
         } catch (Exception e) {
-            LOGGER.error("[IconRenderer] Failed to encode PNG", e);
+            LOGGER.debug("[IconRenderer] Failed to compose block icon for {}: {}", itemId, e.getMessage());
+            return null;
+        }
+    }
+
+    private static boolean isCubeLikeModel(Minecraft mc, Identifier modelId, int depth) {
+        if (modelId == null || depth > 12) {
+            return false;
+        }
+        if (isCubeTemplate(modelId)) {
+            return true;
+        }
+
+        Identifier modelResourceId = Identifier.fromNamespaceAndPath(
+                modelId.getNamespace(), "models/" + modelId.getPath() + ".json");
+        Optional<Resource> resource = mc.getResourceManager().getResource(modelResourceId);
+        if (resource.isEmpty()) {
+            return false;
+        }
+
+        try (InputStream in = resource.get().open();
+             InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+            if (!root.has("parent") || !root.get("parent").isJsonPrimitive()) {
+                return false;
+            }
+            return isCubeLikeModel(mc, Identifier.tryParse(root.get("parent").getAsString()), depth + 1);
+        } catch (Exception e) {
+            LOGGER.debug("[IconRenderer] Failed to inspect model {}: {}", modelResourceId, e.getMessage());
+            return false;
+        }
+    }
+
+    private static boolean isCubeTemplate(Identifier modelId) {
+        if (!"minecraft".equals(modelId.getNamespace())) {
+            return false;
+        }
+        String path = modelId.getPath();
+        if (path.startsWith("block/template_")) {
+            return path.contains("slab")
+                    || path.contains("stairs")
+                    || path.contains("wall")
+                    || path.contains("fence")
+                    || path.contains("pane")
+                    || path.contains("rail");
+        }
+        return path.equals("block/cube")
+                || path.equals("block/cube_all")
+                || path.equals("block/cube_column")
+                || path.equals("block/cube_column_horizontal")
+                || path.equals("block/cube_bottom_top")
+                || path.equals("block/orientable")
+                || path.equals("block/orientable_vertical")
+                || path.equals("block/slab")
+                || path.equals("block/slab_top")
+                || path.equals("block/stairs")
+                || path.equals("block/inner_stairs")
+                || path.equals("block/outer_stairs")
+                || path.equals("block/wall_inventory")
+                || path.equals("block/fence_inventory")
+                || path.equals("block/fence_post")
+                || path.equals("block/fence_side")
+                || path.equals("block/pane_noside")
+                || path.equals("block/pane_side")
+                || path.equals("block/rail_flat")
+                || path.equals("block/rail_raised_ne")
+                || path.equals("block/rail_raised_sw");
+    }
+
+    private static Identifier resolveItemTexture(Minecraft mc, Identifier itemId) {
+        Identifier modelId = resolveItemModelId(mc, itemId);
+        if (modelId == null) {
+            modelId = Identifier.fromNamespaceAndPath(itemId.getNamespace(), "item/" + itemId.getPath());
+        }
+
+        Map<String, String> textures = new HashMap<>();
+        collectModelTextures(mc, modelId, textures, 0);
+
+        for (String key : PREFERRED_TEXTURE_KEYS) {
+            String texture = resolveTextureReference(textures, textures.get(key), 0);
+            Identifier textureId = textureResourceId(texture);
+            if (textureId != null && mc.getResourceManager().getResource(textureId).isPresent()) {
+                return textureId;
+            }
+        }
+
+        for (String texture : textures.values()) {
+            String resolved = resolveTextureReference(textures, texture, 0);
+            Identifier textureId = textureResourceId(resolved);
+            if (textureId != null && mc.getResourceManager().getResource(textureId).isPresent()) {
+                return textureId;
+            }
         }
         return null;
+    }
+
+    private static Identifier resolveItemModelId(Minecraft mc, Identifier itemId) {
+        Identifier definitionId = Identifier.fromNamespaceAndPath(
+                itemId.getNamespace(), "items/" + itemId.getPath() + ".json");
+        Optional<Resource> resource = mc.getResourceManager().getResource(definitionId);
+        if (resource.isEmpty()) {
+            return null;
+        }
+
+        try (InputStream in = resource.get().open();
+             InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+            JsonObject model = root.has("model") && root.get("model").isJsonObject()
+                    ? root.getAsJsonObject("model")
+                    : null;
+            if (model == null || !model.has("model")) {
+                return null;
+            }
+            JsonElement modelValue = model.get("model");
+            if (!modelValue.isJsonPrimitive()) {
+                return null;
+            }
+            return Identifier.tryParse(modelValue.getAsString());
+        } catch (Exception e) {
+            LOGGER.debug("[IconRenderer] Failed to read item definition {}: {}", definitionId, e.getMessage());
+            return null;
+        }
+    }
+
+    private static void collectModelTextures(Minecraft mc, Identifier modelId, Map<String, String> textures, int depth) {
+        if (modelId == null || depth > 12) {
+            return;
+        }
+
+        Identifier modelResourceId = Identifier.fromNamespaceAndPath(
+                modelId.getNamespace(), "models/" + modelId.getPath() + ".json");
+        Optional<Resource> resource = mc.getResourceManager().getResource(modelResourceId);
+        if (resource.isEmpty()) {
+            return;
+        }
+
+        try (InputStream in = resource.get().open();
+             InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+
+            if (root.has("parent")) {
+                collectModelTextures(mc, Identifier.tryParse(root.get("parent").getAsString()), textures, depth + 1);
+            }
+
+            if (root.has("textures") && root.get("textures").isJsonObject()) {
+                JsonObject textureObject = root.getAsJsonObject("textures");
+                for (Map.Entry<String, JsonElement> entry : textureObject.entrySet()) {
+                    if (entry.getValue().isJsonPrimitive()) {
+                        textures.put(entry.getKey(), entry.getValue().getAsString());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("[IconRenderer] Failed to read model {}: {}", modelResourceId, e.getMessage());
+        }
+    }
+
+    private static String resolveTextureReference(Map<String, String> textures, String texture, int depth) {
+        if (texture == null || depth > 12) {
+            return texture;
+        }
+        if (!texture.startsWith("#")) {
+            return texture;
+        }
+        return resolveTextureReference(textures, textures.get(texture.substring(1)), depth + 1);
+    }
+
+    private static Identifier textureResourceId(String texture) {
+        if (texture == null || texture.isBlank() || texture.startsWith("#")) {
+            return null;
+        }
+
+        Identifier id = Identifier.tryParse(texture);
+        if (id == null) {
+            return null;
+        }
+        return Identifier.fromNamespaceAndPath(id.getNamespace(), "textures/" + id.getPath() + ".png");
+    }
+
+    private static String pickTexture(Map<String, String> textures, String... keys) {
+        for (String key : keys) {
+            String texture = resolveTextureReference(textures, textures.get(key), 0);
+            if (texture != null) {
+                return texture;
+            }
+        }
+        for (String texture : textures.values()) {
+            String resolved = resolveTextureReference(textures, texture, 0);
+            if (resolved != null) {
+                return resolved;
+            }
+        }
+        return null;
+    }
+
+    private static BufferedImage loadTextureImage(Minecraft mc, String texture) {
+        Identifier textureId = textureResourceId(texture);
+        if (textureId == null) {
+            return null;
+        }
+        Optional<Resource> resource = mc.getResourceManager().getResource(textureId);
+        if (resource.isEmpty()) {
+            return null;
+        }
+        try (InputStream in = resource.get().open()) {
+            return ImageIO.read(in);
+        } catch (Exception e) {
+            LOGGER.debug("[IconRenderer] Failed to load texture {}: {}", textureId, e.getMessage());
+            return null;
+        }
+    }
+
+    private static byte[] textureToPng(Minecraft mc, Identifier textureId, int targetSize, int fallbackSeed) {
+        Optional<Resource> resource = mc.getResourceManager().getResource(textureId);
+        if (resource.isEmpty()) {
+            return EditorIconCacheManager.createPlaceholderPng(targetSize, fallbackSeed);
+        }
+
+        try (InputStream in = resource.get().open()) {
+            BufferedImage source = ImageIO.read(in);
+            if (source == null) {
+                return EditorIconCacheManager.createPlaceholderPng(targetSize, fallbackSeed);
+            }
+
+            BufferedImage frame = firstSquareFrame(source);
+            BufferedImage scaled = scaleNearest(frame, Math.max(targetSize, 1));
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            ImageIO.write(scaled, "png", output);
+            return output.toByteArray();
+        } catch (Exception e) {
+            LOGGER.debug("[IconRenderer] Failed to read texture {}: {}", textureId, e.getMessage());
+            return EditorIconCacheManager.createPlaceholderPng(targetSize, fallbackSeed);
+        }
+    }
+
+    private static BufferedImage firstSquareFrame(BufferedImage source) {
+        int frameSize = Math.min(source.getWidth(), source.getHeight());
+        if (source.getWidth() == frameSize && source.getHeight() == frameSize) {
+            return source;
+        }
+        return source.getSubimage(0, 0, frameSize, frameSize);
+    }
+
+    private static BufferedImage scaleNearest(BufferedImage source, int size) {
+        if (source.getWidth() == size && source.getHeight() == size) {
+            return source;
+        }
+
+        BufferedImage output = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = output.createGraphics();
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        graphics.drawImage(source, 0, 0, size, size, null);
+        graphics.dispose();
+        return output;
+    }
+
+    private static BufferedImage drawIsometricCube(BufferedImage top, BufferedImage left, BufferedImage right, int size) {
+        BufferedImage output = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = output.createGraphics();
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        double scale = size / 32.0D;
+        int centerX = scale(16, scale);
+        int topY = scale(2, scale);
+        int leftX = scale(3, scale);
+        int rightX = scale(29, scale);
+        int midY = scale(9, scale);
+        int centerY = scale(16, scale);
+        int lowerY = scale(30, scale);
+        int sideBottomY = scale(23, scale);
+
+        Polygon leftFace = new Polygon(
+                new int[] {leftX, centerX, centerX, leftX},
+                new int[] {midY, centerY, lowerY, sideBottomY},
+                4);
+        Polygon rightFace = new Polygon(
+                new int[] {centerX, rightX, rightX, centerX},
+                new int[] {centerY, midY, sideBottomY, lowerY},
+                4);
+        Polygon topFace = new Polygon(
+                new int[] {centerX, rightX, centerX, leftX},
+                new int[] {topY, midY, centerY, midY},
+                4);
+
+        drawTexturedFace(graphics, left, leftFace, leftX, midY, centerX, centerY, leftX, sideBottomY, 0.72F);
+        drawTexturedFace(graphics, right, rightFace, centerX, centerY, rightX, midY, centerX, lowerY, 0.86F);
+        drawTexturedFace(graphics, top, topFace, centerX, topY, rightX, midY, leftX, midY, 1.0F);
+
+        graphics.dispose();
+        return output;
+    }
+
+    private static int scale(int value, double scale) {
+        return (int) Math.round(value * scale);
+    }
+
+    private static void drawTexturedFace(Graphics2D graphics, BufferedImage texture, Polygon clip,
+                                         int originX, int originY, int xAxisX, int xAxisY,
+                                         int yAxisX, int yAxisY, float shade) {
+        var oldClip = graphics.getClip();
+        graphics.setClip(clip);
+        AffineTransform transform = new AffineTransform(
+                (xAxisX - originX) / (double) texture.getWidth(),
+                (xAxisY - originY) / (double) texture.getWidth(),
+                (yAxisX - originX) / (double) texture.getHeight(),
+                (yAxisY - originY) / (double) texture.getHeight(),
+                originX,
+                originY);
+        graphics.drawImage(texture, transform, null);
+        if (shade < 1.0F) {
+            graphics.setColor(new java.awt.Color(0.0F, 0.0F, 0.0F, 1.0F - shade));
+            graphics.fillPolygon(clip);
+        }
+        graphics.setClip(oldClip);
+    }
+
+    /** 旧 API — 26.2 后无实现。 */
+    public static void disposeRenderTarget() {
+        // no-op
     }
 }

@@ -2,9 +2,7 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    {
-      "item": "shipping_box:netherite_creeper_coin"
-    }
+    "shipping_box:netherite_creeper_coin"
   ],
   "result": {
     "count": 8,

@@ -3,10 +3,9 @@ package com.chinaex123.shipping_box.menu;
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.client.gui.ShippingBoxLayout;
 import com.chinaex123.shipping_box.init.ModMenuTypes;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -24,6 +23,12 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 /**
+ * 普通售货箱容器菜单
+ * <p>
+ * 管理普通售货箱的 GUI 交互逻辑。关键特性是使用 {@link PlayerSpecificContainer}
+ * 封装每个玩家的独立物品存储。每个玩家打开普通售货箱时看到的是自己的物品，
+ * 但所有玩家共享同一个方块实体。
+ * 使用距离验证防止玩家在超出交互距离后操作箱子。
  * 普通售货箱菜单类
  * <p>
  * 负责管理普通售货箱的 GUI 交互逻辑，包括：
@@ -65,6 +70,10 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
      */
     public ShippingBoxMenu(int id, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
         super(ModMenuTypes.SHIPPING_BOX.get(), id);
+        this.menuPos = buf.readBlockPos();
+        this.playerUUID = buf.readUUID();
+        this.blockEntity = findBlockEntity(playerInventory.player.level(), menuPos);
+        this.menuLevel = blockEntity != null ? blockEntity.getLevel() : playerInventory.player.level();
         // 从缓冲区读取玩家 UUID（用于标识哪个玩家的存储）
         this.playerUUID = buf.readUUID();
         // 从缓冲区读取方块位置
@@ -103,6 +112,7 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
         addAllSlots(playerInventory);
     }
 
+    private ShippingBoxBlockEntity findBlockEntity(Level level, BlockPos pos) {
     /**
      * 根据方块位置查找普通售货箱方块实体
      * <p>
@@ -326,6 +336,11 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
         super.removed(player);
         // 通知容器停止使用
         this.shippingContainer.stopOpen(player);
+        if (menuLevel != null && !menuLevel.isClientSide() && player instanceof ServerPlayer) {
+            menuLevel.playSound(null, menuPos,
+                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.close")),
+                    SoundSource.BLOCKS, 0.5F,
+                    menuLevel.getRandom().nextFloat() * 0.1F + 0.9F);
 
         // 服务端播放关闭音效
         if (menuLevel != null && !menuLevel.isClientSide && player instanceof ServerPlayer) {

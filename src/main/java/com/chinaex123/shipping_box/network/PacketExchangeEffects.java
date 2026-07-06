@@ -7,15 +7,22 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** 兑换特效包 **/
+/**
+ * 兑换特效数据包（服务端→客户端）
+ * <p>
+ * 当兑换成功且配置启用了特效时，服务端发送此数据包通知客户端
+ * 在玩家位置播放粒子特效。特效包括多阶段的烟花绽放效果、
+ * 螺旋光环和散落光点，营造丰富的视觉反馈。
+ * 需要在配置中启用 ENABLE_EXCHANGE_EFFECTS 才会生效。
+ */
 public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
     public static final Type<PacketExchangeEffects> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_effects")
+            Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_effects")
     );
 
     public static final StreamCodec<FriendlyByteBuf, PacketExchangeEffects> STREAM_CODEC =
@@ -64,7 +71,7 @@ public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
      * @param player 玩家实例，作为特效中心点
      */
     private static void spawnMagicCircleEffects(Player player) {
-        RandomSource random = player.level().random;
+        RandomSource random = player.level().getRandom();
         double centerX = player.getX();
         double centerY = player.getY();
         double centerZ = player.getZ();

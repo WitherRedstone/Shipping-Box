@@ -3,7 +3,7 @@ package com.chinaex123.shipping_box.block;
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -87,7 +87,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     @Override
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         // 客户端只返回成功，不执行实际逻辑
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
 
@@ -107,33 +107,13 @@ public class ShippingBoxBlock extends BaseEntityBlock {
             // 使用桶打开的音效，音调随机微调增加真实感
             level.playSound(
                     null, pos,
-                    SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
+                    SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.open")),
                     SoundSource.BLOCKS, 0.5F,
-                    level.random.nextFloat() * 0.1F + 0.9F
+                    level.getRandom().nextFloat() * 0.1F + 0.9F
             );
         }
 
         return InteractionResult.CONSUME;
-    }
-
-    /**
-     * 处理方块被移除时的逻辑
-     * 当方块被替换或破坏时，掉落破坏玩家的个人存储物品
-     *
-     * @param state 当前方块状态
-     * @param level 游戏世界实例
-     * @param pos 方块位置坐标
-     * @param newState 新的方块状态
-     * @param isMoving 是否正在被移动（如活塞推动）
-     */
-    @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        // 只有当方块类型发生变化时才执行移除逻辑（即被真正破坏）
-        if (!state.is(newState.getBlock())) {
-            // 调用父类方法处理基础掉落
-            // 由于物品存储在GlobalPlayerStorage中，这里不需要额外处理
-            super.onRemove(state, level, pos, newState, isMoving);
-        }
     }
 
     /**
@@ -149,7 +129,7 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             return (lvl, pos, st, be) -> {
                 if (be instanceof ShippingBoxBlockEntity shippingBox) {
                     shippingBox.tick();

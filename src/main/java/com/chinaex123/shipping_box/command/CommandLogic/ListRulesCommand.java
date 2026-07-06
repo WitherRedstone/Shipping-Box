@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.command.CommandLogic;
 
+import net.minecraft.core.Holder;
 import com.chinaex123.shipping_box.event.ExchangeRecipeManager;
 import com.chinaex123.shipping_box.event.ExchangeRule;
 import com.mojang.brigadier.context.CommandContext;
@@ -8,7 +9,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -200,12 +201,13 @@ public class ListRulesCommand {
             
             // 如果是物品 ID
             if (itemId != null && !itemId.isEmpty()) {
-                ResourceLocation itemLoc = ResourceLocation.tryParse(itemId);
+                Identifier itemLoc = Identifier.tryParse(itemId);
                 if (itemLoc != null) {
-                    var item = BuiltInRegistries.ITEM.get(itemLoc);
+                    var item = BuiltInRegistries.ITEM.get(itemLoc).map(Holder::value).orElse(null);
                     if (item != Items.AIR) {
                         // 创建一个临时的物品堆来获取显示名称
                         ItemStack stack = new ItemStack(item);
+                        // 26.2:getStringOr() 已移除,改为 getString()
                         return stack.getHoverName().getString();
                     } else {
                         // 物品不存在，返回原始 ID（可能是其他模组的物品）

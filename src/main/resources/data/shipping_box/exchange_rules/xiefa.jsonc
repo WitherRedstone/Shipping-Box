@@ -103,8 +103,8 @@
         }
       }
     },
-    // ViScriptShop 联动
-    // 物品 → 货币
+    // 内置虚拟货币
+    // 物品 → 虚拟货币
     {
       "input": {
         "item": "minecraft:dirt",
@@ -165,50 +165,46 @@
         ]
       }
     },
-    // [MOD]潮汐(Tide)
+    // 原版数据组件
     {
       "input": {
-        "item": "minecraft:apple",
+        "item": "minecraft:potion",
         "components": {
-          "tide:fish_length": "[40.0,50.0)",
-          "tide:catch_timestamp": "[5000,6000]"
-        },
-        "count": 1
-      },
-      "output": {
-        "item": "minecraft:apple",
-        "count": 1
-      }
-    },
-    // [MOD]QualityFood
-    {
-      "input": {
-        "item": "minecraft:apple",
-        "components": {
-          "quality_food:quality": {
-            "level": 3,
-            "type": "quality_food:diamond"
+          "potion_contents": {
+            "potion": "minecraft:water"
           }
         },
         "count": 1
       },
       "output": {
-        "item": "minecraft:apple",
+        "item": "minecraft:glass_bottle",
         "count": 1
       }
     },
-    // [MOD]QualityFood + 多物品
+    // 原版附魔组件
+    {
+      "input": {
+        "item": "minecraft:enchanted_book",
+        "components": {
+          "stored_enchantments": {
+            "levels": {
+              "minecraft:sharpness": 5
+            }
+          }
+        },
+        "count": 1
+      },
+      "output": {
+        "item": "minecraft:diamond",
+        "count": 1
+      }
+    },
+    // 原版组件 + 多物品
     {
       "input": [
         {
           "item": "minecraft:wheat",
-          "count": 3,
-          "components": {
-            "quality_food:quality": {
-              "level": 3,
-              "type": "quality_food:diamond"
-            }
-          }
+          "count": 3
         },
         {
           "item": "minecraft:blaze_powder",
@@ -227,7 +223,7 @@
     },
     // 节气 联动
     // 判断售卖的物品是否在当前季节，如果是的话则增加售额，如果不是则减少售额
-    // 不兼容VSS货币模式
+    // 此模式输出物品，不依赖内置虚拟货币
     {
       "input": {
         "item": "minecraft:potato",
@@ -244,12 +240,12 @@
         }
       }
     },
-    // 森罗酒馆 - 酿酒品质
+    // 原版自定义名称组件
     {
       "input": {
-        "item": "kaleidoscope_tavern:wine",
+        "item": "minecraft:paper",
         "components": {
-          "kaleidoscope_tavern:brew_level": 3
+          "custom_name": "\"Shipping Ticket\""
         },
         "count": 1
       },

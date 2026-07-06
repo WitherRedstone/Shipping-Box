@@ -71,7 +71,7 @@ config="${mod_id}.mixins.json"
     # Optional field describing why the dependency is required or why it is incompatible
     # reason="..."
     # The version range of the dependency
-    versionRange="[${neo_version},)" #mandatory
+    versionRange="[${neo_version},26.3)" #mandatory
     # An ordering relationship for the dependency.
     # BEFORE - This mod is loaded BEFORE the dependency
     # AFTER - This mod is loaded AFTER the dependency
@@ -88,15 +88,14 @@ config="${mod_id}.mixins.json"
     ordering="NONE"
     side="BOTH"
 
-# 可选依赖 - ViScriptShop
-[[dependencies.${mod_id}]]
-    modId="viscript_shop"
-    type="optional"
-    reason="Add physical coin to convert to virtual coin."
-    # This version range declares a minimum of the current minecraft version up to but not including the next major version
-    versionRange="[1.0.6,)"
-    ordering="AFTER"
-    side="BOTH"
+# 可选依赖 - ViScriptShop (26.2 版本暂无,已注释)
+#[[dependencies.${mod_id}]]
+#    modId="viscript_shop"
+#    type="optional"
+#    reason="Add physical coin to convert to virtual coin."
+#    versionRange="[1.0.6,)"
+#    ordering="AFTER"
+#    side="BOTH"
 # 可选依赖 - 节气
 [[dependencies.${mod_id}]]
     modId="ecliptic-seasons"

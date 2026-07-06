@@ -10,6 +10,13 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.Supplier;
 
+/**
+ * 创造模式物品栏注册类
+ * <p>
+ * 负责注册售货箱模组的自定义创造模式物品标签页。
+ * 使用 NeoForge 的 DeferredRegister 系统进行延迟注册，
+ * 将模组所有方块和物品组织到统一的创造模式标签页中。
+ */
 public class ModCreativeTabs {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TAB = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ShippingBox.MOD_ID);
 

@@ -877,7 +877,7 @@
           itemSub: (count) => "输入 " + count + " 项 · 点击编辑",
           helpEmpty: "选择左侧规则，或点击“新建”开始。",
           inputsLabel: "输入",
-          inputsHelp: "支持物品或标签（#minecraft:logs）。数据组件支持原版 + 多联动模组组件（quality_food、tide、kaleidoscope_tavern等），可写完整JSON或用下方助手添加。",
+          inputsHelp: "支持物品或标签（#minecraft:logs）。数据组件支持原版组件，可写完整 JSON 或用下方助手添加。",
           addInput: "添加输入",
           clearInputs: "清空输入",
           removeInput: "移除该输入",
@@ -914,22 +914,10 @@
           kindItem: "物品",
           kindTag: "标签",
           presetsLabel: "组件助手",
-          presetsHelp: "点击快速添加常用组件（支持 quality_food、tide、kaleidoscope_tavern 等多联动模组，会自动合并到现有 JSON）。",
+          presetsHelp: "点击快速添加常用原版组件，会自动合并到现有 JSON。",
           presetsApplied: (name) => "已注入组件 · " + name,
           presetsRemoved: (name) => "已移除组件 · " + name,
           presets: {
-            tide: {
-              name: "鱼类长度（Tide）",
-              inject: { "tide:fish_length": "[40.0, 50.0)" }
-            },
-            tide_time: {
-              name: "捕获时间（Tide）",
-              inject: { "tide:catch_timestamp": "[2000, 3000)" }
-            },
-            brewing: {
-              name: "酿酒等级（Brewing）",
-              inject: { "kaleidoscope_tavern:brew_level": 7 }
-            },
             potion: {
               name: "药水（Potion）",
               inject: { "potion_contents": { "potion": "minecraft:night_vision" } }
@@ -962,20 +950,11 @@
           dynamicDayLabel: "重置天数（-1 永不重置，0 每日，>0 周期）",
           dynamicThresholdLabel: "阈值（数组）",
           dynamicValueLabel: "价值（数组）",
-          qualityLabel: "品质",
-          qualityHelp: "普通 / 铁 / 金 / 钻石",
-          qualityNormal: "普通",
-          qualityIron: "铁",
-          qualityGold: "金",
-          qualityDiamond: "钻石",
           loadFailed: "加载失败",
           addComponent: "添加组件",
           selectComponentType: "选择组件类型",
           componentMod: "所属模组",
           vanilla: "原版",
-          qualityFood: "品质作物",
-          tide: "鱼类",
-          brewing: "酿酒",
           apply: "应用",
           cancel: "取消",
           componentKey: "组件键",
@@ -1063,9 +1042,6 @@
           selectComponentType: "Select component type",
           componentMod: "Mod",
           vanilla: "Vanilla",
-          qualityFood: "Quality Food",
-          tide: "Tide",
-          brewing: "Brewing",
           apply: "Apply",
           cancel: "Cancel",
           componentKey: "Component Key",
@@ -1077,16 +1053,7 @@
           enchantLevel: "Level",
           damageValue: "Damage",
           customName: "Name",
-          presets: {
-            tide: {
-              name: "Tide (Fish length)",
-              inject: { "tide:fish_length": "[40.0, 50.0)" }
-            },
-            brewing: {
-              name: "Brewing (Brew level)",
-              inject: { "kaleidoscope_tavern:brew_level": 7 }
-            }
-          },
+          presets: {},
           coinCount: "coin amount",
           outputCoin: "Output as virtual coin",
           yes: "Yes",
@@ -1106,12 +1073,6 @@
           dynamicDayLabel: "day (-1 never, 0 daily, >0 period)",
           dynamicThresholdLabel: "threshold (array)",
           dynamicValueLabel: "value (array)",
-          qualityLabel: "Quality (Quality Food)",
-          qualityHelp: "Normal / Iron / Gold / Diamond (writes quality_food:quality)",
-          qualityNormal: "Normal",
-          qualityIron: "Iron",
-          qualityGold: "Gold",
-          qualityDiamond: "Diamond",
           loadFailed: "Load failed",
           loaded: (n, file) => "Loaded " + n + " rules · " + file,
           confirmDelete: "Delete this rule?",
@@ -1457,13 +1418,6 @@
         return t;
       }
 
-      function qualityFoodComponent(value) {
-        if (value === "diamond") return { level: 3, type: "quality_food:diamond" };
-        if (value === "gold") return { level: 2, type: "quality_food:gold" };
-        if (value === "iron") return { level: 1, type: "quality_food:iron" };
-        return null;
-      }
-
       function componentsObjectFromText(text) {
         const parsed = parseMaybeJson(text);
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
@@ -1496,45 +1450,6 @@
         const keys = Object.keys(base);
         if (keys.length === 0) return "";
         return JSON.stringify(base, null, 2);
-      }
-
-      function getQualityFoodFromComponentsText(text) {
-        const obj = componentsObjectFromText(text);
-        if (!obj) return "normal";
-        const q = obj["quality_food:quality"];
-        if (!q || typeof q !== "object") return "normal";
-        const type = String(q.type || "");
-        if (type === "quality_food:diamond") return "diamond";
-        if (type === "quality_food:gold") return "gold";
-        if (type === "quality_food:iron") return "iron";
-        return "normal";
-      }
-
-      function setQualityFoodInComponentsText(text, quality) {
-        if (quality === "normal") {
-          return removeComponentKey(text, "quality_food:quality");
-        } else {
-          const q = qualityFoodComponent(quality);
-          if (q) return mergeComponentTemplate(text, { "quality_food:quality": q });
-        }
-        return String(text || "");
-      }
-
-      function renderQualityFoodField(currentComponentsText, onSelect) {
-        const field = document.createElement("div");
-        field.className = "field";
-        field.innerHTML = `<div class="label">${escapeHtml(t("qualityLabel"))}</div><div class="help">${escapeHtml(t("qualityHelp"))}</div>`;
-        field.appendChild(chipGroup(
-          [
-            { label: t("qualityNormal"), value: "normal" },
-            { label: t("qualityIron"), value: "iron" },
-            { label: t("qualityGold"), value: "gold" },
-            { label: t("qualityDiamond"), value: "diamond" }
-          ],
-          getQualityFoodFromComponentsText(currentComponentsText),
-          onSelect
-        ));
-        return field;
       }
 
       function renderPresetsField(getText, onApply) {
@@ -1585,7 +1500,7 @@
         const help = document.createElement("div");
         help.className = "help";
         help.style.marginBottom = "6px";
-        help.textContent = t("presetsHelp") || "点击快速添加常用组件（支持多联动 mod），会自动合并到现有 JSON。";
+        help.textContent = t("presetsHelp") || "点击快速添加常用原版组件，会自动合并到现有 JSON。";
         content.appendChild(help);
 
         const row = document.createElement("div");
@@ -1593,9 +1508,6 @@
         row.className = "row";
 
         const presets = [
-          { key: "tide", name: t("presets.tide.name"), inject: I18N[currentLang()]?.presets?.tide?.inject },
-          { key: "tide_time", name: t("presets.tide_time.name"), inject: I18N[currentLang()]?.presets?.tide_time?.inject },
-          { key: "brewing", name: t("presets.brewing.name"), inject: I18N[currentLang()]?.presets?.brewing?.inject },
           { key: "potion", name: t("presets.potion.name"), inject: I18N[currentLang()]?.presets?.potion?.inject },
           { key: "enchant", name: t("presets.enchant.name"), inject: I18N[currentLang()]?.presets?.enchant?.inject },
           { key: "damage", name: t("presets.damage.name"), inject: I18N[currentLang()]?.presets?.damage?.inject }
@@ -1619,32 +1531,6 @@
         }
         content.appendChild(row);
 
-        const qualityBlock = document.createElement("div");
-        qualityBlock.className = "field";
-        qualityBlock.innerHTML = `<div class="label">${escapeHtml(t("qualityLabel"))}</div><div class="help">${escapeHtml(t("qualityHelp"))}</div>`;
-        const qualityActive = getQualityFoodFromComponentsText(getText());
-        qualityBlock.appendChild(chipGroup(
-          [
-            { label: t("qualityNormal"), value: "normal" },
-            { label: t("qualityIron"), value: "iron" },
-            { label: t("qualityGold"), value: "gold" },
-            { label: t("qualityDiamond"), value: "diamond" }
-          ],
-          qualityActive,
-          (v) => {
-            const next = setQualityFoodInComponentsText(getText(), v);
-            onApply(next);
-            const name = t("qualityLabel") + " - " + (
-              v === "iron" ? t("qualityIron") :
-              v === "gold" ? t("qualityGold") :
-              v === "diamond" ? t("qualityDiamond") :
-              t("qualityNormal")
-            );
-            toast(t("presetsApplied", name), "ok");
-          }
-        ));
-        content.appendChild(qualityBlock);
-
         field.appendChild(content);
         return field;
       }
@@ -1666,10 +1552,6 @@
 
         const options = [
           { value: "", label: t("selectComponentType") || "选择组件类型" },
-          { value: "quality_food", label: t("qualityFood") || "品质作物" },
-          { value: "tide_length", label: t("tide") + " - 长度" },
-          { value: "tide_time", label: t("tide") + " - 捕获时间" },
-          { value: "brew_level", label: t("brewing") || "酿酒等级" },
           { value: "potion", label: "药水" },
           { value: "enchant", label: "附魔" },
           { value: "damage", label: "耐久" },
@@ -1713,9 +1595,6 @@
         let pending = [];  // [{type, comp}]
 
         function getCompIcon(key) {
-          if (key.includes('quality')) return '🌾';
-          if (key.includes('tide')) return '🐟';
-          if (key.includes('brew') || key.includes('kaleidoscope')) return '🍷';
           if (key.includes('potion')) return '🧪';
           if (key.includes('enchant')) return '✨';
           if (key.includes('damage')) return '🛡️';
@@ -1841,99 +1720,7 @@
           fields.className = "grid";
           fields.style.gridTemplateColumns = "repeat(12, 1fr)";
 
-          if (type === "quality_food") {
-            const f = document.createElement("div");
-            f.className = "field";
-            f.style.gridColumn = "span 12";
-            f.innerHTML = `<div class="label">品质等级</div>`;
-
-            // 本地状态：支持点击切换，不依赖外部 render
-            let selectedQuality = "normal";  // 默认普通（可自由切换）
-
-            const chipContainer = document.createElement("div");
-            chipContainer.className = "row";
-
-            const qualityOptions = [
-              { label: "普通", value: "normal" },
-              { label: "铁", value: "iron" },
-              { label: "金", value: "gold" },
-              { label: "钻石", value: "diamond" }
-            ];
-
-            const chipEls = [];
-
-            qualityOptions.forEach(opt => {
-              const c = document.createElement("div");
-              c.className = "chip" + (opt.value === selectedQuality ? " active" : "");
-              c.textContent = opt.label;
-              c.style.cursor = "pointer";
-
-              c.onclick = () => {
-                selectedQuality = opt.value;
-                // 更新所有 chip 的 active 状态
-                chipEls.forEach(el => {
-                  el.classList.toggle("active", el.textContent === opt.label);
-                });
-              };
-
-              chipEls.push(c);
-              chipContainer.appendChild(c);
-            });
-
-            f.appendChild(chipContainer);
-            fields.appendChild(f);
-
-            // 提供给 _getValue 使用
-            f._getSelectedQuality = () => selectedQuality;
-
-            formArea._getValue = () => {
-              const val = f._getSelectedQuality ? f._getSelectedQuality() : "diamond";
-              const map = { "普通":"normal", "铁":"iron", "金":"gold", "钻石":"diamond", "normal":"normal", "iron":"iron", "gold":"gold", "diamond":"diamond" };
-              const mapped = map[val] || val || "diamond";
-              return { "quality_food:quality": qualityFoodComponent(mapped) };
-            };
-
-            // 如果是从编辑进入，尝试根据已有值设置选中
-            // (startEdit 会在 renderForm 后尝试额外设置，这里提供钩子)
-            formArea._setQuality = (val) => {
-              const m = { "normal":"普通", "iron":"铁", "gold":"金", "diamond":"钻石" };
-              selectedQuality = val;
-              chipEls.forEach(el => {
-                el.classList.toggle("active", el.textContent === (m[val] || val));
-              });
-            };
-
-          } else if (type === "tide_length" || type === "tide_time") {
-            const key = type === "tide_length" ? "tide:fish_length" : "tide:catch_timestamp";
-            const f = document.createElement("div");
-            f.className = "field";
-            f.style.gridColumn = "span 12";
-            f.innerHTML = `<div class="label">范围 (如 40,60 或 [40.0,60.0) )</div>`;
-            const input = document.createElement("input");
-            input.className = "input";
-            input.placeholder = type === "tide_length" ? "40,60" : "2000,3000";
-            input.value = "40,60";
-            f.appendChild(input);
-            fields.appendChild(f);
-            formArea._getValue = () => {
-              const parts = input.value.split(/[,\s]+/);
-              const min = parts[0] || "0";
-              const max = parts[1] || "100";
-              return { [key]: `[${min},${max})` };
-            };
-          } else if (type === "brew_level") {
-            const f = document.createElement("div");
-            f.className = "field";
-            f.style.gridColumn = "span 12";
-            f.innerHTML = `<div class="label">酿酒等级 (数字)</div>`;
-            const input = document.createElement("input");
-            input.className = "input";
-            input.type = "number";
-            input.value = "7";
-            f.appendChild(input);
-            fields.appendChild(f);
-            formArea._getValue = () => ({ "kaleidoscope_tavern:brew_level": Number(input.value) || 7 });
-          } else if (type === "potion") {
+          if (type === "potion") {
             const f = document.createElement("div");
             f.className = "field";
             f.style.gridColumn = "span 12";
@@ -2046,23 +1833,7 @@
             const key = Object.keys(comp)[0];
             const val = comp[key];
             const selVal = modSelect.dataset.value || "";
-            if (selVal === "quality_food" && key.includes("quality")) {
-              const level = val && val.type ? (val.type.includes("diamond") ? "diamond" : val.type.includes("gold") ? "gold" : val.type.includes("iron") ? "iron" : "normal") : "diamond";
-              if (formArea._setQuality) {
-                formArea._setQuality(level);
-              } else {
-                // fallback
-                const chips = formArea.querySelectorAll(".chip");
-                chips.forEach(c => c.classList.toggle("active", c.textContent.includes(level === "diamond" ? "钻石" : level === "gold" ? "金" : level === "iron" ? "铁" : "普通")));
-              }
-            } else if ((selVal === "tide_length" || selVal === "tide_time") && typeof val === "string") {
-              const match = val.match(/\[?([0-9.]+),([0-9.]+)/);
-              if (match && formArea.querySelector("input")) {
-                formArea.querySelector("input").value = `${match[1]},${match[2]}`;
-              }
-            } else if (selVal === "brew_level" && formArea.querySelector("input")) {
-              formArea.querySelector("input").value = val || 7;
-            } else if (selVal === "potion" && val && val.potion && formArea.querySelector("input")) {
+            if (selVal === "potion" && val && val.potion && formArea.querySelector("input")) {
               formArea.querySelector("input").value = val.potion;
             } else if (selVal === "enchant" && val && val.levels) {
               const encInput = formArea.querySelector("input");
@@ -3038,7 +2809,7 @@
           compField.className = "field";
           compField.innerHTML = `
             <div class="label">${escapeHtml(t("labelComponents"))} <span style="font-size:11px;color:var(--muted)">（数据组件 / Data Components）</span></div>
-            <div class="help">支持原版和联动模组组件（如 quality_food、tide、kaleidoscope_tavern 等）。可直接写 JSON 或使用下方助手快速添加。多个组件会合并。</div>
+            <div class="help">支持原版数据组件。可直接写 JSON 或使用下方助手快速添加；高级用户仍可手写其他模组组件。</div>
           `;
           const comp = document.createElement("textarea");
           comp.className = "textarea";
@@ -3237,7 +3008,7 @@
           root.appendChild(count);
           const compWrap = document.createElement("div");
           compWrap.className = "field";
-          compWrap.innerHTML = `<div class="label">${escapeHtml(t("labelComponents"))} <span style="font-size:11px;color:var(--muted)">（支持多联动 mod）</span></div>`;
+          compWrap.innerHTML = `<div class="label">${escapeHtml(t("labelComponents"))} <span style="font-size:11px;color:var(--muted)">（原版组件 / 自定义 JSON）</span></div>`;
           const comp = document.createElement("textarea");
           comp.className = "textarea";
           comp.placeholder = t("placeholderComponentsExampleOutput");

@@ -10,7 +10,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** 虚拟货币 + 动态定价 **/
+/**
+ * 虚拟货币动态定价兑换策略
+ * <p>
+ * 根据输入物品的累计售出数量动态调整虚拟货币的产出数量。
+ * 销量越高，每单位输入可兑换的虚拟货币越少。
+ * 支持按重置天数周期性重置累计销量统计。
+ * 区别于物品动态定价策略，本策略以输入物品跟踪销量而非输出。
+ */
 public class CoinDynamicPricingStrategy implements ExchangeStrategy {
     @Override
     public void execute(ExchangeRule rule, int maxExchanges, Level level, UUID playerUUID, List<ItemStack> results, AtomicInteger totalVirtualCurrency) {
