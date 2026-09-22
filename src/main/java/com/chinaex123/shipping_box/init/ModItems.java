@@ -13,11 +13,11 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.List;
 
 public interface ModItems {
-    DeferredRegister.Items ITEMS_REGISTER =
-            DeferredRegister.createItems(ShippingBox.MOD_ID);
+    DeferredRegister.Items ITEMS_REGISTER = DeferredRegister.createItems(ShippingBox.MOD_ID);
 
     DeferredItem<Item> DIMENSIONAL_POUCH = ITEMS_REGISTER.register("dimensional_pouch",
             () -> new DimensionalPouchItem(new Item.Properties().rarity(Rarity.COMMON)));
+
     DeferredItem<Item> COPPER_CREEPER_COIN = ITEMS_REGISTER.register("copper_creeper_coin",
             () -> new ViScriptCoinItemServer(new Item.Properties().rarity(Rarity.COMMON), 1,
                     () -> List.of(Component.translatable("tooltip.item.shipping_box.copper_creeper_coin"))));
