@@ -195,28 +195,29 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @return 交互结果枚举值，CONSUME表示消耗此次交互
      */
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide()) {
-            BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
 
-            if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
-                // 检查玩家权限
-                if (autoBox.canPlayerAccess(player)) {
-                    // ========== 权限验证通过 ==========
-                    // 播放开启声音
-                    level.playSound(null, pos,
-                            SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.open")),
-                            SoundSource.BLOCKS,
-                            0.5F, level.getRandom().nextFloat() * 0.1F + 0.9F);
+        BlockEntity blockEntity = level.getBlockEntity(pos);
 
-                    // 打开GUI菜单，传递方块位置坐标
-                    player.openMenu(autoBox, buf -> buf.writeBlockPos(pos));
-                } else {
-                    // ========== 权限验证失败 ==========
-                    // 发送拒绝访问消息
-                    player.sendSystemMessage(Component.translatable("message.shipping_box.access_denied"));
-                }
+        if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
+            // 检查玩家权限
+            if (autoBox.canPlayerAccess(player)) {
+                // 权限验证通过
+                level.playSound(null, pos,
+                        SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.barrel.open")),
+                        SoundSource.BLOCKS,
+                        0.5F, level.getRandom().nextFloat() * 0.1F + 0.9F);
+
+                // 打开GUI菜单，传递方块位置坐标
+                player.openMenu(autoBox, buf -> buf.writeBlockPos(pos));
+            } else {
+                // 发送拒绝访问消息
+                player.sendSystemMessage(Component.translatable("message.shipping_box.access_denied"));
             }
         }
+
         return InteractionResult.CONSUME;
     }
 

@@ -1,7 +1,7 @@
 package com.chinaex123.shipping_box.client;
 
-import com.chinaex123.client.screen.AutoShippingBoxScreen;
-import com.chinaex123.client.screen.ShippingBoxScreen;
+import com.chinaex123.shipping_box.client.screen.AutoShippingBoxScreen;
+import com.chinaex123.shipping_box.client.screen.ShippingBoxScreen;
 import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.init.ModMenuTypes;
 import net.neoforged.api.distmarker.Dist;

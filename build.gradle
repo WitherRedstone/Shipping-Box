@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev' version '2.0.147'
     id 'idea'
 }
 
@@ -12,8 +12,13 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
+sourceSets.main.resources {
+    srcDir('src/generated/resources')
+
+    exclude("src/generated/**/.cache")
+}
+
 repositories {
-    mavenCentral()
     mavenLocal()
     maven {
         url "https://cursemaven.com"
@@ -31,12 +36,6 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 neoForge {
     version = project.neo_version
-
-    accessTransformers {
-        file('src/main/resources/META-INF/accesstransformer.cfg')
-    }
-
-    // Parchment 已在 moddev 2.0.141+ / MC 26.2 弃用并整合进官方运行时,按 26.2 模板不再声明此块
 
     runs {
         client {
@@ -56,14 +55,13 @@ neoForge {
         }
 
         data {
-            // 26.2 模板中已将 data() 切换为 clientData()
             clientData()
-
             programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
         }
 
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
+
             logLevel = org.slf4j.event.Level.DEBUG
         }
     }
@@ -75,58 +73,17 @@ neoForge {
     }
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
 configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
 dependencies {
-    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    // 联动
+    localRuntime "curse.maven:ecliptic-seasons-1118306:8814966"
 
-    // ============================================================
-    // 阶段 B 联动库版本匹配 (26.2 迁移)
-    // 规则:有 26.2 构建 → 升级到匹配的 fileId;
-    //       无 26.2 构建 → 注释掉依赖,防止旧版 jar 在 26.2 运行时报 ClassNotFoundException
-    // ============================================================
-
-    // 联动 - LDLib2 (有 26.2 构建,CurseForge 626676,26.2 最新 fileId=8338951)
-    implementation "curse.maven:ldlib-626676:8338951"
-    // 联动 - 节气 (有 26.2 构建,CurseForge 1118306,26.2 最新 fileId=8350863)
-    localRuntime "curse.maven:ecliptic-seasons-1118306:8350863"
-
-    // 辅助 - JEI (有 26.2 构建,238222 → 8352845)
-    localRuntime "curse.maven:jei-238222:8352845"
-    // 辅助 - Jade (有 26.2 构建,324717 → 8326243)
-    localRuntime "curse.maven:jade-324717:8326243"
-    // 辅助 - Pipez (有 26.2 构建,443900 → 8351639)
-    localRuntime "curse.maven:pipez-443900:8351639"
-
-    // ------------------------ 未发现 26.2 构建的联动/辅助库 ------------------------
-    // 联动 - ViScriptShop;无 26.2(仅 1.21.1) — 暂时禁用,待作者发布兼容版本
-    // implementation "curse.maven:viscriptshop-1408178:8318336"
-
-    // 规则测试 - Cloth Config (无 26.2,仅 1.21.1)
-    // localRuntime "curse.maven:cloth-config-348521:5729127"
-    // 规则测试 - Tide 潮汐 (无 26.2)
-    // localRuntime "curse.maven:tide-884685:8295525"
-    // 规则测试 - 鳍妙至极 (无 26.2)
-    // localRuntime "curse.maven:fintastic-supreme-1553548:8143923"
-    // 规则测试 - 品质作物 (无 26.2)
-    // localRuntime "curse.maven:quality-food-973932:7653821"
-    // 规则测试 - 森罗酒馆 (无 26.2)
-    // localRuntime "curse.maven:kaleidoscope-tavern-1475175:8091783"
-
-    // 辅助 - Apothic Attributes (无 26.2)
-    // localRuntime "curse.maven:apothic-attributes-898963:7445079"
-    // 辅助 - Placebo (无 26.2)
-    // localRuntime "curse.maven:placebo-283644:6926281"
-    // 辅助 - KubeJS (无 26.2,仅 26.1.2)
-    // localRuntime "curse.maven:kubejs-238086:7278501"
-    // 辅助 - Rhino (无 26.2,仅 26.1.2)
-    // localRuntime "curse.maven:rhino-416294:7104526"
-
+    // 辅助
+    localRuntime "curse.maven:pipez-443900:8630085"
+    implementation "curse.maven:jei-238222:8937444"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -134,7 +91,6 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
             neo_version            : neo_version,
-            loader_version_range   : loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,
@@ -147,6 +103,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 }
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
+
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
@@ -169,8 +126,4 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
-}
-
-tasks.named('test', Test).configure {
-    useJUnitPlatform()
 }
