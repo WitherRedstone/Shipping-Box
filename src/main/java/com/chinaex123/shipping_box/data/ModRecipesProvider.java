@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.dataGen;
+package com.chinaex123.shipping_box.data;
 
 import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.init.ModBlocks;
@@ -23,8 +23,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
     protected void buildRecipes(@NotNull RecipeOutput recipeOutput) {
 
         // 售货箱
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModBlocks.SHIPPING_BOX.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.SHIPPING_BOX.get())
                 .pattern("DBD")
                 .pattern("CAC")
                 .pattern("DBD")
@@ -34,8 +33,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .define('D', Tags.Items.GEMS_EMERALD)
                 .unlockedBy("has_shipping_box", has(Items.DIAMOND))
                 .save(recipeOutput);
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModBlocks.AUTO_SHIPPING_BOX.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.AUTO_SHIPPING_BOX.get())
                 .pattern("BBB")
                 .pattern("BAB")
                 .pattern("BBB")
@@ -45,8 +43,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .save(recipeOutput);
 
         // 次元钱袋
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModItems.DIMENSIONAL_POUCH.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.DIMENSIONAL_POUCH.get())
                 .pattern("BCB")
                 .pattern("CAC")
                 .pattern("BCB")
@@ -58,8 +55,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
 
         /*===================== 爬爬币 有序 =====================*/
         // 爬爬币
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModItems.IRON_CREEPER_COIN.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.IRON_CREEPER_COIN.get())
                 .pattern("AAA")
                 .pattern("A A")
                 .pattern("AAA")
@@ -67,8 +63,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .unlockedBy("has_iron_creeper_coin", has(ModItems.COPPER_CREEPER_COIN))
                 .save(recipeOutput);
         // 金爬爬币
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModItems.GOLD_CREEPER_COIN.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.GOLD_CREEPER_COIN.get())
                 .pattern("AA ")
                 .pattern("   ")
                 .pattern("   ")
@@ -76,8 +71,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .unlockedBy("has_gold_creeper_coin", has(ModItems.IRON_CREEPER_COIN))
                 .save(recipeOutput);
         // 钻石爬爬币
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModItems.DIAMOND_CREEPER_COIN.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.DIAMOND_CREEPER_COIN.get())
                 .pattern("AA ")
                 .pattern("AA ")
                 .pattern("   ")
@@ -85,8 +79,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .unlockedBy("has_diamond_creeper_coin", has(ModItems.DIAMOND_CREEPER_COIN))
                 .save(recipeOutput);
         // 下界合金爬爬币
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModItems.NETHERITE_CREEPER_COIN.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.NETHERITE_CREEPER_COIN.get())
                 .pattern("AAA")
                 .pattern("A A")
                 .pattern("AAA")
@@ -95,8 +88,7 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
                 .save(recipeOutput);
 
         // 混沌立方爬爬币
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC,
-                        ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get())
                 .pattern("AAA")
                 .pattern("A A")
                 .pattern("AAA")
@@ -107,32 +99,27 @@ public class ModRecipesProvider extends RecipeProvider implements IConditionBuil
 
         /*===================== 爬爬币 无序 =====================*/
         // 铜爬爬币
-        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
-                        ModItems.COPPER_CREEPER_COIN.get(), 8)
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.COPPER_CREEPER_COIN.get(), 8)
                 .requires(ModItems.IRON_CREEPER_COIN.get())
                 .unlockedBy("has_copper_creeper_coin", has(ModItems.IRON_CREEPER_COIN.get()))
                 .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "copper_creeper_coin_shapeless"));
         // 铁爬爬币
-        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
-                        ModItems.IRON_CREEPER_COIN.get(), 2)
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.IRON_CREEPER_COIN.get(), 2)
                 .requires(ModItems.GOLD_CREEPER_COIN.get())
                 .unlockedBy("has_iron_creeper_coin_shapeless", has(ModItems.GOLD_CREEPER_COIN.get()))
                 .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "iron_creeper_coin_shapeless"));
         // 金爬爬币
-        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
-                        ModItems.GOLD_CREEPER_COIN.get(), 4)
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.GOLD_CREEPER_COIN.get(), 4)
                 .requires(ModItems.DIAMOND_CREEPER_COIN.get())
                 .unlockedBy("has_gold_creeper_coin_shapeless", has(ModItems.DIAMOND_CREEPER_COIN.get()))
                 .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "gold_creeper_coin_shapeless"));
         // 钻石爬爬币
-        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
-                        ModItems.DIAMOND_CREEPER_COIN.get(), 8)
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.DIAMOND_CREEPER_COIN.get(), 8)
                 .requires(ModItems.NETHERITE_CREEPER_COIN.get())
                 .unlockedBy("has_diamond_creeper_coin_shapeless", has(ModItems.NETHERITE_CREEPER_COIN.get()))
                 .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "diamond_creeper_coin_shapeless"));
         // 下界合金爬爬币
-        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC,
-                        ModItems.NETHERITE_CREEPER_COIN.get(), 8)
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModItems.NETHERITE_CREEPER_COIN.get(), 8)
                 .requires(ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get())
                 .unlockedBy("has_symbols_chaos_creeper_coin_shapeless", has(ModItems.SYMBOLS_CHAOS_CREEPER_COIN.get()))
                 .save(recipeOutput, ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "netherite_creeper_coin_shapeless"));

@@ -21,14 +21,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 兑换提示提供者；
- * 生成物品兑换规则和动态定价信息的tooltip
+ * 兑换提示提供者。
+ * <p>
+ * 生成物品兑换规则和动态定价信息的 tooltip。
+ * 支持虚拟货币、动态定价、权重掉落与节气联动等多种兑换模式的显示。
  */
 public class ExchangeTooltipProvider {
+
+    /** 日志记录器 */
     private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeTooltipProvider.class);
 
     /**
-     * 获取物品的兑换提示信息
+     * 获取物品的兑换提示信息。
+     * <p>
+     * 遍历所有兑换规则，匹配输入物品后构建对应的提示内容，
+     * 包括主要兑换信息以及动态定价、权重物品、节气联动等附加信息行。
      *
      * @param stack 要检查的物品堆
      * @return 兑换提示数据，如果不支持兑换则返回 null
@@ -135,12 +142,12 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 根据兑换规则和输出物品类型确定正确的物品标识符
+     * 根据兑换规则和输出物品类型确定正确的物品标识符。
      * <p>
      * 不同的兑换模式使用不同的标识符：
-     * - 动态定价+虚拟货币模式：使用输入物品作为标识符
-     * - 普通动态定价模式：使用输出物品作为标识符
-     * - 其他模式：使用输入物品作为标识符
+     * - 动态定价+虚拟货币模式：使用输入物品作为标识符；
+     * - 普通动态定价模式：使用输出物品作为标识符；
+     * - 其他模式：使用输入物品作为标识符。
      *
      * @param output 输出物品对象
      * @param rule   兑换规则对象
@@ -160,14 +167,14 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建动态定价信息行组件
+     * 构建动态定价信息行组件。
      * <p>
      * 根据兑换规则和输出物品类型生成动态定价的显示信息，
      * 包括当前动态价格和已售出数量，使用统一的颜色风格进行显示。
      *
      * @param output 输出物品对象，包含动态定价配置信息
      * @param rule   兑换规则对象，用于确定物品标识符
-     * @return 格式化的动态定价信息组件，如果发生异常则返回null
+     * @return 格式化的动态定价信息组件，如果发生异常则返回 null
      */
     private static Component buildDynamicInfoLine(ExchangeRule.OutputItem output, ExchangeRule rule) {
         try {
@@ -188,13 +195,13 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建权重物品信息行组件
+     * 构建权重物品信息行组件。
      * <p>
      * 根据权重物品列表生成格式化的显示信息，展示可能获得的物品名称。
-     * 最多显示3个物品，超出部分用"以及更多"提示代替，使用灰色方括号包装。
+     * 最多显示 3 个物品，超出部分用"以及更多"提示代替，使用灰色方括号包装。
      *
      * @param output 输出物品对象，包含权重物品列表
-     * @return 格式化的权重物品信息组件，如果发生异常或无物品则返回null
+     * @return 格式化的权重物品信息组件，如果发生异常或无物品则返回 null
      */
     private static Component buildWeightItemsInfoLine(ExchangeRule.OutputItem output) {
         try {
@@ -205,7 +212,7 @@ public class ExchangeTooltipProvider {
 
             // 构建物品名称列表
             List<Component> itemNames = new ArrayList<>();
-            int displayLimit = Math.min(3, weightedItems.size()); // 最多显示3个物品
+            int displayLimit = Math.min(3, weightedItems.size()); // 最多显示 3 个物品
 
             for (int i = 0; i < displayLimit; i++) {
                 ExchangeRule.WeightedItem item = weightedItems.get(i);
@@ -240,12 +247,12 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建节气联动信息行组件
+     * 构建节气联动信息行组件。
      * <p>
-     * 根据节气配置生成季节、加成和减益的显示信息
+     * 根据节气配置生成季节、加成和减益的显示信息。
      *
      * @param output 输出物品对象，包含节气联动配置
-     * @return 格式化的节气信息组件数组 [销售季节，应季加成/非应季减益]，如果发生异常则返回 null
+     * @return 格式化的节气信息组件数组 [销售季节，应季加成，非应季减益]，如果发生异常则返回 null
      */
     private static Component[] buildEclipticSeasonsInfoLines(ExchangeRule.OutputItem output) {
         try {
@@ -277,7 +284,7 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建应季加成文本
+     * 构建应季加成文本。
      *
      * @param props 节气配置属性
      * @return 格式化的加成显示组件
@@ -294,7 +301,7 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建非应季减益文本
+     * 构建非应季减益文本。
      *
      * @param props 节气配置属性
      * @return 格式化的减益显示组件
@@ -311,7 +318,7 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建季节显示文本
+     * 构建季节显示文本。
      *
      * @param props 节气配置属性
      * @return 格式化的季节显示组件
@@ -350,8 +357,10 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建主要的兑换信息显示组件
-     * 根据不同的兑换模式（动态定价 + 虚拟货币、普通虚拟货币、普通物品）生成相应的 tooltip 显示
+     * 构建主要的兑换信息显示组件。
+     * <p>
+     * 根据不同的兑换模式（动态定价 + 虚拟货币、普通虚拟货币、普通物品）
+     * 生成相应的 tooltip 显示。
      *
      * @param input  输入物品信息
      * @param output 输出物品信息
@@ -430,12 +439,12 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 根据兑换规则和输出物品类型确定正确的物品标识符
+     * 根据兑换规则和输出物品类型确定用于重置信息的物品标识符。
      * <p>
      * 不同的兑换模式使用不同的标识符：
-     * - 动态定价+虚拟货币模式：使用输入物品作为标识符
-     * - 普通动态定价模式：使用输出物品作为标识符
-     * - 其他模式：使用输入物品作为标识符
+     * - 动态定价+虚拟货币模式：使用输入物品作为标识符；
+     * - 普通动态定价模式：使用输出物品作为标识符；
+     * - 其他模式：使用输入物品作为标识符。
      *
      * @param output 输出物品对象
      * @param rule   兑换规则对象
@@ -455,12 +464,13 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建动态定价模式的重置信息行组件
-     * 根据不同的重置模式和销售状态生成相应的重置周期显示信息
+     * 构建动态定价模式的重置信息行组件。
+     * <p>
+     * 根据不同的重置模式和销售状态生成相应的重置周期显示信息。
      *
      * @param output 输出物品信息，包含动态定价属性
      * @param rule   兑换规则对象，用于获取输入物品标识符
-     * @return 格式化的Component显示组件，包含重置周期信息；如果发生异常则返回null
+     * @return 格式化的 Component 显示组件，包含重置周期信息；如果发生异常则返回 null
      */
     private static Component buildResetInfoLine(ExchangeRule.OutputItem output, ExchangeRule rule) {
         try {
@@ -512,13 +522,14 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 获取简化的输出物品名称显示组件
-     * 根据不同的输出模式（权重、动态定价、虚拟货币等）返回相应的显示文本
-     * 不包含复杂的动态定价详细信息，主要用于tooltip的基础显示
+     * 获取简化的输出物品名称显示组件。
+     * <p>
+     * 根据不同的输出模式（权重、动态定价、虚拟货币等）返回相应的显示文本，
+     * 不包含复杂的动态定价详细信息，主要用于 tooltip 的基础显示。
      *
      * @param output 输出物品对象，包含类型、数量等信息
      * @param rule   兑换规则对象，用于获取输入物品信息（主要用于虚拟货币模式）
-     * @return 格式化的Component显示组件，包含简化后的输出物品信息
+     * @return 格式化的 Component 显示组件，包含简化后的输出物品信息
      */
     private static Component getSimpleOutputName(ExchangeRule.OutputItem output, ExchangeRule rule) {
         try {
@@ -575,9 +586,13 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 获取输出物品的本地化显示名称
+     * 获取输出物品的本地化显示名称。
+     * <p>
+     * 根据输出类型分别处理权重、动态定价与虚拟货币等模式，
+     * 并组合基础名称与动态定价信息。
      *
      * @param output 输出物品对象
+     * @param rule   兑换规则对象，用于获取输入物品标识符
      * @return 物品的本地化名称组件
      */
     private static Component getLocalizedItemName(ExchangeRule.OutputItem output, ExchangeRule rule) {
@@ -593,7 +608,7 @@ public class ExchangeTooltipProvider {
                 // 检查是否为动态定价+虚拟货币模式
                 if (output.isCoin()) {
                     // 虚拟货币模式：显示虚拟货币信息
-                    // 使用输入物品作为标识符，因为虚拟货币模式下output.getItem()可能为null
+                    // 使用输入物品作为标识符，因为虚拟货币模式下 output.getItem() 可能为 null
                     String itemIdentifier = rule.getInputs().getFirst().getItem();
 
                     // 获取销售相关信息
@@ -648,20 +663,30 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 获取输出物品的本地化显示名称（简化版本）
-     * 为不涉及动态定价+虚拟货币复杂逻辑的场景提供便利接口
-     * 通过调用双参数版本实现，传入null作为rule参数
+     * 获取输出物品的本地化显示名称（简化版本）。
+     * <p>
+     * 为不涉及动态定价+虚拟货币复杂逻辑的场景提供便利接口，
+     * 通过调用双参数版本实现，传入 null 作为 rule 参数。
      *
      * @param output 输出物品对象
      * @return 物品的本地化名称组件
      */
     private static Component getLocalizedItemName(ExchangeRule.OutputItem output) {
-        // 对于不涉及动态定价+虚拟货币的情况，可以传入null作为rule
+        // 对于不涉及动态定价+虚拟货币的情况，可以传入 null 作为 rule
         return getLocalizedItemName(output, null);
     }
 
     /**
-     * 构建动态定价信息显示
+     * 构建动态定价信息显示。
+     * <p>
+     * 组合数量、已售信息与重置周期信息，根据重置模式分行显示。
+     *
+     * @param dynamicCount      当前动态数量
+     * @param soldCount         已售出数量
+     * @param resetDay          重置天数
+     * @param daysSinceLastSale 距上次销售的天数
+     * @param remainingDays     剩余重置天数
+     * @return 组合后的显示组件
      */
     private static Component buildDynamicPricingInfo(int dynamicCount, int soldCount,
                                                      int resetDay, int daysSinceLastSale, int remainingDays) {
@@ -675,7 +700,7 @@ public class ExchangeTooltipProvider {
             Component neverResetInfo = Component.translatable("tooltip.shipping_box.reset_info_never_reset")
                     .withStyle(ChatFormatting.DARK_GREEN);
 
-            // 返回多个独立的组件，这样tooltip会分行显示
+            // 返回多个独立的组件，这样 tooltip 会分行显示
             return Component.empty()
                     .append(baseInfo)
                     .append(Component.literal("\n"))  // 添加换行符
@@ -717,7 +742,16 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建虚拟货币+动态定价信息显示
+     * 构建虚拟货币+动态定价信息显示。
+     * <p>
+     * 组合虚拟货币数量、已售信息与重置周期信息。
+     *
+     * @param dynamicCount      当前动态数量
+     * @param soldCount         已售出数量
+     * @param resetDay          重置天数
+     * @param daysSinceLastSale 距上次销售的天数
+     * @param remainingDays     剩余重置天数
+     * @return 组合后的显示组件
      */
     private static Component buildVirtualCurrencyDynamicPricingInfo(int dynamicCount, int soldCount,
                                                                     int resetDay, int daysSinceLastSale, int remainingDays) {
@@ -763,7 +797,7 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 获取带组件信息的物品名称显示
+     * 获取带组件信息的物品名称显示。
      *
      * @param itemIdentifier 物品标识符
      * @param components     组件信息
@@ -790,7 +824,9 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 构建权重物品的显示文本
+     * 构建权重物品的显示文本。
+     * <p>
+     * 最多显示 3 个物品名称，超出部分用"以及更多"提示代替，用斜杠连接。
      *
      * @param weightedItems 权重物品列表
      * @return 格式化的显示组件
@@ -800,7 +836,7 @@ public class ExchangeTooltipProvider {
             // 只显示物品名称，不限制数量和权重
             List<Component> itemNames = new ArrayList<>();
 
-            // 最多显示3个物品
+            // 最多显示 3 个物品
             int displayLimit = Math.min(3, weightedItems.size());
 
             for (int i = 0; i < displayLimit; i++) {
@@ -838,7 +874,7 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 根据物品标识符获取本地化名称
+     * 根据物品标识符获取本地化名称。
      *
      * @param itemIdentifier 物品标识符字符串
      * @return 物品的本地化名称组件，如果找不到则返回标识符本身
@@ -855,8 +891,9 @@ public class ExchangeTooltipProvider {
     }
 
     /**
-     * 获取输入物品的本地化显示名称
-     * 支持标签和物品ID两种类型的名称解析
+     * 获取输入物品的本地化显示名称。
+     * <p>
+     * 支持标签和物品 ID 两种类型的名称解析。
      *
      * @param input 输入物品对象
      * @return 物品的本地化名称组件
@@ -872,7 +909,7 @@ public class ExchangeTooltipProvider {
                 }
                 return Component.literal("#" + tagName);
             }
-            // 如果是物品ID
+            // 如果是物品 ID
             else if (input.getItem() != null && !input.getItem().isEmpty()) {
                 return getLocalizedItemNameWithComponents(input.getItem(), input.getComponents());
             }
@@ -882,9 +919,14 @@ public class ExchangeTooltipProvider {
         return Component.translatable("tooltip.shipping_box.unknown_item").withStyle(ChatFormatting.RED);
     }
 
-
     /**
-     * 获取最新的销售计数
+     * 获取最新的销售计数。
+     * <p>
+     * 在客户端环境下优先使用缓存数据，缓存不可用时回退到服务端数据；
+     * 均失败时返回 0 作为默认值。
+     *
+     * @param itemIdentifier 物品标识符
+     * @return 最新的销售计数
      */
     private static int getLatestSoldCount(String itemIdentifier) {
         try {
@@ -896,7 +938,7 @@ public class ExchangeTooltipProvider {
             // 回退到服务器数据
             return DynamicPricingManager.getSoldCount(itemIdentifier);
         } catch (Exception e) {
-            // 如果都失败，返回0作为默认值
+            // 如果都失败，返回 0 作为默认值
             return 0;
         }
     }

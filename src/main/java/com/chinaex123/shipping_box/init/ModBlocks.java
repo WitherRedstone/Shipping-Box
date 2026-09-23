@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 public class ModBlocks {
     public static final DeferredRegister.Blocks BLOCK_REGISTER = DeferredRegister.createBlocks(ShippingBox.MOD_ID);
 
-
+    /** 售货箱 */
     public static final DeferredBlock<Block> SHIPPING_BOX =
             registerBlocks("shipping_box", () -> new ShippingBoxBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.WOOD)
@@ -28,6 +28,8 @@ public class ModBlocks {
                     .noOcclusion()
                     .requiresCorrectToolForDrops()
             ), Rarity.UNCOMMON);
+
+    /** 自动售货箱 */
     public static final DeferredBlock<Block> AUTO_SHIPPING_BOX =
             registerBlocks("auto_shipping_box", () -> new AutoShippingBoxBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.WOOD)
@@ -51,7 +53,7 @@ public class ModBlocks {
 
     // 为不需要特殊稀有度的方块保留原有方法
     private static <T extends Block> void registerBlockItems(String name, DeferredBlock<T> block) {
-        registerBlockItems(name, block, Rarity.COMMON); // 默认普通稀有度
+        registerBlockItems(name, block, Rarity.COMMON);
     }
 
     /**

@@ -6,15 +6,16 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 /**
- * 工具提示数据类
- * 存储物品的兑换信息用于显示在工具提示中
- *
+ * 工具提示数据类。
+ * <p>
+ * 存储物品的兑换信息，用于显示在工具提示中。
+ * <p>
  * 当玩家将鼠标悬停在售货箱中的物品上时，
  * 此类提供需要显示的额外信息，包括：
- * - 该物品可以兑换成什么
- * - 兑换所需的数量
- * - 兑换产出的数量
- * - 额外的说明信息
+ * - 该物品可以兑换成什么；
+ * - 兑换所需的数量；
+ * - 兑换产出的数量；
+ * - 额外的说明信息。
  */
 public class TooltipData {
 
@@ -36,10 +37,8 @@ public class TooltipData {
     /** 额外的行文本（如：价格加成、特殊提示等） */
     private final List<Component> additionalLines;
 
-    // ==================== 构造函数 ====================
-
     /**
-     * 构造函数（基础版）
+     * 构造工具提示数据。
      *
      * @param exchangeInfo 兑换信息文本列表
      * @param inputStack   输入物品（兑换消耗的物品）
@@ -52,8 +51,9 @@ public class TooltipData {
     }
 
     /**
-     * 构造函数（完整版）
-     * 支持额外的行文本，用于显示特殊信息
+     * 构造工具提示数据（完整版）。
+     * <p>
+     * 支持额外的行文本，用于显示特殊信息。
      *
      * @param exchangeInfo    兑换信息文本列表
      * @param inputStack      输入物品（兑换消耗的物品）
@@ -73,7 +73,7 @@ public class TooltipData {
     }
 
     /**
-     * 获取兑换信息文本列表
+     * 获取兑换信息文本列表。
      *
      * @return 兑换信息文本列表
      */
@@ -82,7 +82,7 @@ public class TooltipData {
     }
 
     /**
-     * 获取输入物品（兑换消耗的物品）
+     * 获取输入物品（兑换消耗的物品）。
      *
      * @return 输入物品堆栈
      */
@@ -91,7 +91,7 @@ public class TooltipData {
     }
 
     /**
-     * 获取输出物品（兑换产出的物品）
+     * 获取输出物品（兑换产出的物品）。
      *
      * @return 输出物品堆栈
      */
@@ -100,7 +100,7 @@ public class TooltipData {
     }
 
     /**
-     * 获取输入物品的数量
+     * 获取输入物品的数量。
      *
      * @return 消耗数量
      */
@@ -109,7 +109,7 @@ public class TooltipData {
     }
 
     /**
-     * 获取输出物品的数量
+     * 获取输出物品的数量。
      *
      * @return 产出数量
      */
@@ -118,7 +118,7 @@ public class TooltipData {
     }
 
     /**
-     * 获取额外的行文本
+     * 获取额外的行文本。
      *
      * @return 额外行文本列表
      */
@@ -127,7 +127,7 @@ public class TooltipData {
     }
 
     /**
-     * 添加额外的行文本
+     * 添加额外的行文本。
      *
      * @param line 要添加的行文本
      */
@@ -136,7 +136,7 @@ public class TooltipData {
     }
 
     /**
-     * 检查是否包含兑换信息
+     * 检查是否包含兑换信息。
      *
      * @return 如果有兑换信息则返回 true，否则返回 false
      */
@@ -145,7 +145,7 @@ public class TooltipData {
     }
 
     /**
-     * 检查是否包含额外的行文本
+     * 检查是否包含额外的行文本。
      *
      * @return 如果有额外行文本则返回 true，否则返回 false
      */

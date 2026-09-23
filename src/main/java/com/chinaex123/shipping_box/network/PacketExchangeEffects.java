@@ -12,30 +12,44 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** 兑换特效包 **/
+/**
+ * 兑换特效包。
+ * <p>
+ * 服务端在兑换成功后向客户端发送此数据包，由客户端在玩家位置生成
+ * 魔法阵粒子特效。是否生成特效由配置开关控制。
+ */
 public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
+
+    /** 网络包类型标识 */
     public static final Type<PacketExchangeEffects> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, "exchange_effects")
     );
 
+    /** 网络包编解码器，仅携带兑换金额字段 */
     public static final StreamCodec<FriendlyByteBuf, PacketExchangeEffects> STREAM_CODEC =
             StreamCodec.composite(
                     ByteBufCodecs.INT, PacketExchangeEffects::amount,
                     PacketExchangeEffects::new
             );
 
+    /**
+     * 获取网络包类型。
+     *
+     * @return 网络包类型标识
+     */
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 
     /**
-     * 处理兑换特效数据包
+     * 处理兑换特效数据包。
      * <p>
      * 当客户端收到此数据包时，会在玩家位置生成魔法阵粒子特效。
      * 使用 enqueueWork 确保特效在主线程中执行，以保证粒子生成的安全性。
+     * 若配置未启用特效则直接返回。
      *
-     * @param packet 包含特效数据的数据包实例（此处未使用）
+     * @param packet  包含特效数据的数据包实例（此处未使用）
      * @param context 网络上下文，提供玩家信息和任务调度方法
      */
     public static void handle(PacketExchangeEffects packet, IPayloadContext context) {
@@ -55,7 +69,7 @@ public record PacketExchangeEffects(int amount) implements CustomPacketPayload {
     }
 
     /**
-     * 在玩家周围生成魔法阵特效
+     * 在玩家周围生成魔法阵特效。
      * <p>
      * 通过大量螺旋向内运动的粒子创建爆发式的视觉特效。
      * 使用 END_ROD（末影烛）和 TOTEM_OF_UNDYING（不死图腾）粒子营造魔法氛围，

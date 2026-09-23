@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.dataGen;
+package com.chinaex123.shipping_box.data;
 
 import com.chinaex123.shipping_box.init.ModBlocks;
 import net.minecraft.core.Holder;
@@ -15,12 +15,6 @@ public class ModBlockLootTablesProvider extends BlockLootSubProvider {
         super(Set.of(), FeatureFlags.REGISTRY.allFlags(), registries);
     }
 
-    /**
-     * 生成方块战利品表
-     * <p>
-     * 此方法用于定义模组中各个方块被破坏时的掉落物规则。
-     * 目前仅配置了运输箱方块的基础掉落规则。
-     */
     @Override
     protected void generate() {
         dropSelf(ModBlocks.SHIPPING_BOX.get());

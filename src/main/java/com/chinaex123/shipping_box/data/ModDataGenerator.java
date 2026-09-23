@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.dataGen;
+package com.chinaex123.shipping_box.data;
 
 import com.chinaex123.shipping_box.ShippingBox;
 import net.minecraft.core.HolderLookup;
@@ -32,23 +32,15 @@ public class ModDataGenerator {
         CompletableFuture<HolderLookup.Provider> lookupProvider = event.getLookupProvider();
         ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
 
-        // 注册配方生成器
-        generator.addProvider(event.includeServer(), new ModRecipesProvider(packOutput, lookupProvider));
-
-        // 注册战利品表生成器
         generator.addProvider(event.includeServer(), new LootTableProvider(packOutput, Collections.emptySet(),
                 List.of(new LootTableProvider.SubProviderEntry(ModBlockLootTablesProvider::new, LootContextParamSets.BLOCK)), lookupProvider));
 
-        // 注册方块状态生成器
+        generator.addProvider(event.includeServer(), new ModRecipesProvider(packOutput, lookupProvider));
         generator.addProvider(event.includeClient(), new ModBlockStatesProvider(packOutput, existingFileHelper));
-
-        // 注册物品模型生成器
         generator.addProvider(event.includeClient(), new ModItemModelsProvider(packOutput, existingFileHelper));
 
-        // 注册方块标签生成器
         BlockTagsProvider blockTagsProvider = new ModBlockTagsProvider(packOutput, lookupProvider, existingFileHelper);
-        generator.addProvider(event.includeServer(), blockTagsProvider);
-        // 注册物品标签生成器
+        generator.addProvider(event.includeServer(), new ModBlockTagsProvider(packOutput, lookupProvider, existingFileHelper));
         generator.addProvider(event.includeServer(), new ModItemTagsProvider(packOutput, lookupProvider, blockTagsProvider.contentsGetter(), existingFileHelper));
 
     }

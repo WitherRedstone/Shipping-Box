@@ -42,49 +42,60 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 本地Web编辑器服务器
+ * 本地 Web 编辑器服务器。
  * <p>
- * 在本地启动一个HTTP服务器，提供基于Web的规则编辑界面
- * 通过REST API与游戏服务端进行交互
+ * 在本地启动一个 HTTP 服务器，提供基于 Web 的规则编辑界面，
+ * 通过 REST API 与游戏服务端进行交互。
+ * 仅监听回环地址，并使用访问令牌校验请求合法性。
  */
 public final class WebEditorLocalServer {
 
-    // JSON序列化工具，用于格式化输出
+    /** JSON 序列化工具，用于格式化输出 */
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    // 安全的随机数生成器，用于生成访问令牌
+    /** 安全的随机数生成器，用于生成访问令牌 */
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    /** 请求行最大字节数 */
     private static final int MAX_REQUEST_LINE_BYTES = 4096;
+    /** 单个请求头行最大字节数 */
     private static final int MAX_HEADER_LINE_BYTES = 8192;
+    /** 请求头总字节数上限 */
     private static final int MAX_HEADER_BYTES = 16 * 1024;
+    /** 请求体最大字节数 */
     private static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
 
-    // 服务器套接字，用于监听HTTP请求
+    /** 服务器套接字，用于监听 HTTP 请求 */
     private static volatile ServerSocket serverSocket;
 
-    // 接受客户端连接的线程
+    /** 接受客户端连接的线程 */
     private static volatile Thread acceptThread;
 
-    // 线程池，用于处理客户端请求
+    /** 线程池，用于处理客户端请求 */
     private static volatile ExecutorService executor;
 
-    // 绑定的端口号
+    /** 绑定的端口号 */
     private static volatile int boundPort = -1;
 
-    // 访问令牌，用于验证请求合法性
+    /** 访问令牌，用于验证请求合法性 */
     private static volatile String token;
 
-    // 服务器运行状态标志
+    /** 服务器运行状态标志 */
     private static volatile boolean running = false;
 
-    // 私有构造函数，防止实例化
+    /**
+     * 私有构造函数，防止实例化。
+     */
     private WebEditorLocalServer() {}
 
     /**
-     * 启动本地Web服务器
+     * 启动本地 Web 服务器。
+     * <p>
+     * 使用传入令牌或自动生成新令牌；若服务器已在运行则直接返回现有 URL。
+     * 依次尝试在 38888-38950 端口范围内绑定回环地址，全部失败时抛出异常。
+     *
      * @param desiredToken 期望的令牌，如果为空则自动生成
-     * @return 访问URL，包含令牌参数
+     * @return 访问 URL，包含令牌参数
      * @throws IllegalStateException 如果无法绑定端口
      */
     public static synchronized String start(String desiredToken) {
@@ -95,12 +106,12 @@ public final class WebEditorLocalServer {
             token = desiredToken;
         }
 
-        // 如果服务器已在运行，直接返回URL
+        // 如果服务器已在运行，直接返回 URL
         if (running) {
             return buildUrl();
         }
 
-        // 尝试在38888-38950端口范围内绑定
+        // 尝试在 38888-38950 端口范围内绑定
         int port = 38888;
         ServerSocket created = null;
         while (port <= 38950) {
@@ -144,8 +155,9 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 停止本地Web服务器
-     * 关闭所有资源，释放端口
+     * 停止本地 Web 服务器。
+     * <p>
+     * 关闭所有资源并释放端口。
      */
     public static synchronized void stop() {
         running = false;
@@ -162,7 +174,8 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 轮换访问令牌，生成新的令牌
+     * 轮换访问令牌，生成新的令牌。
+     *
      * @return 新的令牌
      */
     public static synchronized String rotateToken() {
@@ -171,15 +184,17 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 构建访问URL
-     * @return 完整的URL地址
+     * 构建访问 URL。
+     *
+     * @return 完整的 URL 地址
      */
     private static String buildUrl() {
         return "http://127.0.0.1:" + boundPort + "/?token=" + token;
     }
 
     /**
-     * 生成随机的Base64编码令牌
+     * 生成随机的 Base64 编码令牌。
+     *
      * @return 生成的令牌字符串
      */
     private static String generateToken() {
@@ -189,16 +204,17 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 检查请求是否已授权
-     * @param uri 请求URI
-     * @return true如果token匹配
+     * 检查请求是否已授权。
+     *
+     * @param uri 请求 URI
+     * @return true 如果 token 匹配
      */
     private static boolean isAuthorized(URI uri) {
         String query = uri.getRawQuery();
         if (query == null || query.isEmpty()) {
             return false;
         }
-        // 解析查询参数，查找token
+        // 解析查询参数，查找 token
         for (String part : query.split("&")) {
             int idx = part.indexOf('=');
             if (idx <= 0) continue;
@@ -212,8 +228,9 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 解析URI中的查询参数
-     * @param uri 请求URI
+     * 解析 URI 中的查询参数。
+     *
+     * @param uri 请求 URI
      * @return 参数键值对映射
      */
     private static Map<String, String> parseQuery(URI uri) {
@@ -238,9 +255,10 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 从URI中获取请求的文件名
-     * @param uri 请求URI
-     * @return 文件名，默认为"editor.json"
+     * 从 URI 中获取请求的文件名。
+     *
+     * @param uri 请求 URI
+     * @return 文件名，默认为 "editor.json"
      */
     private static String getRequestedFile(URI uri) {
         String file = parseQuery(uri).getOrDefault("file", "editor.json");
@@ -251,15 +269,20 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 从输入流中读取所有字节
+     * 从输入流中读取所有字节。
+     *
+     * @param in 输入流
+     * @return 读取到的字节数组
+     * @throws IOException 读取过程发生 I/O 错误时抛出
      */
     private static byte[] readAllBytes(InputStream in) throws IOException {
         return in.readAllBytes();
     }
 
     /**
-     * 接受客户端连接的主循环
-     * 在独立线程中运行
+     * 接受客户端连接的主循环。
+     * <p>
+     * 在独立线程中运行，为每个连接设置读取超时并交由线程池处理。
      */
     private static void acceptLoop() {
         while (running) {
@@ -288,22 +311,26 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 处理单个客户端请求
-     * @param client 客户端Socket
+     * 处理单个客户端请求。
+     * <p>
+     * 读取并解析请求，处理 CORS 预检与令牌校验，
+     * 随后按请求方法与路径分发到各路由处理逻辑。
+     *
+     * @param client 客户端 Socket
      */
     private static void handleClient(Socket client) {
         try (client;
              InputStream rawIn = new BufferedInputStream(client.getInputStream());
              OutputStream out = client.getOutputStream()) {
 
-            // 读取HTTP请求
+            // 读取 HTTP 请求
             Request req = readRequest(rawIn);
             if (req == null) {
                 writeText(out, 400, "Bad Request");
                 return;
             }
 
-            // 解析URI
+            // 解析 URI
             URI uri;
             try {
                 uri = URI.create(req.pathWithQuery);
@@ -333,7 +360,7 @@ public final class WebEditorLocalServer {
 
             // ===== 路由处理 =====
 
-            // 1. 提供Web界面首页
+            // 1. 提供 Web 界面首页
             if ("GET".equals(req.method) && ("/".equals(path) || "/index.html".equals(path))) {
                 byte[] html = readClasspath("/assets/shipping_box/web/index.html");
                 if (html == null) {
@@ -405,15 +432,18 @@ public final class WebEditorLocalServer {
             // 未匹配到任何路由
             writeText(out, 404, "Not Found");
         } catch (IOException ignored) {
-            // 忽略IO异常
+            // 忽略 IO 异常
         }
     }
 
     /**
-     * 处理注册表请求，返回所有物品和标签列表
+     * 处理注册表请求，返回所有物品和标签列表。
+     *
+     * @param out 输出流
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void handleRegistry(OutputStream out) throws IOException {
-        // 收集所有物品ID
+        // 收集所有物品 ID
         JsonArray items = new JsonArray();
         BuiltInRegistries.ITEM.forEach(item -> {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
@@ -432,7 +462,7 @@ public final class WebEditorLocalServer {
             }
         });
 
-        // 构建JSON响应
+        // 构建 JSON 响应
         JsonObject resp = new JsonObject();
         resp.add("items", items);
         resp.add("tags", tags);
@@ -441,7 +471,11 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 处理图标请求，优先从缓存获取
+     * 处理图标请求，优先从缓存获取。
+     *
+     * @param out 输出流
+     * @param uri 请求 URI
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void handleIcon(OutputStream out, URI uri) throws IOException {
         String itemId = parseQuery(uri).getOrDefault("id", "");
@@ -473,18 +507,21 @@ public final class WebEditorLocalServer {
             }
         }
 
-        // 如果缓存不存在，返回透明PNG作为占位
+        // 如果缓存不存在，返回透明 PNG 作为占位
         byte[] transparent = generateTransparentPng();
         writeBytes(out, 200, "image/png", transparent);
     }
 
     /**
-     * 生成一个有效的透明PNG图片（1x1像素）
-     * 优先使用NativeImage生成，失败则使用硬编码的Base64数据
+     * 生成一个有效的透明 PNG 图片（1x1 像素）。
+     * <p>
+     * 优先使用 NativeImage 生成，失败则使用硬编码的 Base64 数据。
+     *
+     * @return 透明 PNG 字节数组
      */
     private static byte[] generateTransparentPng() {
         try {
-            // 创建1x1透明图像
+            // 创建 1x1 透明图像
             NativeImage img = new NativeImage(NativeImage.Format.RGBA, 1, 1, false);
             img.setPixelRGBA(0, 0, 0);
             Path tempFile = Files.createTempFile("sbox_transparent_", ".png");
@@ -496,15 +533,21 @@ public final class WebEditorLocalServer {
                 return result;
             }
         } catch (Exception e) {
-            // 忽略生成透明PNG失败
+            // 忽略生成透明 PNG 失败
         }
-        // 硬编码的最小有效透明PNG（Base64编码）
+        // 硬编码的最小有效透明 PNG（Base64 编码）
         return Base64.getDecoder().decode(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5WvKsAAAAASUVORK5CYII=");
     }
 
     /**
-     * 处理清单请求，返回图标缓存清单
+     * 处理清单请求，返回图标缓存清单。
+     * <p>
+     * 若清单不存在则返回缺失缓存提示。
+     *
+     * @param out 输出流
+     * @param uri 请求 URI
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void handleManifest(OutputStream out, URI uri) throws IOException {
         if (!isAuthorized(uri)) {
@@ -529,7 +572,11 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 处理缓存状态请求，返回实时进度
+     * 处理缓存状态请求，返回实时进度。
+     *
+     * @param out 输出流
+     * @param uri 请求 URI
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void handleCacheStatus(OutputStream out, URI uri) throws IOException {
         if (!isAuthorized(uri)) {
@@ -550,7 +597,14 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 处理缓存图标文件请求，包含安全检查
+     * 处理缓存图标文件请求，包含安全检查。
+     * <p>
+     * 校验文件名与路径，防止目录遍历攻击，仅允许访问 items 与 blocks 目录下的 PNG 文件。
+     *
+     * @param out      输出流
+     * @param uri      请求 URI
+     * @param fullPath 请求的完整路径
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void handleCachedIcon(OutputStream out, URI uri, String fullPath) throws IOException {
         if (!isAuthorized(uri)) {
@@ -590,7 +644,14 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 处理文件加载请求
+     * 处理文件加载请求。
+     * <p>
+     * 生成请求 ID 后通过数据包请求服务端读取文件，
+     * 等待响应并解析为 JSON 返回；超时或无效 JSON 时返回相应错误。
+     *
+     * @param out 输出流
+     * @param uri 请求 URI
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void handleLoad(OutputStream out, URI uri) throws IOException {
         String file = getRequestedFile(uri);
@@ -598,7 +659,7 @@ public final class WebEditorLocalServer {
         CompletableFuture<WebEditorRequestTracker.Response> future = WebEditorRequestTracker.create(requestId);
         PacketDistributor.sendToServer(new PacketEditorReadFile(requestId, file));
 
-        // 等待服务器响应，超时5秒
+        // 等待服务器响应，超时 5 秒
         WebEditorRequestTracker.Response response;
         try {
             response = future.get(5, TimeUnit.SECONDS);
@@ -616,14 +677,14 @@ public final class WebEditorLocalServer {
             return;
         }
 
-        // 解析并返回JSON内容
+        // 解析并返回 JSON 内容
         String content = response.payload();
         try {
             JsonObject obj = JsonParser.parseString(content).getAsJsonObject();
             writeBytes(out, 200, "application/json; charset=utf-8",
                     GSON.toJson(obj).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            // 如果JSON无效，返回错误信息
+            // 如果 JSON 无效，返回错误信息
             JsonObject fallback = new JsonObject();
             fallback.addProperty("ok", false);
             fallback.addProperty("error", "Invalid JSON in file: " + file);
@@ -634,7 +695,15 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 处理文件保存请求
+     * 处理文件保存请求。
+     * <p>
+     * 解析并校验请求体中的规则 JSON，随后通过数据包请求服务端保存文件，
+     * 等待响应并返回保存结果；超时或格式非法时返回相应错误。
+     *
+     * @param out       输出流
+     * @param uri       请求 URI
+     * @param bodyBytes 请求体字节
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void handleSave(OutputStream out, URI uri, byte[] bodyBytes) throws IOException {
         // 解析请求体
@@ -681,7 +750,11 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 从类路径读取资源文件
+     * 从类路径读取资源文件。
+     *
+     * @param path 资源路径
+     * @return 资源字节数组，资源不存在时返回 null
+     * @throws IOException 读取过程发生 I/O 错误时抛出
      */
     private static byte[] readClasspath(String path) throws IOException {
         try (InputStream in = WebEditorLocalServer.class.getResourceAsStream(path)) {
@@ -693,7 +766,12 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 发送文本响应
+     * 发送文本响应。
+     *
+     * @param out    输出流
+     * @param status HTTP 状态码
+     * @param text   响应文本
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void writeText(OutputStream out, int status, String text) throws IOException {
         writeBytes(out, status, "text/plain; charset=utf-8",
@@ -701,18 +779,30 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 发送字节响应（默认禁止缓存）
+     * 发送字节响应（默认禁止缓存）。
+     *
+     * @param out         输出流
+     * @param status      HTTP 状态码
+     * @param contentType 内容类型
+     * @param body        响应体
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void writeBytes(OutputStream out, int status, String contentType, byte[] body) throws IOException {
         writeBytes(out, status, contentType, body, "no-store");
     }
 
     /**
-     * 发送HTTP响应
-     * @param status HTTP状态码
-     * @param contentType 内容类型
-     * @param body 响应体
+     * 发送 HTTP 响应。
+     * <p>
+     * 写入状态行、内容类型、缓存控制、CORS 与内容长度等响应头，
+     * 随后写入响应体并刷新。
+     *
+     * @param out          输出流
+     * @param status       HTTP 状态码
+     * @param contentType  内容类型
+     * @param body         响应体
      * @param cacheControl 缓存控制头
+     * @throws IOException 写出响应时发生 I/O 错误
      */
     private static void writeBytes(OutputStream out, int status, String contentType,
                                    byte[] body, String cacheControl) throws IOException {
@@ -730,7 +820,7 @@ public final class WebEditorLocalServer {
         };
 
         byte[] bytes = body == null ? new byte[0] : body;
-        // 构建HTTP响应头
+        // 构建 HTTP 响应头
         String headers =
                 "HTTP/1.1 " + status + " " + reason + "\r\n" +
                         "Content-Type: " + contentType + "\r\n" +
@@ -748,9 +838,14 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 读取HTTP请求
+     * 读取 HTTP 请求。
+     * <p>
+     * 解析请求行与请求头，并依据内容长度读取请求体；
+     * 超出各类长度上限时返回 null。
+     *
      * @param in 输入流
-     * @return 请求对象，包含方法、路径和请求体
+     * @return 请求对象，包含方法、路径和请求体；解析失败返回 null
+     * @throws IOException 读取过程发生 I/O 错误时抛出
      */
     private static Request readRequest(InputStream in) throws IOException {
         String requestLine = readLine(in, MAX_REQUEST_LINE_BYTES);
@@ -808,7 +903,14 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 浠庤緭鍏ユ祦璇诲彇涓€琛屾枃鏈?
+     * 从输入流读取一行文本（以换行符结束，忽略回车符）。
+     * <p>
+     * 超出最大长度限制时返回 null。
+     *
+     * @param in       输入流
+     * @param maxBytes 单行最大字节数
+     * @return 读取到的行文本，流结束且无内容时返回 null
+     * @throws IOException 读取过程发生 I/O 错误时抛出
      */
     private static String readLine(InputStream in, int maxBytes) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(128, maxBytes));
@@ -834,7 +936,14 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * 浠庤緭鍏ユ祦璇诲彇鎸囧畾闀垮害鐨勫瓧鑺?
+     * 从输入流读取指定长度的字节。
+     * <p>
+     * 长度非法或超出请求体上限时返回空数组；流提前结束时返回已读取的部分。
+     *
+     * @param in     输入流
+     * @param length 期望读取的字节数
+     * @return 读取到的字节数组
+     * @throws IOException 读取过程发生 I/O 错误时抛出
      */
     private static byte[] readFixedBytes(InputStream in, int length) throws IOException {
         if (length <= 0) {
@@ -861,7 +970,11 @@ public final class WebEditorLocalServer {
     }
 
     /**
-     * HTTP请求记录类
+     * HTTP 请求记录类。
+     *
+     * @param method        请求方法
+     * @param pathWithQuery 路径与查询字符串
+     * @param bodyBytes     请求体字节
      */
     private record Request(String method, String pathWithQuery, byte[] bodyBytes) {}
 }

@@ -32,21 +32,20 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 兑换配方管理器
+ * 兑换配方管理器。
  * <p>
- * 负责加载、解析和管理物品兑换规则
- * 通过资源重载系统动态加载配置文件
- * 提供配方匹配和物品消耗功能
- * 支持物品ID、标签和组件三种方式定义输入物品
+ * 负责加载、解析和管理物品兑换规则，通过资源重载系统动态加载配置文件，
+ * 提供配方匹配和物品消耗功能，支持物品 ID、标签和组件三种方式定义输入物品。
  */
 @EventBusSubscriber(modid = ShippingBox.MOD_ID)
 public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<ExchangeRule>> {
 
-    /** JSON解析器实例 */
+    /** JSON 解析器实例 */
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     /** 配置文件夹路径 */
     private static final String CONFIG_FOLDER = "exchange_rules";
+    /** 单条规则的计数值上限，用于校验非法数值 */
     private static final int MAX_RULE_COUNT = 1_000_000;
 
     /** 当前生效的兑换规则列表 */
@@ -56,10 +55,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     private static final List<String> pendingErrorMessages = new ArrayList<>();
 
     /**
-     * 准备阶段：从资源配置中加载并解析兑换规则
+     * 准备阶段：从资源配置中加载并解析兑换规则。
      *
      * @param resourceManager 资源管理器，用于访问配置文件
-     * @param profiler 性能分析器，用于监控加载性能
+     * @param profiler        性能分析器，用于监控加载性能
      * @return 解析后的有效兑换规则列表
      */
     @Override
@@ -150,7 +149,8 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 获取规则验证失败的详细信息
+     * 获取规则验证失败的详细信息。
+     *
      * @param rule 验证失败的规则
      * @return 详细错误信息键
      */
@@ -281,7 +281,8 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 检查是否为有效的季节名称
+     * 检查是否为有效的季节名称。
+     *
      * @param season 季节名称
      * @return 是否有效
      */
@@ -298,8 +299,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 服务器tick事件监听器
-     * 用于发送积累的错误信息给在线玩家
+     * 服务器刻事件监听器。
+     * <p>
+     * 用于发送积累的错误信息给在线玩家。
+     *
+     * @param event 服务端刻事件
      */
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
@@ -328,7 +332,8 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 解析本地化错误信息
+     * 解析本地化错误信息。
+     *
      * @param errorString 格式：key|param1|param2
      * @return 格式化后的文本组件
      */
@@ -360,9 +365,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 解析单个兑换规则JSON对象
+     * 解析单个兑换规则 JSON 对象。
      *
-     * @param json 规则JSON对象
+     * @param json 规则 JSON 对象
      * @return 解析后的兑换规则实例
      */
     private ExchangeRule parseRule(JsonObject json) {
@@ -395,10 +400,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 解析输入物品JSON对象
-     * 支持标签、物品ID和组件等多种定义方式
+     * 解析输入物品 JSON 对象。
+     * <p>
+     * 支持标签、物品 ID 和组件等多种定义方式。
      *
-     * @param inputObj 输入物品JSON对象
+     * @param inputObj 输入物品 JSON 对象
      * @return 解析后的输入物品实例
      */
     private ExchangeRule.InputItem parseInputItem(JsonObject inputObj) {
@@ -408,16 +414,16 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         if (inputObj.has("tag")) {
             input.setTag(inputObj.get("tag").getAsString());
         }
-        // 支持物品ID
+        // 支持物品 ID
         else if (inputObj.has("item")) {
             input.setItem(inputObj.get("item").getAsString());
         }
 
-        // 正确处理components字段的类型
+        // 正确处理 components 字段的类型
         if (inputObj.has("components")) {
             JsonElement componentsElement = inputObj.get("components");
             if (componentsElement.isJsonObject()) {
-                // 直接保存JsonObject
+                // 直接保存 JsonObject
                 input.setComponents(componentsElement.getAsJsonObject());
             } else if (componentsElement.isJsonPrimitive()) {
                 // 字符串格式
@@ -433,9 +439,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 解析输出物品JSON对象
+     * 解析输出物品 JSON 对象。
      *
-     * @param outputObj 输出物品JSON对象
+     * @param outputObj 输出物品 JSON 对象
      * @return 解析后的输出物品实例
      */
     private ExchangeRule.OutputItem parseOutputItem(JsonObject outputObj) {
@@ -448,9 +454,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             // 检查是否为动态定价+虚拟货币模式
             if (outputObj.has("coin") && outputObj.get("coin").getAsBoolean()) {
                 output.setCoin(true);
-                // 虚拟货币模式下不需要item字段，value数组定义了数量
+                // 虚拟货币模式下不需要 item 字段，value 数组定义了数量
             } else {
-                // 普通动态定价模式需要item字段
+                // 普通动态定价模式需要 item 字段
                 if (outputObj.has("item")) {
                     output.setItem(outputObj.get("item").getAsString());
                 }
@@ -591,11 +597,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             output.setItem(outputObj.get("item").getAsString());
         }
 
-        // 处理components字段的类型
+        // 处理 components 字段的类型
         if (outputObj.has("components")) {
             JsonElement componentsElement = outputObj.get("components");
             if (componentsElement.isJsonObject()) {
-                // 直接保存JsonObject
+                // 直接保存 JsonObject
                 output.setComponents(componentsElement.getAsJsonObject());
             } else if (componentsElement.isJsonPrimitive()) {
                 // 字符串格式
@@ -611,9 +617,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 解析权重物品JSON对象
+     * 解析权重物品 JSON 对象。
      *
-     * @param itemObj 权重物品JSON对象
+     * @param itemObj 权重物品 JSON 对象
      * @return 解析后的权重物品实例
      */
     private ExchangeRule.WeightedItem parseWeightedItem(JsonObject itemObj) {
@@ -644,11 +650,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 验证兑换规则的有效性
-     * 检查输入和输出物品是否都有效
+     * 验证兑换规则的有效性。
+     * <p>
+     * 检查输入和输出物品是否都有效。
      *
      * @param rule 要验证的兑换规则
-     * @return 规则有效返回true，否则返回false
+     * @return 规则有效返回 true，否则返回 false
      */
     private boolean validateRule(ExchangeRule rule) {
         // 验证所有输入物品
@@ -663,11 +670,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 验证输入物品的有效性
-     * 支持标签和物品ID两种验证方式
+     * 验证输入物品的有效性。
+     * <p>
+     * 支持标签和物品 ID 两种验证方式。
      *
      * @param input 输入物品对象
-     * @return 物品有效返回true，否则返回false
+     * @return 物品有效返回 true，否则返回 false
      */
     private boolean validateInputItem(ExchangeRule.InputItem input) {
         if (!isPositiveRuleNumber(input.getCount())) {
@@ -689,10 +697,22 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         return false;
     }
 
+    /**
+     * 校验计数值是否为正数且不超过上限。
+     *
+     * @param value 待校验的数值
+     * @return 合法返回 true
+     */
     private boolean isPositiveRuleNumber(int value) {
         return value > 0 && value <= MAX_RULE_COUNT;
     }
 
+    /**
+     * 校验动态定价属性是否合法。
+     *
+     * @param properties 动态定价属性
+     * @return 合法返回 true
+     */
     private boolean validateDynamicPricing(ExchangeRule.DynamicPricingProperties properties) {
         if (properties == null) {
             return false;
@@ -715,11 +735,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
         return true;
     }
+
     /**
-     * 验证输出物品的有效性
+     * 验证输出物品的有效性。
      *
      * @param output 输出物品对象
-     * @return 物品有效返回true，否则返回false
+     * @return 物品有效返回 true，否则返回 false
      */
     private boolean validateOutputItem(ExchangeRule.OutputItem output) {
         if (output == null) {
@@ -780,6 +801,13 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
         return validateItemWithComponents(output.getItem());
     }
+
+    /**
+     * 验证物品字符串（含可选组件）是否合法。
+     *
+     * @param itemString 物品字符串
+     * @return 合法返回 true
+     */
     private boolean validateItemWithComponents(String itemString) {
         try {
             String itemId = itemString;
@@ -798,7 +826,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                 }
             }
 
-            // 验证物品ID
+            // 验证物品 ID
             ResourceLocation itemResource = ResourceLocation.tryParse(itemId);
             if (itemResource == null) {
                 return false;
@@ -811,11 +839,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 验证组件字符串的格式有效性
-     * 检查组件名称和值的基本格式是否正确
+     * 验证组件字符串的格式有效性。
+     * <p>
+     * 检查组件名称和值的基本格式是否正确。
      *
-     * @param componentString 组件字符串，格式为"name=value"或"name1=value1,name2=value2"
-     * @return 格式有效返回true，否则返回false
+     * @param componentString 组件字符串，格式为 "name=value" 或 "name1=value1,name2=value2"
+     * @return 格式有效返回 true，否则返回 false
      */
     private boolean validateComponentString(String componentString) {
         if (componentString == null || componentString.isEmpty()) {
@@ -852,11 +881,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 应用阶段：将解析好的规则应用到当前环境中
+     * 应用阶段：将解析好的规则应用到当前环境中。
      *
-     * @param rules 解析后的规则列表
+     * @param rules           解析后的规则列表
      * @param resourceManager 资源管理器
-     * @param profiler 性能分析器
+     * @param profiler        性能分析器
      */
     @Override
     protected void apply(List<ExchangeRule> rules, ResourceManager resourceManager, ProfilerFiller profiler) {
@@ -864,7 +893,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 获取当前所有有效的兑换规则
+     * 获取当前所有有效的兑换规则。
      *
      * @return 当前规则列表的不可变视图
      */
@@ -873,8 +902,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 查找匹配给定物品列表的兑换规则
-     * 优先匹配精确度更高的规则（有组件要求 > 有标签要求 > 仅有物品 ID）
+     * 查找匹配给定物品列表的兑换规则。
+     * <p>
+     * 优先匹配精确度更高的规则（有组件要求 &gt; 有标签要求 &gt; 仅有物品 ID）。
      *
      * @param availableStacks 可用物品列表
      * @return 匹配的规则，如果没有匹配则返回 null
@@ -898,15 +928,16 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 计算规则的匹配精确度
+     * 计算规则的匹配精确度。
+     * <p>
      * 精确度评分标准（优先级从高到低）：
-     * 1. 有组件要求：基础 100 分
-     * 2. 组件内容复杂度：每个组件属性 +10 分
-     * 3. 组件嵌套深度：每层嵌套 +5 分
-     * 4. 仅有物品 ID: 基础 10 分
-     * 5. 有标签要求：基础 5 分
-     * 6. 有数量要求（大于 1）：额外 +1 分
-     * 7. 输入物品数量：每个输入物品 +2 分（多物品配方更精确）
+     * 1. 有组件要求：基础 100 分；
+     * 2. 组件内容复杂度：每个组件属性 +10 分；
+     * 3. 组件嵌套深度：每层嵌套 +5 分；
+     * 4. 仅有物品 ID：基础 10 分；
+     * 5. 有标签要求：基础 5 分；
+     * 6. 有数量要求（大于 1）：额外 +1 分；
+     * 7. 输入物品数量：每个输入物品 +2 分（多物品配方更精确）。
      *
      * @param rule 兑换规则
      * @return 规则的精确度分数
@@ -940,7 +971,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
                     }
                 }
             } else if (input.getItem() != null && !input.getItem().isEmpty()) {
-                // 仅有物品 ID: 中等精度 +10 分
+                // 仅有物品 ID：中等精度 +10 分
                 precision += 10;
             } else if (input.getTag() != null && !input.getTag().isEmpty()) {
                 // 有标签要求：最低精度 +5 分
@@ -962,8 +993,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 计算 JSON 对象的嵌套深度
-     * 用于评估组件的复杂程度
+     * 计算 JSON 对象的嵌套深度。
+     * <p>
+     * 用于评估组件的复杂程度。
      *
      * @param obj JSON 对象
      * @return 嵌套深度
@@ -990,11 +1022,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 检查给定物品列表是否满足指定规则的要求
+     * 检查给定物品列表是否满足指定规则的要求。
      *
-     * @param rule 兑换规则
+     * @param rule            兑换规则
      * @param availableStacks 可用物品列表
-     * @return 满足规则返回true，否则返回false
+     * @return 满足规则返回 true，否则返回 false
      */
     private static boolean matchesRule(ExchangeRule rule, List<ItemStack> availableStacks) {
         // 为每个输入物品创建计数器
@@ -1036,9 +1068,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 消耗指定规则所需的输入物品
+     * 消耗指定规则所需的输入物品。
      *
-     * @param rule 兑换规则
+     * @param rule            兑换规则
      * @param availableStacks 可用物品列表
      * @return 消耗后剩余的物品列表
      */
@@ -1063,10 +1095,11 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 将当前规则序列化为JSON字符串
-     * 用于网络传输到客户端
+     * 将当前规则序列化为 JSON 字符串。
+     * <p>
+     * 用于网络传输到客户端。
      *
-     * @return 序列化的JSON字符串
+     * @return 序列化的 JSON 字符串
      */
     public static String serializeRulesToJson() {
         try {
@@ -1103,9 +1136,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 从JSON字符串反序列化规则并在客户端设置
+     * 从 JSON 字符串反序列化规则并在客户端设置。
      *
-     * @param json JSON字符串
+     * @param json JSON 字符串
      */
     public static void setClientRules(String json) {
         try {
@@ -1145,11 +1178,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 序列化输入物品为JSON对象
-     * 将ExchangeRule.InputItem实例转换为JSON格式
+     * 序列化输入物品为 JSON 对象。
      *
      * @param input 要序列化的输入物品实例
-     * @return 包含输入物品配置的JSON对象
+     * @return 包含输入物品配置的 JSON 对象
      */
     private static JsonObject serializeInputItem(ExchangeRule.InputItem input) {
         JsonObject obj = new JsonObject();
@@ -1176,11 +1208,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 序列化输出物品为JSON对象
-     * 将ExchangeRule.OutputItem实例转换为JSON格式
+     * 序列化输出物品为 JSON 对象。
      *
      * @param output 要序列化的输出物品实例
-     * @return 包含输出物品配置的JSON对象
+     * @return 包含输出物品配置的 JSON 对象
      */
     private static JsonObject serializeOutputItem(ExchangeRule.OutputItem output) {
         JsonObject obj = new JsonObject();
@@ -1190,10 +1221,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
             obj.addProperty("coin", true);
             obj.addProperty("count", output.getCount());
 
-            // 如果是动态定价+虚拟货币模式，也要保留type信息
+            // 如果是动态定价+虚拟货币模式，也要保留 type 信息
             if ("dynamic_pricing".equals(output.getType())) {
                 obj.addProperty("type", "dynamic_pricing");
-                // 注意：虚拟货币模式下item可以为null，不要强制添加
+                // 注意：虚拟货币模式下 item 可以为 null，不要强制添加
 
                 // 序列化动态定价属性
                 if (output.getDynamicProperties() != null) {
@@ -1284,11 +1315,10 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 序列化动态定价属性为JSON对象
-     * 将ExchangeRule.DynamicPricingProperties实例转换为JSON格式
+     * 序列化动态定价属性为 JSON 对象。
      *
      * @param props 要序列化的动态定价属性实例
-     * @return 包含动态定价配置的JSON对象
+     * @return 包含动态定价配置的 JSON 对象
      */
     private static JsonObject serializeDynamicPricingProperties(ExchangeRule.DynamicPricingProperties props) {
         JsonObject dynamicPropsObj = new JsonObject();
@@ -1318,8 +1348,7 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 序列化节气联动属性为 JSON 对象
-     * 将 ExchangeRule.EclipticSeasonsProperties 实例转换为 JSON 格式
+     * 序列化节气联动属性为 JSON 对象。
      *
      * @param props 要序列化的节气联动属性实例
      * @return 包含节气联动配置的 JSON 对象
@@ -1349,10 +1378,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 反序列化输入物品配置
-     * 将JSON对象转换为ExchangeRule.InputItem实例
+     * 反序列化输入物品配置。
      *
-     * @param obj 包含输入物品配置的JSON对象
+     * @param obj 包含输入物品配置的 JSON 对象
      * @return 配置好的输入物品实例
      */
     private static ExchangeRule.InputItem deserializeInputItem(JsonObject obj) {
@@ -1383,10 +1411,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 反序列化输出物品配置
-     * 将JSON对象转换为ExchangeRule.OutputItem实例
+     * 反序列化输出物品配置。
      *
-     * @param obj 包含输出物品配置的JSON对象
+     * @param obj 包含输出物品配置的 JSON 对象
      * @return 配置好的输出物品实例
      */
     private static ExchangeRule.OutputItem deserializeOutputItem(JsonObject obj) {
@@ -1566,10 +1593,6 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         output.setItem(obj.get("item").getAsString());
         output.setCount(obj.get("count").getAsInt());
 
-        // 普通物品模式
-        output.setItem(obj.get("item").getAsString());
-        output.setCount(obj.get("count").getAsInt());
-
         // 处理组件配置（如果存在）
         if (obj.has("components")) {
             JsonElement componentsElement = obj.get("components");
@@ -1584,10 +1607,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 反序列化权重物品配置
-     * 将JSON对象转换为ExchangeRule.WeightedItem实例
+     * 反序列化权重物品配置。
      *
-     * @param itemObj 包含权重物品配置的JSON对象
+     * @param itemObj 包含权重物品配置的 JSON 对象
      * @return 配置好的权重物品实例
      */
     private static ExchangeRule.WeightedItem deserializeWeightedItem(JsonObject itemObj) {
@@ -1612,6 +1634,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
 
     // ==================== 外部配置目录规则加载支持（网页编辑器使用） ====================
 
+    /**
+     * 加载外部配置目录中的规则。
+     *
+     * @param rules  规则收集列表
+     * @param errors 错误信息收集列表
+     */
     private void loadConfigRules(List<ExchangeRule> rules, List<String> errors) {
         try {
             Path dir = getExternalRulesDir();
@@ -1645,6 +1673,13 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
         }
     }
 
+    /**
+     * 获取外部规则目录路径。
+     * <p>
+     * 若 KubeJS 存在，优先从 KubeJS 数据目录读取（与保存逻辑保持一致）。
+     *
+     * @return 外部规则目录路径
+     */
     private Path getExternalRulesDir() {
         // 如果 KubeJS 存在，优先从 KubeJS 数据目录读取（与保存逻辑保持一致）
         if (net.neoforged.fml.ModList.get().isLoaded("kubejs")) {
@@ -1654,7 +1689,12 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 从 JSON 对象加载规则（供外部目录加载和数据包共用）
+     * 从 JSON 对象加载规则（供外部目录加载和数据包共用）。
+     *
+     * @param json   规则 JSON 对象
+     * @param source 来源标识（文件路径或资源路径）
+     * @param rules  规则收集列表
+     * @param errors 错误信息收集列表
      */
     private void loadRulesFromJson(JsonObject json, String source, List<ExchangeRule> rules, List<String> errors) {
         if (json.has("rules") && json.get("rules").isJsonArray()) {
@@ -1694,8 +1734,9 @@ public class ExchangeRecipeManager extends SimplePreparableReloadListener<List<E
     }
 
     /**
-     * 资源重载监听器注册事件
-     * 将此管理器注册为资源重载监听器
+     * 资源重载监听器注册事件。
+     * <p>
+     * 将此管理器注册为资源重载监听器。
      *
      * @param event 资源重载监听器添加事件
      */

@@ -14,27 +14,56 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/** 售货箱通用 API **/
+/**
+ * 售货箱通用 API。
+ * <p>
+ * 对外提供售货箱的兑换事件监听、槽位物品读写、绑定玩家查询等通用操作。
+ * 大部分槽位相关方法基于原版容器接口实现，兼容普通售货箱与自动售货箱；
+ * 涉及已兑换槽位与绑定玩家的方法仅对自动售货箱有效。
+ */
 public class ShippingBoxAPI {
-    
-    // 存储兑换事件处理器列表
+
+    /** 存储兑换事件处理器列表 */
     private static final List<Consumer<ExchangeEvent>> EXCHANGE_EVENT_LISTENERS = new ArrayList<>();
 
-    /** 兑换事件数据类 **/
+    /**
+     * 兑换事件数据类。
+     * <p>
+     * 携带本次兑换的售货箱、世界、输入输出物品、虚拟货币与匹配规则，
+     * 并允许监听器通过 cancel 方法取消此次兑换。
+     */
     public static class ExchangeEvent {
+
+        /** 触发兑换的售货箱方块实体 */
         private final BlockEntity box;
+        /** 所在世界 */
         private final Level level;
+        /** 输入物品列表 */
         private final NonNullList<ItemStack> inputs;
+        /** 输出物品列表 */
         private final NonNullList<ItemStack> outputs;
+        /** 虚拟货币数量 */
         private final int virtualCurrency;
+        /** 匹配的兑换规则 */
         private final ExchangeRule rule;
+        /** 是否已被取消 */
         private boolean canceled = false;
-        
-        public ExchangeEvent(BlockEntity box, Level level, 
-                           NonNullList<ItemStack> inputs, 
-                           NonNullList<ItemStack> outputs,
-                           int virtualCurrency,
-                           ExchangeRule rule) {
+
+        /**
+         * 构造兑换事件。
+         *
+         * @param box             售货箱方块实体
+         * @param level           所在世界
+         * @param inputs          输入物品列表
+         * @param outputs         输出物品列表
+         * @param virtualCurrency 虚拟货币数量
+         * @param rule            匹配的兑换规则
+         */
+        public ExchangeEvent(BlockEntity box, Level level,
+                             NonNullList<ItemStack> inputs,
+                             NonNullList<ItemStack> outputs,
+                             int virtualCurrency,
+                             ExchangeRule rule) {
             this.box = box;
             this.level = level;
             this.inputs = inputs;
@@ -42,85 +71,122 @@ public class ShippingBoxAPI {
             this.virtualCurrency = virtualCurrency;
             this.rule = rule;
         }
-        
-        /** 获取售货箱方块实体 **/
+
+        /**
+         * 获取售货箱方块实体。
+         *
+         * @return 售货箱方块实体
+         */
         public BlockEntity getBox() {
             return box;
         }
-        
-        /** 获取世界实例 **/
+
+        /**
+         * 获取世界实例。
+         *
+         * @return 世界实例
+         */
         public Level getLevel() {
             return level;
         }
-        
-        /** 获取输入物品列表 **/
+
+        /**
+         * 获取输入物品列表。
+         *
+         * @return 输入物品列表
+         */
         public NonNullList<ItemStack> getInputs() {
             return inputs;
         }
-        
-        /** 获取输出物品列表 **/
+
+        /**
+         * 获取输出物品列表。
+         *
+         * @return 输出物品列表
+         */
         public NonNullList<ItemStack> getOutputs() {
             return outputs;
         }
-        
-        /** 获取虚拟货币数量 **/
+
+        /**
+         * 获取虚拟货币数量。
+         *
+         * @return 虚拟货币数量
+         */
         public int getVirtualCurrency() {
             return virtualCurrency;
         }
-        
-        /** 获取匹配的兑换规则 **/
+
+        /**
+         * 获取匹配的兑换规则。
+         *
+         * @return 匹配的兑换规则
+         */
         public ExchangeRule getRule() {
             return rule;
         }
-        
-        /** 取消此次兑换 **/
+
+        /**
+         * 取消此次兑换。
+         */
         public void cancel() {
             this.canceled = true;
         }
-        
-        /** 检查是否被取消 **/
+
+        /**
+         * 检查是否被取消。
+         *
+         * @return 已被取消返回 true
+         */
         public boolean isCanceled() {
             return canceled;
         }
     }
-    
+
     /**
-     * 注册兑换事件监听器
+     * 注册兑换事件监听器。
+     *
      * @param listener 事件监听器回调
      */
     public static void registerExchangeListener(Consumer<ExchangeEvent> listener) {
         EXCHANGE_EVENT_LISTENERS.add(listener);
     }
-    
+
     /**
-     * 移除兑换事件监听器
+     * 移除兑换事件监听器。
+     *
      * @param listener 要移除的监听器
      */
     public static void unregisterExchangeListener(Consumer<ExchangeEvent> listener) {
         EXCHANGE_EVENT_LISTENERS.remove(listener);
     }
-    
+
     /**
-     * 触发兑换事件（内部使用）
-     * @param box 售货箱
-     * @param level 世界
-     * @param inputs 输入物品
-     * @param outputs 输出物品
+     * 触发兑换事件（内部使用）。
+     * <p>
+     * 依次调用所有已注册的监听器，单个监听器抛出异常时忽略，
+     * 不影响其余监听器的执行。
+     *
+     * @param box      售货箱
+     * @param level    世界
+     * @param inputs   输入物品
+     * @param outputs  输出物品
      * @param currency 虚拟货币
-     * @param rule 兑换规则
+     * @param rule     兑换规则
      * @return 如果事件被取消返回 true
      */
-    public static boolean onExchange(BlockEntity box, Level level, 
-                                    NonNullList<ItemStack> inputs,
-                                    NonNullList<ItemStack> outputs,
-                                    int currency,
-                                    ExchangeRule rule) {
+    public static boolean onExchange(BlockEntity box, Level level,
+                                     NonNullList<ItemStack> inputs,
+                                     NonNullList<ItemStack> outputs,
+                                     int currency,
+                                     ExchangeRule rule) {
+        // 无监听器时直接返回，避免创建事件对象
         if (EXCHANGE_EVENT_LISTENERS.isEmpty()) {
             return false;
         }
-        
+
         ExchangeEvent event = new ExchangeEvent(box, level, inputs, outputs, currency, rule);
-        
+
         for (Consumer<ExchangeEvent> listener : EXCHANGE_EVENT_LISTENERS) {
             try {
                 listener.accept(event);
@@ -128,13 +194,14 @@ public class ShippingBoxAPI {
                 // 忽略单个监听器的错误
             }
         }
-        
+
         return event.isCanceled();
     }
 
     /**
-     * 检查指定槽位是否包含已兑换的物品（仅自动售货箱有效）
-     * @param box 售货箱方块实体
+     * 检查指定槽位是否包含已兑换的物品（仅自动售货箱有效）。
+     *
+     * @param box  售货箱方块实体
      * @param slot 槽位索引
      * @return 如果该槽位物品已兑换返回 true
      */
@@ -149,7 +216,8 @@ public class ShippingBoxAPI {
     }
 
     /**
-     * 获取所有已兑换的槽位（仅自动售货箱有效）
+     * 获取所有已兑换的槽位（仅自动售货箱有效）。
+     *
      * @param box 售货箱方块实体
      * @return 已兑换槽位的集合
      */
@@ -159,9 +227,10 @@ public class ShippingBoxAPI {
         }
         return autoBox.getExchangedSlots();
     }
-    
+
     /**
-     * 获取售货箱中的物品数量（总槽位数）
+     * 获取售货箱中的物品数量（总槽位数）。
+     *
      * @param box 售货箱方块实体
      * @return 槽位总数
      */
@@ -169,7 +238,7 @@ public class ShippingBoxAPI {
         if (box == null) {
             return 0;
         }
-        
+
         try {
             if (box instanceof net.minecraft.world.Container container) {
                 return container.getContainerSize();
@@ -177,13 +246,14 @@ public class ShippingBoxAPI {
         } catch (Exception e) {
             // 不支持的方块实体类型
         }
-        
+
         return 0;
     }
-    
+
     /**
-     * 获取指定槽位的物品
-     * @param box 售货箱方块实体
+     * 获取指定槽位的物品。
+     *
+     * @param box  售货箱方块实体
      * @param slot 槽位索引
      * @return 物品堆（空物品堆如果槽位无效或不支持）
      */
@@ -191,7 +261,7 @@ public class ShippingBoxAPI {
         if (box == null) {
             return ItemStack.EMPTY;
         }
-        
+
         try {
             if (box instanceof net.minecraft.world.Container container) {
                 if (slot >= 0 && slot < container.getContainerSize()) {
@@ -201,12 +271,13 @@ public class ShippingBoxAPI {
         } catch (Exception e) {
             // 不支持的方块实体类型
         }
-        
+
         return ItemStack.EMPTY;
     }
-    
+
     /**
-     * 获取所有物品
+     * 获取所有物品。
+     *
      * @param box 售货箱方块实体
      * @return 所有物品的副本列表
      */
@@ -214,7 +285,7 @@ public class ShippingBoxAPI {
         if (box == null) {
             return NonNullList.create();
         }
-        
+
         try {
             if (box instanceof net.minecraft.world.Container container) {
                 NonNullList<ItemStack> items = NonNullList.withSize(container.getContainerSize(), ItemStack.EMPTY);
@@ -226,12 +297,13 @@ public class ShippingBoxAPI {
         } catch (Exception e) {
             // 不支持的方块实体类型
         }
-        
+
         return NonNullList.create();
     }
-    
+
     /**
-     * 获取售货箱绑定的玩家 UUID（仅自动售货箱有效）
+     * 获取售货箱绑定的玩家 UUID（仅自动售货箱有效）。
+     *
      * @param box 售货箱方块实体
      * @return 玩家 UUID（未绑定返回 null）
      */
@@ -241,9 +313,10 @@ public class ShippingBoxAPI {
         }
         return autoBox.getBoundPlayerUUID();
     }
-    
+
     /**
-     * 检查售货箱是否有绑定玩家（仅自动售货箱有效）
+     * 检查售货箱是否有绑定玩家（仅自动售货箱有效）。
+     *
      * @param box 售货箱方块实体
      * @return 已绑定返回 true
      */
@@ -252,9 +325,10 @@ public class ShippingBoxAPI {
     }
 
     /**
-     * 向指定槽位添加物品
-     * @param box 售货箱方块实体
-     * @param slot 槽位索引
+     * 向指定槽位添加物品。
+     *
+     * @param box   售货箱方块实体
+     * @param slot  槽位索引
      * @param stack 要添加的物品堆
      * @return 实际添加的数量
      */
@@ -262,16 +336,16 @@ public class ShippingBoxAPI {
         if (box == null || stack.isEmpty()) {
             return 0;
         }
-        
+
         try {
             if (box instanceof net.minecraft.world.Container container) {
                 if (slot < 0 || slot >= container.getContainerSize()) {
                     return 0;
                 }
-                
+
                 ItemStack existing = container.getItem(slot);
                 int canAdd = Math.min(stack.getCount(), stack.getMaxStackSize() - existing.getCount());
-                
+
                 if (canAdd > 0) {
                     if (existing.isEmpty()) {
                         container.setItem(slot, stack.copyWithCount(canAdd));
@@ -286,14 +360,15 @@ public class ShippingBoxAPI {
         } catch (Exception e) {
             // 不支持的方块实体类型
         }
-        
+
         return 0;
     }
-    
+
     /**
-     * 从指定槽位移除物品
-     * @param box 售货箱方块实体
-     * @param slot 槽位索引
+     * 从指定槽位移除物品。
+     *
+     * @param box   售货箱方块实体
+     * @param slot  槽位索引
      * @param count 要移除的数量
      * @return 实际移除的物品堆
      */
@@ -301,41 +376,42 @@ public class ShippingBoxAPI {
         if (box == null) {
             return ItemStack.EMPTY;
         }
-        
+
         try {
             if (box instanceof net.minecraft.world.Container container) {
                 if (slot < 0 || slot >= container.getContainerSize()) {
                     return ItemStack.EMPTY;
                 }
-                
+
                 ItemStack existing = container.getItem(slot);
                 if (existing.isEmpty()) {
                     return ItemStack.EMPTY;
                 }
-                
+
                 int toRemove = Math.min(count, existing.getCount());
                 ItemStack result = existing.copyWithCount(toRemove);
                 existing.shrink(toRemove);
-                
+
                 if (existing.isEmpty()) {
                     container.setItem(slot, ItemStack.EMPTY);
                 } else {
                     container.setItem(slot, existing);
                 }
                 box.setChanged();
-                
+
                 return result;
             }
         } catch (Exception e) {
             // 不支持的方块实体类型
         }
-        
+
         return ItemStack.EMPTY;
     }
-    
+
     /**
-     * 清空指定槽位
-     * @param box 售货箱方块实体
+     * 清空指定槽位。
+     *
+     * @param box  售货箱方块实体
      * @param slot 槽位索引
      * @return 被清空的物品堆
      */
@@ -343,13 +419,13 @@ public class ShippingBoxAPI {
         if (box == null) {
             return ItemStack.EMPTY;
         }
-        
+
         try {
             if (box instanceof net.minecraft.world.Container container) {
                 if (slot < 0 || slot >= container.getContainerSize()) {
                     return ItemStack.EMPTY;
                 }
-                
+
                 ItemStack existing = container.getItem(slot).copy();
                 container.setItem(slot, ItemStack.EMPTY);
                 box.setChanged();
@@ -358,12 +434,13 @@ public class ShippingBoxAPI {
         } catch (Exception e) {
             // 不支持的方块实体类型
         }
-        
+
         return ItemStack.EMPTY;
     }
-    
+
     /**
-     * 清空所有槽位
+     * 清空所有槽位。
+     *
      * @param box 售货箱方块实体
      * @return 被清空的所有物品
      */
@@ -371,7 +448,7 @@ public class ShippingBoxAPI {
         if (box == null) {
             return NonNullList.create();
         }
-        
+
         try {
             if (box instanceof net.minecraft.world.Container container) {
                 NonNullList<ItemStack> items = NonNullList.create();
@@ -388,12 +465,13 @@ public class ShippingBoxAPI {
         } catch (Exception e) {
             // 不支持的方块实体类型
         }
-        
+
         return NonNullList.create();
     }
 
     /**
-     * 获取售货箱的位置
+     * 获取售货箱的位置。
+     *
      * @param box 售货箱方块实体
      * @return 方块位置
      */
@@ -403,9 +481,10 @@ public class ShippingBoxAPI {
         }
         return box.getBlockPos();
     }
-    
+
     /**
-     * 检查两个售货箱是否在同一位置
+     * 检查两个售货箱是否在同一位置。
+     *
      * @param box1 第一个售货箱
      * @param box2 第二个售货箱
      * @return 位置相同返回 true
@@ -418,7 +497,10 @@ public class ShippingBoxAPI {
     }
 
     /**
-     * 检查方块实体是否是售货箱（普通或自动）
+     * 检查方块实体是否是售货箱（普通或自动）。
+     * <p>
+     * 先判断是否为容器，再通过类名是否包含 shipping_box 进行识别。
+     *
      * @param box 方块实体
      * @return 是售货箱返回 true
      */
@@ -426,19 +508,20 @@ public class ShippingBoxAPI {
         if (box == null) {
             return false;
         }
-        
+
         // 检查是否是容器
         if (!(box instanceof net.minecraft.world.Container)) {
             return false;
         }
-        
+
         // 检查类名是否包含 shipping_box
         String className = box.getClass().getName();
         return className.contains("shipping_box");
     }
-    
+
     /**
-     * 检查是否是自动售货箱
+     * 检查是否是自动售货箱。
+     *
      * @param box 方块实体
      * @return 是自动售货箱返回 true
      */

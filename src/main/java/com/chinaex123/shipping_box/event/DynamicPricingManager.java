@@ -11,20 +11,25 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 动态定价管理器；
- * 管理物品销售计数、价格调整和重置周期
+ * 动态定价管理器。
+ * <p>
+ * 管理物品销售计数、价格调整和重置周期。
+ * 销售数据通过 Minecraft 的 SavedData 机制持久化，
+ * 并在计数变化时同步到所有客户端。
  */
 public class DynamicPricingManager {
+
+    /** 持久化数据的注册名称 */
     private static final String DATA_NAME = "dynamic_pricing_data";
 
     /**
-     * 获取服务器的持久化存储管理器
+     * 获取服务器的持久化存储管理器。
      * <p>
-     * 通过ServerLifecycleHooks获取当前运行的Minecraft服务器实例，
+     * 通过 ServerLifecycleHooks 获取当前运行的 Minecraft 服务器实例，
      * 并返回主世界的维度数据存储管理器。如果服务器未启动或不可用，
-     * 则返回null。
+     * 则返回 null。
      *
-     * @return DimensionDataStorage 服务器主世界的持久化存储管理器，如果服务器不可用则返回null
+     * @return 服务器主世界的持久化存储管理器，如果服务器不可用则返回 null
      */
     private static DimensionDataStorage getStorage() {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
@@ -35,12 +40,12 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 获取或创建持久化数据实例
+     * 获取或创建持久化数据实例。
      * <p>
      * 通过获取服务器的持久化存储管理器，使用指定的数据工厂和数据名称
-     * 来获取或创建PricingData实例。如果无法获取存储管理器，则返回null。
+     * 来获取或创建 PricingData 实例。如果无法获取存储管理器，则返回 null。
      *
-     * @return PricingData 持久化数据实例，如果存储管理器不可用则返回null
+     * @return PricingData 持久化数据实例，如果存储管理器不可用则返回 null
      */
     private static PricingData getPricingData() {
         DimensionDataStorage storage = getStorage();
@@ -51,21 +56,21 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 保存销售数据到持久化存储
+     * 保存销售数据到持久化存储。
      * <p>
-     * 此方法用于触发数据的持久化保存操作。由于使用了Minecraft的SavedData机制，
-     * 数据会在标记为脏数据(setDirty())时自动保存，因此此方法体为空实现。
+     * 此方法用于触发数据的持久化保存操作。由于使用了 Minecraft 的 SavedData 机制，
+     * 数据会在标记为脏数据（setDirty()）时自动保存，因此此方法体为空实现。
      */
     public static void saveData() {}
 
     /**
-     * 增加指定物品的售出数量并同步到所有客户端
+     * 增加指定物品的售出数量并同步到所有客户端。
      * <p>
      * 此方法负责更新指定物品的销售统计数据，并确保数据在所有客户端间同步。
      * 在增加销售计数之前会先检查是否需要根据重置规则进行重置操作。
      *
      * @param itemIdentifier 物品标识符，用于定位特定物品的销售数据
-     * @param count 要增加的销售数量
+     * @param count          要增加的销售数量
      */
     public static void addSoldCount(String itemIdentifier, int count) {
         PricingData data = getPricingData();
@@ -86,13 +91,13 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 获取指定物品的已售出数量
+     * 获取指定物品的已售出数量。
      * <p>
      * 通过物品标识符查询对应的销售统计数据。如果数据存储不可用，
-     * 则返回默认值0。
+     * 则返回默认值 0。
      *
      * @param itemIdentifier 物品标识符，用于定位特定物品的销售数据
-     * @return int 指定物品的已售出数量，如果数据不可用则返回0
+     * @return 指定物品的已售出数量，如果数据不可用则返回 0
      */
     public static int getSoldCount(String itemIdentifier) {
         PricingData data = getPricingData();
@@ -103,13 +108,13 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 检查并重置指定物品的销售计数
+     * 检查并重置指定物品的销售计数。
      * <p>
      * 根据物品的动态定价规则配置，判断是否需要重置销售计数。
      * 支持三种重置模式：
-     * - day = -1: 永不重置，仅记录销售日期
-     * - day = 0: 每日自动重置
-     * - day > 0: 按指定天数周期重置
+     * - day = -1: 永不重置，仅记录销售日期；
+     * - day = 0: 每日自动重置；
+     * - day &gt; 0: 按指定天数周期重置。
      *
      * @param itemIdentifier 物品标识符，用于定位对应的重置规则
      */
@@ -172,13 +177,13 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 获取指定物品距离上次销售经过的天数
+     * 获取指定物品距离上次销售经过的天数。
      * <p>
      * 查询指定物品最后一次销售至今经过的游戏天数，用于重置时间计算。
-     * 如果物品从未销售过或数据不可用，则返回-1。
+     * 如果物品从未销售过或数据不可用，则返回 -1。
      *
      * @param itemIdentifier 物品标识符，用于定位特定物品的销售记录
-     * @return 物品距离上次销售经过的天数，如果从未销售过则返回-1
+     * @return 物品距离上次销售经过的天数，如果从未销售过则返回 -1
      */
     public static int getDaysSinceLastSale(String itemIdentifier) {
         PricingData data = getPricingData();
@@ -189,16 +194,16 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 获取指定物品的重置剩余天数
+     * 获取指定物品的重置剩余天数。
      * <p>
      * 根据物品的动态定价规则配置，计算距离下次重置还需要多少天。
      * 支持三种重置模式的剩余天数计算：
-     * - day = -1: 永不重置，返回-1
-     * - day = 0: 每日重置，返回0（表示随时可以重置）
-     * - day > 0: 按天数周期重置，返回具体剩余天数
+     * - day = -1: 永不重置，返回 -1；
+     * - day = 0: 每日重置，返回 0（表示随时可以重置）；
+     * - day &gt; 0: 按天数周期重置，返回具体剩余天数。
      *
      * @param itemIdentifier 物品标识符，用于定位对应的重置规则
-     * @return 剩余天数，负数表示已经超过重置时间，-1表示永不重置，0表示每日重置
+     * @return 剩余天数，负数表示已经超过重置时间，-1 表示永不重置，0 表示每日重置
      */
     public static int getResetRemainingDays(String itemIdentifier) {
         // 查找对应的重置天数配置
@@ -226,7 +231,7 @@ public class DynamicPricingManager {
                         // 永不重置
                         return -1;
                     } else if (resetDay == 0) {
-                        // 每天重置，剩余天数总是0（表示随时可以重置）
+                        // 每天重置，剩余天数总是 0（表示随时可以重置）
                         return 0;
                     } else if (resetDay > 0) {
                         // 按天数重置
@@ -243,12 +248,12 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 获取所有物品的销售统计数据
+     * 获取所有物品的销售统计数据。
      * <p>
      * 返回包含所有物品销售统计的映射表。如果数据存储不可用，
-     * 则返回空的HashMap。
+     * 则返回空的 HashMap。
      *
-     * @return Map<String, Integer> 物品标识符到销售数量的映射表
+     * @return 物品标识符到销售数量的映射表
      */
     public static Map<String, Integer> getAllSoldCounts() {
         PricingData data = getPricingData();
@@ -259,7 +264,7 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 设置销售统计数据
+     * 设置销售统计数据。
      * <p>
      * 用指定的销售统计映射表替换当前的所有销售数据。
      * 如果数据存储不可用，则不执行任何操作。
@@ -274,9 +279,9 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 清空所有销售数据
+     * 清空所有销售数据。
      * <p>
-     * 将所有物品的销售统计数据重置为空的HashMap。
+     * 将所有物品的销售统计数据重置为空的 HashMap。
      * 如果数据存储不可用，则不执行任何操作。
      */
     public static void clearAllData() {
@@ -287,14 +292,17 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 获取指定物品的已售出数量（累计）- 带重置天数版本
+     * 获取指定物品的已售出数量（累计）- 带重置天数版本。
+     * <p>
+     * 重置天数为 -1 时表示永不清除，直接返回累计数量；
+     * 否则在查询前先检查是否需要重置计数。
      *
      * @param itemIdentifier 物品标识符
-     * @param resetDay 重置天数
+     * @param resetDay       重置天数
      * @return 已售出的累计数量
      */
     public static int getSoldCount(String itemIdentifier, int resetDay) {
-        // 如果重置天数为-1，表示永不清除，直接返回累计数量
+        // 如果重置天数为 -1，表示永不清除，直接返回累计数量
         if (resetDay == -1) {
             return getSoldCount(itemIdentifier);
         }
@@ -316,14 +324,17 @@ public class DynamicPricingManager {
     }
 
     /**
-     * 增加指定物品的售出数量（累计）- 带重置天数版本
+     * 增加指定物品的售出数量（累计）- 带重置天数版本。
+     * <p>
+     * 重置天数为 -1 时表示永不清除，直接累加；
+     * 否则在累加前先检查是否需要重置计数，并在变更后同步到所有客户端。
      *
      * @param itemIdentifier 物品标识符
-     * @param amount 增加的数量
-     * @param resetDay 重置天数
+     * @param amount         增加的数量
+     * @param resetDay       重置天数
      */
     public static void addSoldCount(String itemIdentifier, int amount, int resetDay) {
-        // 如果重置天数为-1，表示永不清除，直接累加
+        // 如果重置天数为 -1，表示永不清除，直接累加
         if (resetDay == -1) {
             addSoldCount(itemIdentifier, amount);
             return;

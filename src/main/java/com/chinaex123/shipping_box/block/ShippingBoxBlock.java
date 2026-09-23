@@ -23,27 +23,35 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
- * 普通售货箱方块类；
- * 负处理方块的右键交互、破坏掉落和刻更新器注册
- *
+ * 普通售货箱方块类。
+ * <p>
+ * 负责处理方块的右键交互、破坏掉落和刻更新器注册。
+ * <p>
  * 核心特性：
- * 1. 所有玩家都可以使用普通售货箱（无绑定限制）
- * 2. 支持每日定时兑换
- * 3. 使用玩家独立存储（每个玩家拥有自己的54格存储空间）
- * 4. 与自动售货箱不同，普通售货箱不限制访问权限
+ * 1. 所有玩家都可以使用普通售货箱（无绑定限制）；
+ * 2. 支持每日定时兑换；
+ * 3. 使用玩家独立存储（每个玩家拥有自己的 54 格存储空间）；
+ * 4. 与自动售货箱不同，普通售货箱不限制访问权限。
  */
 @ParametersAreNonnullByDefault
 public class ShippingBoxBlock extends BaseEntityBlock {
+
+    /** 方块编解码器 */
     public static final MapCodec<ShippingBoxBlock> CODEC = simpleCodec(ShippingBoxBlock::new);
 
+    /**
+     * 构造普通售货箱方块。
+     *
+     * @param properties 方块属性
+     */
     public ShippingBoxBlock(Properties properties) {
         super(properties);
     }
 
     /**
-     * 获取方块的编解码器
+     * 获取方块的编解码器。
      *
-     * @return 方块属性的MapCodec编解码器实例
+     * @return 方块属性的 MapCodec 编解码器实例
      */
     @Override
     protected @NotNull MapCodec<? extends BaseEntityBlock> codec() {
@@ -51,10 +59,10 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     }
 
     /**
-     * 获取方块的渲染形状
+     * 获取方块的渲染形状。
      *
      * @param state 方块状态对象
-     * @return 渲染形状，返回MODEL表示使用模型文件进行渲染
+     * @return 渲染形状，返回 MODEL 表示使用模型文件进行渲染
      */
     @Override
     public @NotNull RenderShape getRenderShape(BlockState state) {
@@ -62,11 +70,11 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     }
 
     /**
-     * 创建方块实体实例
+     * 创建方块实体实例。
      *
-     * @param pos 方块位置坐标
+     * @param pos   方块位置坐标
      * @param state 方块状态
-     * @return 新创建的售货箱方块实体，如果无法创建则返回null
+     * @return 新创建的售货箱方块实体，如果无法创建则返回 null
      */
     @Nullable
     @Override
@@ -75,14 +83,14 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     }
 
     /**
-     * 处理方块被玩家右键点击的交互
-     * 播放声音并打开GUI界面
+     * 处理方块被玩家右键点击的交互。
+     * 播放声音并打开 GUI 界面。
      *
-     * @param state 方块状态
-     * @param level 游戏世界实例
-     * @param pos 方块位置坐标
+     * @param state  方块状态
+     * @param level  游戏世界实例
+     * @param pos    方块位置坐标
      * @param player 交互的玩家
-     * @return 交互结果，成功时返回sidedSuccess
+     * @return 交互结果，成功时返回 CONSUME
      */
     @Override
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
@@ -94,17 +102,15 @@ public class ShippingBoxBlock extends BaseEntityBlock {
         if (player instanceof ServerPlayer serverPlayer) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof ShippingBoxBlockEntity shippingBox) {
-                // ========== 打开GUI菜单 ==========
-                // 通过缓冲区传递方块位置和玩家UUID
-                // 玩家UUID用于在菜单中加载该玩家的个人存储
+                // 通过缓冲区传递方块位置和玩家 UUID
+                // 玩家 UUID 用于在菜单中加载该玩家的个人存储
                 serverPlayer.openMenu(shippingBox, buf -> {
                     buf.writeBlockPos(pos);
                     buf.writeUUID(serverPlayer.getUUID());
                 });
             }
 
-            // ========== 播放打开音效 ==========
-            // 使用桶打开的音效，音调随机微调增加真实感
+            // 使用桶打开的音效
             level.playSound(
                     null, pos,
                     SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.barrel.open")),
@@ -117,12 +123,12 @@ public class ShippingBoxBlock extends BaseEntityBlock {
     }
 
     /**
-     * 处理方块被移除时的逻辑
-     * 当方块被替换或破坏时，掉落破坏玩家的个人存储物品
+     * 处理方块被移除时的逻辑。
+     * 当方块被替换或破坏时，掉落破坏玩家的个人存储物品。
      *
-     * @param state 当前方块状态
-     * @param level 游戏世界实例
-     * @param pos 方块位置坐标
+     * @param state    当前方块状态
+     * @param level    游戏世界实例
+     * @param pos      方块位置坐标
      * @param newState 新的方块状态
      * @param isMoving 是否正在被移动（如活塞推动）
      */
@@ -131,20 +137,19 @@ public class ShippingBoxBlock extends BaseEntityBlock {
         // 只有当方块类型发生变化时才执行移除逻辑（即被真正破坏）
         if (!state.is(newState.getBlock())) {
             // 调用父类方法处理基础掉落
-            // 由于物品存储在GlobalPlayerStorage中，这里不需要额外处理
             super.onRemove(state, level, pos, newState, isMoving);
         }
     }
 
     /**
-     * 获取方块实体的刻更新器
-     * 只在服务端为售货箱方块实体提供tick方法调用
+     * 获取方块实体的刻更新器。
+     * 只在服务端为售货箱方块实体提供 tick 方法调用。
      *
-     * @param <T> 方块实体类型参数
+     * @param <T>   方块实体类型参数
      * @param level 游戏世界实例
      * @param state 方块状态
-     * @param type 方块实体类型
-     * @return 服务端返回刻更新器，客户端返回null
+     * @param type  方块实体类型
+     * @return 服务端返回刻更新器，客户端返回 null
      */
     @Nullable
     @Override

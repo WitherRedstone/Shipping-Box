@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.compat.ViScriptShop;
 
+import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.client.tooltip.TooltipItems;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -25,20 +26,27 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * 支持ViScriptShop联动的硬币类
- * 提供右键兑换虚拟货币的功能
+ * 支持 ViScriptShop 联动的硬币类。
+ * <p>
+ * 提供右键兑换虚拟货币的功能：普通右键兑换单个硬币，
+ * 潜行右键兑换整组硬币。兑换成功时播放音效并生成粒子，
+ * 同时通过余额动画向玩家逐帧反馈余额变化。
  */
 public class ViScriptCoinItemServer extends TooltipItems {
+
+    /** 单枚硬币的兑换价值 */
     private final int coinValue;
 
-    // 存储玩家的动画状态
+    /** 存储玩家的动画状态，键为玩家 UUID */
     private static final Map<UUID, AnimationState> animationStates = new HashMap<>();
 
     /**
-     * 动画状态数据类
-     * 用于跟踪虚拟货币兑换过程中的动画进度和相关数值
+     * 动画状态数据类。
+     * <p>
+     * 用于跟踪虚拟货币兑换过程中的动画进度和相关数值。
      */
     private static class AnimationState {
+
         /** 兑换开始时的余额 */
         final int startBalance;
         /** 兑换物品的总价值 */
@@ -51,10 +59,10 @@ public class ViScriptCoinItemServer extends TooltipItems {
         final int maxSteps = 20;
 
         /**
-         * 构造函数
+         * 构造动画状态。
          *
-         * @param startBalance 兑换开始时的余额
-         * @param totalValue 兑换物品的总价值
+         * @param startBalance   兑换开始时的余额
+         * @param totalValue     兑换物品的总价值
          * @param exchangeAmount 实际兑换金额
          */
         AnimationState(int startBalance, int totalValue, int exchangeAmount) {
@@ -65,56 +73,70 @@ public class ViScriptCoinItemServer extends TooltipItems {
     }
 
     /**
-     * 构造函数
+     * 构造 ViScriptShop 联动硬币物品。
+     * <p>
+     * 根据 ViScriptShop 是否加载动态组合 Tooltip：
+     * 已加载时额外追加联动说明与操作提示，未加载时仅显示基础提示。
      *
-     * @param properties 物品属性
-     * @param coinValue 硬币价值
-     * @param tooltipSupplier Tooltip内容提供器
+     * @param properties      物品属性
+     * @param coinValue       硬币价值
+     * @param tooltipSupplier Tooltip 内容提供器
      */
     public ViScriptCoinItemServer(Properties properties, int coinValue, Supplier<List<Component>> tooltipSupplier) {
         super(properties, () -> {
-            // 只有当ViScriptShop可用时才显示tooltip
+            // 只有当 ViScriptShop 可用时才显示 tooltip
             if (ModList.get().isLoaded("viscript_shop")) {
-                // 显示联动相关的tooltip
+                // 显示联动相关的 tooltip
                 List<Component> tooltips = new ArrayList<>(tooltipSupplier.get());
                 tooltips.add(Component.translatable("tooltip.item.shipping_box.viscriptshop.info"));
                 tooltips.add(Component.translatable("tooltip.item.shipping_box.viscriptshop.right_click"));
                 tooltips.add(Component.translatable("tooltip.item.shipping_box.viscriptshop.sneak_click"));
                 return tooltips;
             }
-            // ViScriptShop不可用时显示基础tooltip
+            // ViScriptShop 不可用时显示基础 tooltip
             return tooltipSupplier.get();
         });
         this.coinValue = coinValue;
     }
 
     /**
-     * 通过工具类获取ViScriptShop余额
+     * 通过工具类获取 ViScriptShop 余额。
+     *
+     * @param player 目标玩家
+     * @return 玩家当前余额
      */
     private static int getViScriptShopMoney(ServerPlayer player) {
         return ViScriptShopUtil.getMoney(player);
     }
 
     /**
-     * 通过工具类给ViScriptShop增加货币
+     * 通过工具类给 ViScriptShop 增加货币。
+     *
+     * @param player 目标玩家
+     * @param amount 增加的货币数量
+     * @return 是否成功增加
      */
     private static boolean addViScriptShopMoney(ServerPlayer player, int amount) {
         return ViScriptShopUtil.addMoney(player, amount);
     }
 
     /**
-     * 处理右键交互 - 兑换虚拟货币
+     * 处理右键交互 - 兑换虚拟货币。
+     * <p>
+     * ViScriptShop 未加载时直接放行；客户端仅返回成功；
+     * 服务端根据是否潜行决定兑换数量（潜行为整组，否则为单个），
+     * 兑换成功后扣减物品并播放音效、生成粒子。
      *
-     * @param level 游戏世界
+     * @param level  游戏世界
      * @param player 交互玩家
-     * @param hand 交互手
-     * @return 交互结果
+     * @param hand   交互手
+     * @return 交互结果持有者，包含更新后的物品堆
      */
     @Override
     public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // 检查ViScriptShop是否加载
+        // 检查 ViScriptShop 是否加载
         if (!ModList.get().isLoaded("viscript_shop")) {
             return InteractionResultHolder.pass(stack);
         }
@@ -128,7 +150,7 @@ public class ViScriptCoinItemServer extends TooltipItems {
             return InteractionResultHolder.success(stack);
         }
 
-        // 执行ViScriptShop功能
+        // 执行 ViScriptShop 功能
         boolean isSneaking = player.isShiftKeyDown();
         int exchangeAmount = isSneaking ? stack.getCount() : 1;
         int totalValue = coinValue * exchangeAmount;
@@ -156,14 +178,20 @@ public class ViScriptCoinItemServer extends TooltipItems {
 
         } catch (Exception e) {
             player.sendSystemMessage(Component.translatable("message.shipping_box.viscriptshop.exchange_failed"));
-            System.err.println("[ShippingBox] ViScriptShop integration failed: " + e.getMessage());
+            ShippingBox.LOGGER.warn("[CoinItem.use] ViScriptShop 货币兑换失败，玩家: {}，数量: {}，总价值: {}",
+                    player.getUUID(), exchangeAmount, totalValue, e);
         }
 
         return InteractionResultHolder.success(stack);
     }
 
     /**
-     * 生成成功粒子效果
+     * 生成成功粒子效果。
+     * <p>
+     * 在玩家胸部高度位置生成 12 个"快乐村民"粒子。
+     *
+     * @param serverPlayer 服务端玩家
+     * @param player       玩家实体
      */
     private static void spawnSuccessParticles(ServerPlayer serverPlayer, Player player) {
         // 获取玩家的位置
@@ -177,7 +205,14 @@ public class ViScriptCoinItemServer extends TooltipItems {
     }
 
     /**
-     * 开始余额动画
+     * 开始余额动画。
+     * <p>
+     * 记录起始余额、总价值与兑换数量，由动画处理器逐帧推进。
+     *
+     * @param player         服务端玩家
+     * @param startBalance   兑换开始时的余额
+     * @param totalValue     兑换物品的总价值
+     * @param exchangeAmount 实际兑换金额
      */
     private void startBalanceAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
         AnimationState state = new AnimationState(startBalance, totalValue, exchangeAmount);
@@ -185,10 +220,22 @@ public class ViScriptCoinItemServer extends TooltipItems {
     }
 
     /**
-     * 服务器tick事件处理器 - 用于更新动画
+     * 服务器刻事件处理器 - 用于更新动画。
+     * <p>
+     * 每个服务端刻推进一次动画进度，向玩家发送当前余额，
+     * 并移除已登出或动画结束的玩家状态。
      */
     @EventBusSubscriber
     public static class AnimationHandler {
+
+        /**
+         * 服务端刻事件处理器。
+         * <p>
+         * 遍历所有动画状态，为在线玩家发送余额进度消息并推进步数；
+         * 玩家离线或动画达到最大步数时移除对应状态。
+         *
+         * @param event 服务端刻事件
+         */
         @SubscribeEvent
         public static void onServerTick(ServerTickEvent.Post event) {
             // 动画更新逻辑保持不变
@@ -225,7 +272,7 @@ public class ViScriptCoinItemServer extends TooltipItems {
     }
 
     /**
-     * 获取硬币价值
+     * 获取硬币价值。
      *
      * @return 硬币价值
      */

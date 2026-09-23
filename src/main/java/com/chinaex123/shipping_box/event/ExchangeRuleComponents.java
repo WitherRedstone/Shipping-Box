@@ -20,22 +20,31 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/** 组件匹配器 **/
+/**
+ * 组件匹配器。
+ * <p>
+ * 负责解析兑换规则中定义的组件配置，并校验物品堆是否匹配。
+ * 同时提供将组件配置应用到物品堆的能力，支持 JSON 对象与键值对两种格式，
+ * 并对附魔、存储附魔等特殊组件做专门处理。
+ */
 public class ExchangeRuleComponents {
 
-    // 缓存附魔注册表，避免重复查找
+    /** 缓存附魔注册表，避免重复查找 */
     private static Registry<Enchantment> enchantmentRegistry = null;
 
     /**
-     * 辅助方法：安全地获取附魔注册表
-     * 优先使用已初始化的注册表，如果没有则尝试从当前服务器获取
+     * 辅助方法：安全地获取附魔注册表。
+     * <p>
+     * 优先使用已初始化的注册表，如果没有则尝试从当前服务器获取。
+     *
+     * @return 附魔注册表，无法获取时返回 null
      */
     private static Registry<Enchantment> getEnchantmentRegistry() {
         // 如果已有注册表，直接返回
         if (enchantmentRegistry != null) {
             return enchantmentRegistry;
         }
-        
+
         // 尝试从当前运行的服务器获取
         try {
             var server = ServerLifecycleHooks.getCurrentServer();
@@ -47,13 +56,14 @@ public class ExchangeRuleComponents {
         } catch (Exception e) {
             // 忽略异常
         }
-        
+
         return null;
     }
 
     /**
-     * 解析组件字符串为键值对映射
-     * 支持格式："name1=value1,name2=value2" 或 "name1=\"value1\",name2=\"value2\""
+     * 解析组件字符串为键值对映射。
+     * <p>
+     * 支持格式："name1=value1,name2=value2" 或 "name1=\"value1\",name2=\"value2\""。
      *
      * @param componentString 组件字符串
      * @return 解析后的组件映射表
@@ -86,11 +96,11 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查物品堆是否匹配指定的组件要求（JsonObject版本）
+     * 检查物品堆是否匹配指定的组件要求（JsonObject 版本）。
      *
-     * @param stack 要检查的物品堆
-     * @param jsonObject 组件要求的JSON对象
-     * @return 所有组件都匹配返回true，否则返回false
+     * @param stack      要检查的物品堆
+     * @param jsonObject 组件要求的 JSON 对象
+     * @return 所有组件都匹配返回 true，否则返回 false
      */
     public static boolean matchesComponents(ItemStack stack, JsonObject jsonObject) {
         try {
@@ -111,19 +121,19 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查物品堆是否匹配指定的组件要求
+     * 检查物品堆是否匹配指定的组件要求。
      *
-     * @param stack 要检查的物品堆
+     * @param stack           要检查的物品堆
      * @param componentString 组件要求字符串
-     * @return 所有组件都匹配返回true，否则返回false
+     * @return 所有组件都匹配返回 true，否则返回 false
      */
     public static boolean matchesComponents(ItemStack stack, String componentString) {
         try {
-            // 检查是否为JSON对象格式
+            // 检查是否为 JSON 对象格式
             if (componentString.trim().startsWith("{") && componentString.trim().endsWith("}")) {
-                // 直接解析并调用JsonObject版本
+                // 直接解析并调用 JsonObject 版本
                 JsonObject jsonObject = JsonParser.parseString(componentString).getAsJsonObject();
-                return ExchangeRuleComponents.matchesComponents(stack, jsonObject); // 明确指定调用JsonObject版本
+                return ExchangeRuleComponents.matchesComponents(stack, jsonObject); // 明确指定调用 JsonObject 版本
             } else {
                 // 解析组件字符串为键值对
                 Map<String, String> componentMap = parseComponentString(componentString);
@@ -145,12 +155,12 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查物品堆的单个组件是否匹配指定的JSON要求
+     * 检查物品堆的单个组件是否匹配指定的 JSON 要求。
      *
-     * @param stack 要检查的物品堆
-     * @param componentName 组件名称
-     * @param componentValue 组件值的JSON元素
-     * @return 组件匹配返回true，否则返回false
+     * @param stack          要检查的物品堆
+     * @param componentName  组件名称
+     * @param componentValue 组件值的 JSON 元素
+     * @return 组件匹配返回 true，否则返回 false
      */
     private static boolean matchesSingleComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
         try {
@@ -183,11 +193,11 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 比较实际组件值与JSON元素是否匹配（支持区间）
+     * 比较实际组件值与 JSON 元素是否匹配（支持区间）。
      *
-     * @param actualValue 实际的组件值
-     * @param expectedValue 期望的组件值JSON元素
-     * @return 值匹配返回true，否则返回false
+     * @param actualValue   实际的组件值
+     * @param expectedValue 期望的组件值 JSON 元素
+     * @return 值匹配返回 true，否则返回 false
      */
     private static boolean compareComponentValuesFromJson(Object actualValue, JsonElement expectedValue) {
         try {
@@ -223,9 +233,9 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 比较数组值
+     * 比较数组值。
      *
-     * @param actualValue 实际的数组值
+     * @param actualValue   实际的数组值
      * @param expectedArray 期望的 JSON 数组
      * @return 匹配返回 true，否则返回 false
      */
@@ -255,12 +265,13 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 比较复杂对象与JSON对象
-     * 通过反射检查对象的字段是否匹配JSON中的值
+     * 比较复杂对象与 JSON 对象。
+     * <p>
+     * 通过反射检查对象的字段是否匹配 JSON 中的值。
      *
      * @param actualValue 实际的对象值
-     * @param expectedObj 期望的JSON对象
-     * @return 匹配返回true，否则返回false
+     * @param expectedObj 期望的 JSON 对象
+     * @return 匹配返回 true，否则返回 false
      */
     private static boolean compareComplexObject(Object actualValue, JsonObject expectedObj) {
         try {
@@ -304,10 +315,11 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 比较字段值（支持区间匹配）
-     * 处理不同类型值的比较逻辑，包括 Optional、Reference、数值区间等
+     * 比较字段值（支持区间匹配）。
+     * <p>
+     * 处理不同类型值的比较逻辑，包括 Optional、Reference、数值区间等。
      *
-     * @param actualFieldValue 实际字段值
+     * @param actualFieldValue   实际字段值
      * @param expectedFieldValue 期望的 JSON 元素值
      * @return 匹配返回 true，否则返回 false
      */
@@ -381,11 +393,12 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查字符串是否为区间格式
-     * 支持 [min,max]（包含边界）和 (min,max)（排除边界）格式
+     * 检查字符串是否为区间格式。
+     * <p>
+     * 支持 [min,max]（包含边界）和 (min,max)（排除边界）格式。
      *
      * @param value 要检查的字符串
-     * @return 是区间格式返回true，否则返回false
+     * @return 是区间格式返回 true，否则返回 false
      */
     private static boolean isRangeFormat(String value) {
         if (value.length() < 5) return false; // 至少需要 "[0,1]" 这样的长度
@@ -399,11 +412,11 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查数值是否在指定区间内
+     * 检查数值是否在指定区间内。
      *
      * @param actualValue 实际数值
      * @param rangeString 区间字符串，格式如 "[10,20]" 或 "(10,20)"
-     * @return 在区间内返回true，否则返回false
+     * @return 在区间内返回 true，否则返回 false
      */
     private static boolean matchesRange(Object actualValue, String rangeString) {
         try {
@@ -443,12 +456,12 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 检查物品堆的单个组件是否匹配指定要求
+     * 检查物品堆的单个组件是否匹配指定要求。
      *
-     * @param stack 要检查的物品堆
-     * @param componentName 组件名称
+     * @param stack          要检查的物品堆
+     * @param componentName  组件名称
      * @param componentValue 期望的组件值
-     * @return 组件匹配返回true，否则返回false
+     * @return 组件匹配返回 true，否则返回 false
      */
     private static boolean matchesSingleComponent(ItemStack stack, String componentName, String componentValue) {
         try {
@@ -477,12 +490,13 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 比较组件值是否匹配
-     * 支持字符串、数字、布尔值等基本类型比较
+     * 比较组件值是否匹配。
+     * <p>
+     * 支持字符串、数字、布尔值等基本类型比较。
      *
-     * @param actualValue 实际的组件值
+     * @param actualValue   实际的组件值
      * @param expectedValue 期望的组件值字符串
-     * @return 值匹配返回true，否则返回false
+     * @return 值匹配返回 true，否则返回 false
      */
     private static boolean compareComponentValues(Object actualValue, String expectedValue) {
         try {
@@ -512,14 +526,15 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 标准化组件ID格式
-     * 如果组件名称不包含命名空间，则自动添加"minecraft:"前缀
+     * 标准化组件 ID 格式。
+     * <p>
+     * 如果组件名称不包含命名空间，则自动添加 "minecraft:" 前缀。
      *
      * @param componentName 组件名称
-     * @return 标准化的ResourceLocation对象，无效时返回null
+     * @return 标准化的 ResourceLocation 对象，无效时返回 null
      */
     public static ResourceLocation normalizeComponentId(String componentName) {
-        // 标准化组件ID
+        // 标准化组件 ID
         if (componentName.contains(":")) {
             return ResourceLocation.tryParse(componentName);
         }
@@ -527,15 +542,16 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 将组件字符串应用到物品堆上
-     * 支持JSON对象格式和键值对格式两种输入方式
+     * 将组件字符串应用到物品堆上。
+     * <p>
+     * 支持 JSON 对象格式和键值对格式两种输入方式。
      *
-     * @param stack 目标物品堆
+     * @param stack           目标物品堆
      * @param componentString 组件配置字符串
      */
     public static void applyComponents(ItemStack stack, String componentString) {
         try {
-            // 检查是否为JSON对象格式
+            // 检查是否为 JSON 对象格式
             if (componentString.trim().startsWith("{") && componentString.trim().endsWith("}")) {
                 applyComponentsFromJson(stack, componentString);
             } else {
@@ -562,11 +578,12 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 直接将JSON对象应用到物品堆上
-     * 支持直接传入JsonObject格式
+     * 直接将 JSON 对象应用到物品堆上。
+     * <p>
+     * 支持直接传入 JsonObject 格式。
      *
-     * @param stack 目标物品堆
-     * @param jsonObject JSON格式的组件配置对象
+     * @param stack      目标物品堆
+     * @param jsonObject JSON 格式的组件配置对象
      */
     public static void applyComponents(ItemStack stack, Object jsonObject) {
         try {
@@ -575,7 +592,7 @@ public class ExchangeRuleComponents {
                 // 直接处理 JSON 对象
                 applyComponentsFromJsonObject(stack, jsonObj);
             } else if (jsonObject instanceof Map<?, ?> map) {
-                // 如果是 Map 类型（Gson 反序列化的结果），转换为 JsonObject
+                // 如果是 Map 类型，转换为 JsonObject
                 convertMapToJsonAndApply(stack, map);
             }
         } catch (Exception e) {
@@ -584,10 +601,10 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON对象直接解析并应用组件到物品堆
+     * 从 JSON 对象直接解析并应用组件到物品堆。
      *
-     * @param stack 目标物品堆
-     * @param jsonObject JSON格式的组件配置对象
+     * @param stack      目标物品堆
+     * @param jsonObject JSON 格式的组件配置对象
      */
     private static void applyComponentsFromJsonObject(ItemStack stack, JsonObject jsonObject) {
         try {
@@ -604,14 +621,14 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON格式字符串解析并应用组件到物品堆
+     * 从 JSON 格式字符串解析并应用组件到物品堆。
      *
-     * @param stack 目标物品堆
-     * @param jsonString JSON格式的组件配置字符串
+     * @param stack      目标物品堆
+     * @param jsonString JSON 格式的组件配置字符串
      */
     private static void applyComponentsFromJson(ItemStack stack, String jsonString) {
         try {
-            // 解析JSON
+            // 解析 JSON
             var jsonElement = com.google.gson.JsonParser.parseString(jsonString);
             if (!jsonElement.isJsonObject()) {
                 return;
@@ -632,12 +649,13 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON元素解析并应用单个组件到物品堆
-     * 支持特殊组件（如附魔）和通用组件的处理
+     * 从 JSON 元素解析并应用单个组件到物品堆。
+     * <p>
+     * 支持特殊组件（如附魔）和通用组件的处理。
      *
-     * @param stack 目标物品堆
-     * @param componentName 组件名称
-     * @param componentValue 组件值的JSON元素
+     * @param stack          目标物品堆
+     * @param componentName  组件名称
+     * @param componentValue 组件值的 JSON 元素
      */
     @SuppressWarnings("unchecked")
     private static void applyComponentFromJson(ItemStack stack, String componentName, JsonElement componentValue) {
@@ -669,7 +687,7 @@ public class ExchangeRuleComponents {
                 return;
             }
 
-            // 使用组件的codec解析并应用值
+            // 使用组件的 codec 解析并应用值
             var result = componentType.codec().parse(JsonOps.INSTANCE, componentValue);
             if (result.isSuccess()) {
                 Object parsedValue = result.result().orElse(null);
@@ -685,12 +703,12 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从JSON元素解析并应用附魔组件到物品堆
+     * 从 JSON 元素解析并应用附魔组件到物品堆。
      *
-     * @param stack 目标物品堆
-     * @param jsonElement 附魔配置的JSON元素
+     * @param stack       目标物品堆
+     * @param jsonElement 附魔配置的 JSON 元素
      */
-    private static void applyEnchantmentsFromJson(ItemStack stack, com.google.gson.JsonElement jsonElement) {
+    private static void applyEnchantmentsFromJson(ItemStack stack, JsonElement jsonElement) {
         try {
             var enchantmentsObj = jsonElement.getAsJsonObject();
             var levelsObj = enchantmentsObj.getAsJsonObject("levels");
@@ -724,9 +742,9 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 从 JSON 应用存储的附魔组件
+     * 从 JSON 应用存储的附魔组件。
      *
-     * @param stack 目标物品堆
+     * @param stack       目标物品堆
      * @param jsonElement 附魔配置的 JSON 元素
      */
     private static void applyStoredEnchantmentsFromJson(ItemStack stack, com.google.gson.JsonElement jsonElement) {
@@ -736,20 +754,18 @@ public class ExchangeRuleComponents {
             }
 
             var enchantmentsObj = jsonElement.getAsJsonObject();
-            
+
             if (!enchantmentsObj.has("levels") || !enchantmentsObj.get("levels").isJsonObject()) {
                 return;
             }
 
             var levelsObj = enchantmentsObj.getAsJsonObject("levels");
-            
-            var mutableEnchants = new net.minecraft.world.item.enchantment.ItemEnchantments.Mutable(
-                    net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY
-            );
+
+            var mutableEnchants = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 
             // 获取附魔注册表
             Registry<Enchantment> enchantmentRegistry = getEnchantmentRegistry();
-            
+
             if (enchantmentRegistry == null) {
                 return;
             }
@@ -778,10 +794,10 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 应用单个组件到补丁构建器
+     * 应用单个组件到补丁构建器。
      *
-     * @param patchBuilder 补丁构建器
-     * @param componentName 组件名称
+     * @param patchBuilder   补丁构建器
+     * @param componentName  组件名称
      * @param componentValue 组件值字符串
      */
     private static void applySingleComponent(DataComponentPatch.Builder patchBuilder, String componentName, String componentValue) {
@@ -796,7 +812,7 @@ public class ExchangeRuleComponents {
                 return;
             }
 
-            // 使用组件的codec自动解析和设置
+            // 使用组件的 codec 自动解析和设置
             Object parsedValue = parseComponentValueDynamically(componentType, componentValue);
             if (parsedValue != null) {
                 setComponentValueSafely(patchBuilder, componentType, parsedValue);
@@ -807,13 +823,12 @@ public class ExchangeRuleComponents {
         }
     }
 
-
     /**
-     * 动态解析组件值
+     * 动态解析组件值。
      *
      * @param componentType 组件类型
-     * @param rawValue 原始值字符串
-     * @return 解析后的对象，失败返回null
+     * @param rawValue      原始值字符串
+     * @return 解析后的对象，失败返回 null
      */
     private static Object parseComponentValueDynamically(DataComponentType<?> componentType, String rawValue) {
         try {
@@ -822,15 +837,15 @@ public class ExchangeRuleComponents {
                 return null;
             }
 
-            // 将原始值转换为合适的JSON格式
+            // 将原始值转换为合适的 JSON 格式
             String jsonValue = convertToProperJson(rawValue);
             if (jsonValue == null) {
                 return null;
             }
 
-            // 使用组件的codec进行解析
-            var jsonElement = com.google.gson.JsonParser.parseString(jsonValue);
-            var result = codec.parse(com.mojang.serialization.JsonOps.INSTANCE, jsonElement);
+            // 使用组件的 codec 进行解析
+            var jsonElement = JsonParser.parseString(jsonValue);
+            var result = codec.parse(JsonOps.INSTANCE, jsonElement);
 
             return result.result().orElse(null);
 
@@ -840,10 +855,10 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 转换为适当的JSON格式
+     * 转换为适当的 JSON 格式。
      *
      * @param value 原始值字符串
-     * @return JSON格式字符串
+     * @return JSON 格式字符串
      */
     private static String convertToProperJson(String value) {
         if (value == null || value.isEmpty()) {
@@ -853,7 +868,7 @@ public class ExchangeRuleComponents {
         // 移除首尾空白字符
         value = value.trim();
 
-        // 如果已经是有效的JSON对象或数组，直接返回
+        // 如果已经是有效的 JSON 对象或数组，直接返回
         if ((value.startsWith("{") && value.endsWith("}")) ||
                 (value.startsWith("[") && value.endsWith("]"))) {
             return value;
@@ -872,9 +887,9 @@ public class ExchangeRuleComponents {
             return value;
         }
 
-        // 处理看起来像JSON但缺少结尾的情况
+        // 处理看起来像 JSON 但缺少结尾的情况
         if (value.contains("{") && !value.endsWith("}")) {
-            // 尝试补全JSON对象
+            // 尝试补全 JSON 对象
             String fixedValue = fixIncompleteJsonObject(value);
             if (fixedValue != null) {
                 return fixedValue;
@@ -886,10 +901,10 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 补全不完整的JSON对象字符串
+     * 补全不完整的 JSON 对象字符串。
      *
-     * @param incompleteJson 不完整的JSON字符串
-     * @return 修复后的JSON字符串，如果无法修复则返回null
+     * @param incompleteJson 不完整的 JSON 字符串
+     * @return 修复后的 JSON 字符串，如果无法修复则返回 null
      */
     private static String fixIncompleteJsonObject(String incompleteJson) {
         // 简单的修复策略：计算花括号是否匹配
@@ -905,7 +920,7 @@ public class ExchangeRuleComponents {
         if (openBraces > closeBraces) {
             String result = incompleteJson + "}".repeat(Math.max(0, openBraces - closeBraces));
 
-            // 验证修复后的JSON是否有效
+            // 验证修复后的 JSON 是否有效
             try {
                 JsonParser.parseString(result);
                 return result;
@@ -918,16 +933,15 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 安全地设置组件值
+     * 安全地设置组件值。
      *
      * @param builder 补丁构建器
-     * @param type 组件类型
-     * @param value 组件值
+     * @param type    组件类型
+     * @param value   组件值
+     * @param <T>     组件值类型
      */
     @SuppressWarnings("unchecked")
-    private static <T> void setComponentValueSafely(DataComponentPatch.Builder builder,
-                                                    DataComponentType<T> type,
-                                                    Object value) {
+    private static <T> void setComponentValueSafely(DataComponentPatch.Builder builder, DataComponentType<T> type, Object value) {
         try {
             if (value != null) {
                 builder.set(type, (T) value);
@@ -938,19 +952,21 @@ public class ExchangeRuleComponents {
     }
 
     /**
-     * 将 Map 转换为 JSON 并应用
+     * 将 Map 转换为 JSON 并应用。
+     *
+     * @param stack 目标物品堆
+     * @param map   待转换的 Map
      */
-    @SuppressWarnings("unchecked")
     private static void convertMapToJsonAndApply(ItemStack stack, Map<?, ?> map) {
         try {
             // 使用 Gson 将 Map 转换为 JsonObject
             Gson gson = new Gson();
             String jsonString = gson.toJson(map);
-            
+
             JsonObject jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
-            
+
             applyComponentsFromJsonObject(stack, jsonObject);
-            
+
         } catch (Exception e) {
             // 应用失败时静默处理
         }

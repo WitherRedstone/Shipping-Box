@@ -10,8 +10,29 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** 物品 + 动态定价 **/
+/**
+ * 物品 + 动态定价兑换策略。
+ * <p>
+ * 适用于输出为普通物品且采用动态定价的兑换规则。
+ * 以输出物品作为定价标识符，逐个物品计算动态单价并求和，
+ * 以支持在兑换过程中跨越价格阈值；随后更新累计售出数量，
+ * 应用出售价格加成后生成最终输出物品。
+ */
 public class ItemDynamicPricingStrategy implements ExchangeStrategy {
+
+    /**
+     * 执行物品 + 动态定价兑换。
+     * <p>
+     * 逐个物品按当前累计售出数量计算单价并累加，更新累计售出数量后，
+     * 应用出售价格加成并将结果物品加入输出列表。
+     *
+     * @param rule                 兑换规则
+     * @param maxExchanges         最大兑换次数
+     * @param level                世界实例
+     * @param playerUUID           玩家 UUID
+     * @param results              结果物品列表（输出）
+     * @param totalVirtualCurrency 总虚拟货币数量（本策略不直接写入）
+     */
     @Override
     public void execute(ExchangeRule rule, int maxExchanges, Level level, UUID playerUUID, List<ItemStack> results, AtomicInteger totalVirtualCurrency) {
         // 动态定价模式处理 - 逐个物品计算以支持跨阈值

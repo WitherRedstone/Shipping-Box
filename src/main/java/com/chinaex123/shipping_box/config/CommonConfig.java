@@ -11,18 +11,18 @@ public class CommonConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_TRANSACTION_LOGGING;
 
     static {
-        BUILDER.push("GlobalConfiguration");
-        BUILDER.comment("全局配置");
+        BUILDER.comment("通用配置").push("Common Config");
         EXCHANGE_TIME = BUILDER
                 .comment("每天售货箱进行兑换的时间（以 tick 为单位）")
+                .comment("Daily vending crate exchange time (in ticks)")
                 .defineInRange("exchangeTime", 0, 0, 23999);
         ENABLE_EXCHANGE_EFFECTS = BUILDER
-                .comment("是否启用兑换成功时的粒子特效",
-                        "默认关闭，开启后会在兑换成功时播放烟花特效")
+                .comment("是否启用兑换成功时的粒子特效")
+                .comment("Enable particle effects on successful exchange")
                 .define("enableExchangeEffects", false);
         ENABLE_TRANSACTION_LOGGING = BUILDER
-                .comment("是否启用交易日志记录",
-                        "默认关闭，开启后会将所有交易记录到 config/shipping_box/logs/ 目录下")
+                .comment("是否启用交易日志记录，默认关闭，开启后会将所有交易记录到 config/shipping_box/logs/ 目录下")
+                .comment("Enable trade logging. Default: disabled. When enabled, all trades are logged to the config/shipping_box/logs/ directory.下")
                 .define("enableTransactionLogging", false);
         BUILDER.pop();
 

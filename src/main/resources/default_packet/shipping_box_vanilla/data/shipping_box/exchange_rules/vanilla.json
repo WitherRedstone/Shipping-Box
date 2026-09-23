@@ -1,0 +1,26 @@
+{
+  "rules": [
+    {
+      "input": {
+        "item": "minecraft:rotten_flesh",
+        "count": 4
+      },
+      "output": {
+        "item": "minecraft:leather",
+        "count": 1
+      }
+    },
+    {
+      "input": {
+        "tag": "#minecraft:logs",
+        "count": 1
+      },
+      "output": {
+        "item": "minecraft:diamond",
+        "count": 1
+      }
+    }
+  ]
+}
+
+

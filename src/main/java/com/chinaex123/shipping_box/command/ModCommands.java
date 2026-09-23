@@ -9,8 +9,24 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 
+/**
+ * 模组命令注册类。
+ * <p>
+ * 注册 {@code /shipping_box} 根命令及其子命令，包括强制兑换、
+ * 规则管理与打开网页编辑器。根命令需要权限等级 2 才可执行。
+ */
 public class ModCommands {
 
+    /**
+     * 注册模组命令。
+     * <p>
+     * 注册根命令 {@code /shipping_box}，并挂载以下子命令：
+     * - {@code force_exchange}：强制兑换；
+     * - {@code rules}：规则管理（count 统计数量、list 分页列出）；
+     * - {@code web}：打开网页编辑器。
+     *
+     * @param dispatcher 命令调度器
+     */
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("shipping_box")
                 .requires(source -> source.hasPermission(2))

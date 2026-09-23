@@ -14,6 +14,8 @@ import com.chinaex123.shipping_box.init.ModMenuTypes;
 import com.chinaex123.shipping_box.network.ShippingBoxNetworking;
 import com.chinaex123.shipping_box.client.tooltip.TooltipEventHandler;
 import com.chinaex123.shipping_box.web.WebEditorLocalServer;
+import com.mojang.logging.LogUtils;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -31,30 +33,31 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
 import com.chinaex123.shipping_box.command.ModCommands;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import org.slf4j.Logger;
+
+import java.util.Objects;
 
 @Mod(ShippingBox.MOD_ID)
 public class ShippingBox {
-    // 在公共位置定义模组ID，供所有地方引用
     public static final String MOD_ID = "shipping_box";
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     public ShippingBox(IEventBus modEventBus, ModContainer modContainer) {
-        NeoForge.EVENT_BUS.addListener(this::onServerStopping); // 添加服务器停止事件监听器
-        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn); // 注册玩家登录事件监听器
-        NeoForge.EVENT_BUS.addListener(this::registerCommands); // 注册命令
+        NeoForge.EVENT_BUS.addListener(this::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::registerCommands);
 
-        modEventBus.addListener(this::registerCapabilities); // 能力注册事件
-        modEventBus.addListener(ShippingBoxNetworking::register); // 注册网络数据包处理器
-        modEventBus.addListener(this::registerScreens); // 注册自定义 Screen
-        // 注册配置文件
+        modEventBus.addListener(this::registerCapabilities);
+        modEventBus.addListener(ShippingBoxNetworking::register);
         modContainer.registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
 
-        ModCreativeTabs.register(modEventBus); // 注册自定义创造模式物品栏
-        ModBlocks.register(modEventBus); // 注册方块
-        ModItems.register(modEventBus); // 注册物品
-        ModBlockEntities.register(modEventBus); // 注册方块实体
-        ModMenuTypes.register(modEventBus); // 注册自定义 MenuType
-        ModAttributes.ATTRIBUTES.register(modEventBus); // 注册自定义属性系统
-        NeoForge.EVENT_BUS.register(TooltipEventHandler.class); // 注册工具提示事件处理器
+        ModCreativeTabs.register(modEventBus);
+        ModBlocks.register(modEventBus);
+        ModItems.register(modEventBus);
+        ModBlockEntities.register(modEventBus);
+        ModMenuTypes.register(modEventBus);
+        ModAttributes.ATTRIBUTES.register(modEventBus);
+        NeoForge.EVENT_BUS.register(TooltipEventHandler.class);
     }
 
     /**
@@ -79,24 +82,10 @@ public class ShippingBox {
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
             // 延迟一小段时间再同步，确保客户端完全加载
-            serverPlayer.getServer().execute(() -> {
+            Objects.requireNonNull(serverPlayer.getServer()).execute(() -> {
                 ShippingBoxNetworking.syncRecipesToClient(serverPlayer);
             });
         }
-    }
-
-    /**
-     * 服务器启动事件监听器
-     * <p>
-     * 当 Minecraft 服务器启动时调用此方法，用于初始化模组所需的各种注册表和系统组件。
-     * 主要负责初始化动态定价管理器的销售数据，确保统计数据在服务器重启后能够正确恢复。
-     *
-     * @param event 服务器启动事件对象，包含服务器实例和其他启动相关信息
-     */
-    @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event) {
-        // 不再需要手动初始化附魔注册表
-        // 现在会在需要时自动从 ServerLifecycleHooks 获取
     }
 
     /**
@@ -135,12 +124,7 @@ public class ShippingBox {
         );
     }
 
-    /**
-     * 注册自定义 Screen 与 MenuType 的绑定（仅客户端触发）
-     */
-    @SubscribeEvent
-    public void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(ModMenuTypes.SHIPPING_BOX.get(), ShippingBoxScreen::new);
-        event.register(ModMenuTypes.AUTO_SHIPPING_BOX.get(), AutoShippingBoxScreen::new);
+    public static ResourceLocation id(String name) {
+        return ResourceLocation.fromNamespaceAndPath(ShippingBox.MOD_ID, name);
     }
 }

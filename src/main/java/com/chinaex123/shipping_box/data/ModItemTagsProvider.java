@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.dataGen;
+package com.chinaex123.shipping_box.data;
 
 import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.init.ModItems;

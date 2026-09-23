@@ -8,13 +8,20 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.List;
 
-/**工具提示事件处理器 **/
+/**
+ * 工具提示事件处理器。
+ * <p>
+ * 通过监听物品工具提示事件，为支持兑换的物品添加兑换信息到 Tooltip 中。
+ * 所有处理逻辑均捕获异常，避免因 Tooltip 生成错误导致游戏崩溃。
+ */
 @EventBusSubscriber
 public class TooltipEventHandler {
 
     /**
-     * 物品工具提示事件处理器
-     * 为支持兑换的物品添加详细的兑换信息到工具提示中
+     * 物品工具提示事件处理器。
+     * <p>
+     * 为支持兑换的物品添加详细的兑换信息到工具提示中，
+     * 依次添加分隔线、标题、兑换信息、额外行信息与说明文字。
      *
      * @param event 物品工具提示事件
      */

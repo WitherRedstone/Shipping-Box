@@ -9,20 +9,25 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import java.util.*;
 
 /**
- * 虚拟货币余额动画管理器；
- * 专门处理ViScriptShop余额增加时的动画效果
+ * 虚拟货币余额动画管理器。
+ * <p>
+ * 专门处理 ViScriptShop 余额增加时的动画效果：
+ * 在多个服务端刻内逐步推进余额数值，向玩家逐帧反馈变化过程。
+ * 通过事件订阅自动注册到游戏事件总线。
  */
 @EventBusSubscriber
 public class BalanceAnimationManager {
 
-    // 存储玩家的动画状态
+    /** 存储玩家的动画状态，键为玩家 UUID */
     private static final Map<UUID, AnimationState> animationStates = new HashMap<>();
 
     /**
-     * 动画状态数据类
-     * 用于跟踪虚拟货币兑换过程中的动画进度和相关数值
+     * 动画状态数据类。
+     * <p>
+     * 用于跟踪虚拟货币兑换过程中的动画进度和相关数值。
      */
     private static class AnimationState {
+
         /** 兑换开始时的余额 */
         final int startBalance;
         /** 兑换物品的总价值 */
@@ -35,10 +40,10 @@ public class BalanceAnimationManager {
         final int maxSteps = 20;
 
         /**
-         * 构造函数
+         * 构造动画状态。
          *
-         * @param startBalance 兑换开始时的余额
-         * @param totalValue 兑换物品的总价值
+         * @param startBalance   兑换开始时的余额
+         * @param totalValue     兑换物品的总价值
          * @param exchangeAmount 实际兑换金额
          */
         AnimationState(int startBalance, int totalValue, int exchangeAmount) {
@@ -49,11 +54,13 @@ public class BalanceAnimationManager {
     }
 
     /**
-     * 开始余额动画
+     * 开始余额动画。
+     * <p>
+     * 记录起始余额、总价值与兑换次数，由服务端刻事件逐帧推进。
      *
-     * @param player 玩家对象
-     * @param startBalance 开始余额
-     * @param totalValue 增加的总金额
+     * @param player         玩家对象
+     * @param startBalance   开始余额
+     * @param totalValue     增加的总金额
      * @param exchangeAmount 兑换次数
      */
     public static void startAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
@@ -62,8 +69,12 @@ public class BalanceAnimationManager {
     }
 
     /**
-     * 服务器tick事件处理器 - 用于更新动画
-     * 完全复制爬爬币的实现
+     * 服务器刻事件处理器 - 用于更新动画。
+     * <p>
+     * 每个服务端刻推进一次动画进度，向玩家发送当前余额与增量消息；
+     * 玩家离线或动画达到最大步数时移除对应状态。
+     *
+     * @param event 服务端刻事件
      */
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {

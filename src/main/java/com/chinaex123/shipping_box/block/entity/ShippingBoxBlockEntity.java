@@ -1,8 +1,9 @@
 package com.chinaex123.shipping_box.block.entity;
 
+import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.event.*;
 import com.chinaex123.shipping_box.init.ModBlockEntities;
-import com.chinaex123.shipping_box.menu.ShippingBoxMenu;
+import com.chinaex123.shipping_box.client.menu.ShippingBoxMenu;
 import com.chinaex123.shipping_box.storage.GlobalPlayerStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,8 +30,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 /**
- * 普通售货箱的方块实体类；
- * 负责管理玩家独立的物品存储、时间窗口兑换逻辑和与漏斗等自动化设备的交互控制
+ * 普通售货箱的方块实体类。
+ * <p>
+ * 负责管理玩家独立的物品存储、时间窗口兑换逻辑和与漏斗等自动化设备的交互控制。
+ * 玩家物品存储由 {@link GlobalPlayerStorage} 统一管理，方块实体本身仅保存共享存储、
+ * 槽位所有者与玩家计数等辅助数据。
  */
 public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
 
@@ -46,7 +50,12 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     /** 记录玩家放置的物品数量 */
     private final Map<UUID, Integer> playerItemCounts = new HashMap<>();
 
-    // 在构造函数中初始化
+    /**
+     * 普通售货箱方块实体构造函数。
+     *
+     * @param pos   方块在游戏中的位置坐标
+     * @param state 方块的当前状态信息
+     */
     public ShippingBoxBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SHIPPING_BOX.get(), pos, state);
         // 初始化共享存储
@@ -54,7 +63,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 获取全局玩家存储管理器
+     * 获取全局玩家存储管理器。
+     *
+     * @return 全局玩家存储管理器，非服务端环境返回 null
      */
     private GlobalPlayerStorage getGlobalStorage() {
         if (level instanceof ServerLevel serverLevel) {
@@ -65,8 +76,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 获取可以被插入的槽位数组
-     * 实现 WorldlyContainer 接口以控制漏斗交互
+     * 获取可以被插入的槽位数组。
+     * 实现 WorldlyContainer 接口以控制漏斗交互。
      *
      * @param side 物品输入的侧面
      * @return 总是返回空数组，表示不接受任何自动输入
@@ -77,11 +88,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 检查是否可以从指定侧面插入物品到指定槽位
+     * 检查是否可以从指定侧面插入物品到指定槽位。
      *
      * @param index 槽位索引
      * @param stack 物品堆
-     * @param side 方向
+     * @param side  方向
      * @return 总是返回 false，表示不允许插入
      */
     @Override
@@ -90,11 +101,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 检查是否可以从指定槽位通过指定侧面提取物品
+     * 检查是否可以从指定槽位通过指定侧面提取物品。
      *
      * @param index 槽位索引
      * @param stack 物品堆
-     * @param side 方向
+     * @param side  方向
      * @return 总是返回 true，允许从任何面提取
      */
     @Override
@@ -103,8 +114,8 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 阻止漏斗向普通售货箱输入物品
-     * 实现 Container 接口的方法来禁止自动化输入
+     * 阻止漏斗向普通售货箱输入物品。
+     * 实现 Container 接口的方法来禁止自动化输入。
      *
      * @param index 槽位索引
      * @param stack 要插入的物品堆
@@ -116,10 +127,10 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 获取指定玩家的物品存储列表
+     * 获取指定玩家的物品存储列表。
      *
-     * @param playerUUID 玩家UUID
-     * @return 该玩家的物品列表（54格）
+     * @param playerUUID 玩家 UUID
+     * @return 该玩家的物品列表（54 格）
      */
     public NonNullList<ItemStack> getPlayerItems(UUID playerUUID) {
         GlobalPlayerStorage storage = getGlobalStorage();
@@ -127,10 +138,10 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 获取指定玩家在指定槽位的物品
+     * 获取指定玩家在指定槽位的物品。
      *
-     * @param slot 槽位编号
-     * @param playerUUID 玩家UUID
+     * @param slot       槽位编号
+     * @param playerUUID 玩家 UUID
      * @return 该槽位的物品堆栈
      */
     public ItemStack getItemForPlayer(int slot, UUID playerUUID) {
@@ -139,16 +150,17 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 为指定玩家在指定槽位设置物品
+     * 为指定玩家在指定槽位设置物品。
      *
-     * @param slot 槽位编号
-     * @param stack 要设置的物品堆栈
-     * @param playerUUID 玩家UUID
+     * @param slot       槽位编号
+     * @param stack      要设置的物品堆栈
+     * @param playerUUID 玩家 UUID
      */
     public void setItemForPlayer(int slot, ItemStack stack, UUID playerUUID) {
         GlobalPlayerStorage storage = getGlobalStorage();
         if (storage != null) {
             storage.setItem(slot, stack, playerUUID);
+            // 确保物品数量不超过最大堆叠限制
             if (stack.getCount() > getMaxStackSize()) {
                 stack.setCount(getMaxStackSize());
             }
@@ -157,11 +169,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 从指定玩家的指定槽位移除指定数量的物品
+     * 从指定玩家的指定槽位移除指定数量的物品。
      *
-     * @param slot 槽位编号
-     * @param amount 移除数量
-     * @param playerUUID 玩家UUID
+     * @param slot       槽位编号
+     * @param amount     移除数量
+     * @param playerUUID 玩家 UUID
      * @return 被移除的物品堆栈
      */
     public ItemStack removeItemForPlayer(int slot, int amount, UUID playerUUID) {
@@ -170,10 +182,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 获取容器的物品列表
-     * 这是BaseContainerBlockEntity要求实现的抽象方法
-     * 虽然本系统使用玩家独立存储，但此方法仍需提供默认存储引用
-     * 实际的玩家存储通过getPlayerItems(UUID)方法获取
+     * 获取容器的物品列表。
+     * <p>
+     * 这是 BaseContainerBlockEntity 要求实现的抽象方法。
+     * 虽然本系统使用玩家独立存储，但此方法仍需提供默认存储引用，
+     * 实际的玩家存储通过 getPlayerItems(UUID) 方法获取。
      *
      * @return 默认的共享物品存储列表
      */
@@ -185,9 +198,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 设置容器的物品列表
-     * 这是BaseContainerBlockEntity要求实现的抽象方法
-     * 用于更新共享存储并标记方块实体需要保存
+     * 设置容器的物品列表。
+     * 这是 BaseContainerBlockEntity 要求实现的抽象方法，
+     * 用于更新共享存储并标记方块实体需要保存。
      *
      * @param items 新的物品列表
      */
@@ -198,8 +211,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 获取容器的默认显示名称
-     * 返回运输箱容器的本地化名称
+     * 获取容器的默认显示名称。
      *
      * @return 容器的显示名称组件
      */
@@ -209,10 +221,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 获取容器的总槽数量
-     * 返回运输箱容器的存储容量
+     * 获取容器的总槽数量。
      *
-     * @return 容器槽数，固定返回54格
+     * @return 容器槽数，固定返回 54 格
      */
     @Override
     public int getContainerSize() {
@@ -220,15 +231,17 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 检查容器是否为空
-     * @return 如果容器中没有物品则返回true，否则返回false
+     * 检查容器是否为空。
+     *
+     * @return 如果容器中没有物品则返回 true，否则返回 false
      */
     public boolean isEmpty() {
         return false;
     }
 
     /**
-     * 获取指定槽位的物品
+     * 获取指定槽位的物品。
+     *
      * @param slot 槽位索引
      * @return 指定槽位的物品
      */
@@ -237,8 +250,9 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 从指定槽位移除指定数量的物品
-     * @param slot 槽位索引
+     * 从指定槽位移除指定数量的物品。
+     *
+     * @param slot   槽位索引
      * @param amount 移除的物品数量
      * @return 移除的物品
      */
@@ -252,9 +266,10 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 从指定槽位移除物品但不触发容器更新
-     * 与removeItem方法不同，此方法不会调用setChanged()来标记容器已更改
-     * 主要用于内部操作或批量处理时避免不必要的更新
+     * 从指定槽位移除物品但不触发容器更新。
+     * <p>
+     * 与 removeItem 方法不同，此方法不会调用 setChanged() 来标记容器已更改，
+     * 主要用于内部操作或批量处理时避免不必要的更新。
      *
      * @param slot 要移除物品的槽位索引
      * @return 从槽位中移除的物品堆栈，如果槽位为空则返回空堆栈
@@ -266,11 +281,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 在指定槽位设置物品堆栈
-     * 此方法会处理物品堆叠数量限制，并记录放置物品的玩家信息
-     * 当物品被修改时会标记容器需要保存
+     * 在指定槽位设置物品堆栈。
+     * 此方法会处理物品堆叠数量限制，并记录放置物品的玩家信息，
+     * 当物品被修改时会标记容器需要保存。
      *
-     * @param slot 目标槽位索引
+     * @param slot  目标槽位索引
      * @param stack 要设置的物品堆栈
      */
     @Override
@@ -286,11 +301,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 记录玩家在指定槽位放置物品
-     * 更新槽位所有者映射和玩家物品计数统计
+     * 记录玩家在指定槽位放置物品。
+     * 更新槽位所有者映射和玩家物品计数统计。
      *
-     * @param slot 目标槽位索引
-     * @param playerUUID 放置物品的玩家UUID，如果为null则不执行任何操作
+     * @param slot       目标槽位索引
+     * @param playerUUID 放置物品的玩家 UUID，如果为 null 则不执行任何操作
      */
     public void setSlotOwner(int slot, UUID playerUUID) {
         if (playerUUID != null) {
@@ -324,9 +339,10 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 每游戏刻执行的逻辑更新方法
-     * 负责检测时间窗口跨越并触发物品兑换逻辑
-     * 能够正确处理时间重置、时间跳跃等各种边界情况
+     * 每游戏刻执行的逻辑更新方法。
+     * <p>
+     * 负责检测时间窗口跨越并触发物品兑换逻辑，
+     * 能够正确处理时间重置、时间跳跃等各种边界情况。
      */
     public void tick() {
         if (level == null || level.isClientSide) {
@@ -370,15 +386,14 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
                 lastExchangeDay = currentDay;
                 setChanged(); // 标记数据已变更
             } catch (Exception e) {
-                // 异常处理保持简洁，避免影响游戏运行
+                ShippingBox.LOGGER.warn("[ShippingBoxBlockEntity.tick] 执行每日兑换时出错", e);
             }
         }
     }
 
     /**
-     * 强制执行物品兑换
-     * 忽略时间检查，直接触发兑换逻辑
-     * 主要用于调试和管理员操作
+     * 强制执行物品兑换。
+     * 忽略时间检查，直接触发兑换逻辑，主要用于调试和管理员操作。
      */
     public void forceExchange() {
         if (level != null && !level.isClientSide) {
@@ -389,10 +404,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 执行物品兑换的核心逻辑方法
-     * 处理物品匹配、消耗输入、生成输出并重新填充容器
-     * 采用为每个玩家单独处理的方式，确保物品归属正确
-     * 支持玩家出售价格属性加成和个性化通知
+     * 执行物品兑换的核心逻辑方法。
+     * <p>
+     * 处理物品匹配、消耗输入、生成输出并重新填充容器。
+     * 采用为每个玩家单独处理的方式，确保物品归属正确，
+     * 支持玩家出售价格属性加成和个性化通知。
      *
      * @param currentDay 当前游戏天数，用于记录兑换时间
      */
@@ -432,13 +448,13 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
             return;
         }
 
-        // ========== 第二步：清空所有存储 ==========
+        // 清空所有存储
         Collections.fill(sharedItems, ItemStack.EMPTY);
         for (UUID playerUUID : storage.getAllPlayerUUIDs()) {
             storage.clearPlayerStorage(playerUUID);
         }
 
-        // ========== 第三步：为每个玩家单独执行兑换 ==========
+        // 为每个玩家单独执行兑换
         Map<UUID, List<ItemStack>> playerResults = new HashMap<>();
         Set<UUID> successfulPlayers = new HashSet<>();
 
@@ -453,8 +469,12 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
                 tempStorage.set(i, items.get(i).copy());
             }
 
-            // 执行兑换
-            ExchangeManager.performExchange(tempStorage, level, worldPosition, playerUUID);
+            try {
+                // 执行兑换
+                ExchangeManager.performExchange(tempStorage, level, worldPosition, playerUUID);
+            } catch (Exception ignored) {
+                continue; // 跳过该玩家，继续处理其他人
+            }
 
             // 收集兑换结果
             List<ItemStack> results = new ArrayList<>();
@@ -470,7 +490,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
             }
         }
 
-        // ========== 第四步：将兑换结果分配给对应的玩家存储 ==========
+        // 将兑换结果分配给对应的玩家存储
         for (Map.Entry<UUID, List<ItemStack>> resultEntry : playerResults.entrySet()) {
             UUID playerUUID = resultEntry.getKey();
             List<ItemStack> results = resultEntry.getValue();
@@ -503,7 +523,7 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
             }
         }
 
-        // ========== 第五步：更新状态并通知玩家 ==========
+        // 更新状态并通知玩家
         lastExchangeDay = currentDay;
         setChanged(); // 标记数据已变更
 
@@ -519,35 +539,40 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 向成功兑换的玩家发送个性化通知
+     * 向成功兑换的玩家发送个性化通知。
+     * <p>
+     * 为在线玩家播放提示音效并显示成功消息。
      *
-     * @param serverLevel 服务器世界实例
-     * @param successfulPlayers 成功兑换的玩家UUID集合
+     * @param serverLevel       服务器世界实例
+     * @param successfulPlayers 成功兑换的玩家 UUID 集合
      */
     private void notifySuccessfulPlayers(ServerLevel serverLevel, Set<UUID> successfulPlayers) {
         for (UUID playerUUID : successfulPlayers) {
             ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
             if (player != null) {
-                player.playNotifySound(
-                        SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
-                        SoundSource.BLOCKS,
-                        0.5F,
-                        1.0F
-                );
+                try {
+                    player.playNotifySound(
+                            SoundEvent.createVariableRangeEvent(ResourceLocation.withDefaultNamespace("block.note_block.bell")),
+                            SoundSource.BLOCKS,
+                            0.5F,
+                            1.0F
+                    );
 
-                // 发送个性化的成功消息
-                player.displayClientMessage(Component.translatable("message.shipping_box.exchange_success"), true);
+                    // 发送个性化的成功消息
+                    player.displayClientMessage(Component.translatable("message.shipping_box.exchange_success"), true);
+                } catch (Exception ignored) {}
             }
         }
     }
 
     /**
-     * 创建容器菜单实例
-     * 这是BaseContainerBlockEntity要求实现的抽象方法
-     * 虽然在新设计中不会被直接调用，但仍需实现以满足抽象类要求
-     * 实际的菜单创建通过player.openMenu方法完成
+     * 创建容器菜单实例。
+     * <p>
+     * 这是 BaseContainerBlockEntity 要求实现的抽象方法。
+     * 虽然在新设计中不会被直接调用，但仍需实现以满足抽象类要求，
+     * 实际的菜单创建通过 player.openMenu 方法完成。
      *
-     * @param id 菜单ID
+     * @param id        菜单 ID
      * @param inventory 玩家物品栏
      * @return 新创建的运输箱菜单实例
      */
@@ -557,10 +582,12 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 将方块实体的额外数据保存到NBT标签中
-     * 注意：玩家独立存储现在由 GlobalPlayerStorage 管理，不再保存在方块实体NBT中
+     * 保存方块实体的额外数据。
+     * <p>
+     * 注意：玩家独立存储现在由 GlobalPlayerStorage 管理，不再保存在方块实体 NBT 中。
+     * 此处保存共享存储、上次兑换日期、槽位所有者与玩家物品计数。
      *
-     * @param tag NBT标签
+     * @param tag        NBT 标签
      * @param registries 注册表查找提供者
      */
     @Override
@@ -587,9 +614,11 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
     }
 
     /**
-     * 从NBT标签中加载方块实体的额外数据
+     * 从 NBT 标签中加载方块实体的额外数据。
+     * <p>
+     * 加载共享存储、上次兑换日期与槽位所有者信息。
      *
-     * @param tag NBT标签
+     * @param tag        NBT 标签
      * @param registries 注册表查找提供者
      */
     @Override
@@ -612,16 +641,14 @@ public class ShippingBoxBlockEntity extends BaseContainerBlockEntity implements 
                     int slot = Integer.parseInt(key);
                     UUID uuid = UUID.fromString(ownersTag.getString(key));
                     slotOwners.put(slot, uuid);
-                } catch (IllegalArgumentException e) {
-                    // 静默处理错误
-                }
+                } catch (IllegalArgumentException ignored) {}
             }
         }
     }
 
     /**
-     * 当方块实体被移除时调用
-     * 不清空数据，玩家物品存储在全局数据中
+     * 当方块实体被移除时调用。
+     * 不清空数据，玩家物品存储在全局数据中。
      */
     @Override
     public void setRemoved() {
