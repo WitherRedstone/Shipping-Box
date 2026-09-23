@@ -20,8 +20,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.fml.loading.FMLPaths;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -39,108 +37,98 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 客户端图标缓存管理器
- *
- * <p>功能说明：</p>
- * <ul>
- *   <li>将游戏中的所有物品和方块图标渲染为PNG图片并保存到磁盘</li>
- *   <li>按游戏刻(Tick)限制处理数量，避免在缓存生成时造成客户端卡顿</li>
- *   <li>生成的缓存图片可供Web编辑器使用，提升Web界面加载速度</li>
- *   <li>支持断点续传，已生成的图标不会重复生成</li>
- * </ul>
- *
- * <p>使用场景：</p>
- * <ul>
- *   <li>Web编辑器需要显示物品/方块图标时，从此缓存读取</li>
- *   <li>首次启动或更新游戏版本后，需要重新生成缓存</li>
- *   <li>玩家可以通过命令手动触发缓存生成</li>
- * </ul>
- *
- * @see WebEditorLocalServer Web编辑器服务器，会使用此缓存
- * @see ItemIconPngRenderer 图标渲染工具类
+ * 编辑器图标缓存管理器。
+ * <p>
+ * 负责分批渲染并缓存所有物品与方块的图标 PNG，供 Web 编辑器使用。
+ * 缓存任务按每刻固定数量推进，并通过 Boss 条显示进度；
+ * 完成后生成 manifest.json 描述图标索引、标签及标签代表图标。
+ * 通过缓存版本号判断清单是否可用，并通过单例提供全局访问。
  */
 public class EditorIconCacheManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(EditorIconCacheManager.class);
 
-    // JSON序列化工具，用于生成格式化的清单文件
+    /** JSON 序列化器 */
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    public static final int ICON_SIZE = 32; // 生成的图标尺寸
-    public static final int ICONS_PER_TICK = 3; // 每个游戏刻最大处理的图标数量
-    public static final int CACHE_VERSION = 5; // v5: slab/stairs/walls/fences also use isometric block icons
+    /** 图标输出尺寸 */
+    public static final int ICON_SIZE = 32;
+    /** 每游戏刻处理的图标数量 */
+    public static final int ICONS_PER_TICK = 3;
+    /** 缓存清单版本号，用于判断旧版清单是否需要重建 */
+    public static final int CACHE_VERSION = 5;
 
-    // 单例实例
+    /** 单例实例 */
     private static final EditorIconCacheManager INSTANCE = new EditorIconCacheManager();
 
-    // 缓存文件存储路径
-    private final Path cacheRoot; // 缓存根目录: config/shipping_box/editor_icon_cache/
-    private final Path itemsDir; // 物品图标目录
-    private final Path blocksDir; // 方块图标目录
-    private final Path manifestFile; // 清单文件路径
+    /** 缓存根目录 */
+    private final Path cacheRoot;
+    /** 物品图标目录 */
+    private final Path itemsDir;
+    /** 方块图标目录 */
+    private final Path blocksDir;
+    /** 清单文件路径 */
+    private final Path manifestFile;
 
-    // 待处理的条目列表
+    /** 待处理的缓存条目列表 */
     private final List<CacheEntry> pendingEntries = new ArrayList<>();
 
-    // 已处理数量和总数量
+    /** 已处理数量 */
     private final AtomicInteger processed = new AtomicInteger(0);
+    /** 总条目数量 */
     private final AtomicInteger total = new AtomicInteger(0);
 
-    // 当前状态
+    /** 当前任务状态 */
     private volatile Status status = Status.IDLE;
+    /** 错误信息（发生错误时） */
     private volatile String errorMessage = null;
 
-    // 运行状态标志
+    /** 任务是否正在运行 */
     private final AtomicBoolean running = new AtomicBoolean(false);
+    /** 是否为强制模式（忽略已有缓存重新生成） */
     private boolean forceMode = false;
 
-    // Boss条ID，用于显示进度
+    /** 进度 Boss 条的唯一标识 */
     private UUID bossBarId;
 
     /**
-     * 私有构造函数，初始化缓存目录并加载已有状态
-     * 使用单例模式确保全局只有一个缓存管理器实例
+     * 私有构造函数，初始化缓存目录并加载已有清单状态。
      */
     private EditorIconCacheManager() {
-        // 缓存根目录: .minecraft/config/shipping_box/editor_icon_cache/
         this.cacheRoot = FMLPaths.GAMEDIR.get()
                 .resolve("config")
                 .resolve(ShippingBox.MOD_ID)
                 .resolve("editor_icon_cache");
-        this.itemsDir = cacheRoot.resolve("items");   // 物品图标子目录
-        this.blocksDir = cacheRoot.resolve("blocks"); // 方块图标子目录
-        this.manifestFile = cacheRoot.resolve("manifest.json"); // 清单文件
+        this.itemsDir = cacheRoot.resolve("items");
+        this.blocksDir = cacheRoot.resolve("blocks");
+        this.manifestFile = cacheRoot.resolve("manifest.json");
 
-        // 启动时尝试从已有的清单文件恢复状态
         loadStatusFromManifest();
     }
 
     /**
-     * 更新Boss条进度显示
-     * 在游戏界面上方显示一个Boss条，实时反映缓存生成进度
+     * 更新进度 Boss 条。
+     * <p>
+     * 根据已处理与总量计算进度，并通过反射将事件写入原版 Boss 条事件表。
+     * 反射失败时仅记录 trace 日志，不影响缓存流程。
      */
     private void updateBossBar() {
         if (bossBarId == null) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.gui == null) return;
 
-        // 计算进度百分比
         float progress = total.get() > 0 ? (float) processed.get() / total.get() : 0f;
-        // 构建标题文本（使用可翻译文本）
         Component title = Component.translatable(
                 "command.shipping_box.icon_cache.bossbar.title",
                 processed.get(), total.get());
 
-        // 创建Boss条事件
         LerpingBossEvent event = new LerpingBossEvent(
                 bossBarId,
                 title,
                 progress,
-                BossEvent.BossBarColor.BLUE, // 蓝色进度条
-                BossEvent.BossBarOverlay.PROGRESS, // 进度条样式
+                BossEvent.BossBarColor.BLUE,
+                BossEvent.BossBarOverlay.PROGRESS,
                 false, false, false
         );
 
-        // 通过反射将Boss条添加到游戏界面
         try {
             Field eventsField = BossHealthOverlay.class.getDeclaredField("events");
             eventsField.setAccessible(true);
@@ -148,13 +136,15 @@ public class EditorIconCacheManager {
             Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.hud.getBossOverlay());
             events.put(bossBarId, event);
         } catch (Exception e) {
-            // 反射失败则忽略，不影响功能
+            ShippingBox.LOGGER.trace("[EditorIconCacheManager.updateBossBar] 更新 Boss 条失败（可能是映射名变化）", e);
         }
     }
 
     /**
-     * 移除Boss条
-     * 缓存任务完成或停止时，从游戏界面移除进度显示
+     * 移除进度 Boss 条。
+     * <p>
+     * 通过反射从原版 Boss 条事件表中移除本任务的进度条，
+     * 并清空任务标识。反射失败时仅记录 trace 日志。
      */
     private void removeBossBar() {
         if (bossBarId == null) return;
@@ -168,14 +158,17 @@ public class EditorIconCacheManager {
             Map<UUID, LerpingBossEvent> events = (Map<UUID, LerpingBossEvent>) eventsField.get(mc.gui.hud.getBossOverlay());
             events.remove(bossBarId);
         } catch (Exception e) {
-            // 忽略异常
+            ShippingBox.LOGGER.trace("[EditorIconCacheManager.removeBossBar] 移除 Boss 条失败（可能是映射名变化）", e);
         }
         bossBarId = null;
     }
 
     /**
-     * 从清单文件加载持久化状态
-     * 如果上次缓存已完成，则直接标记为完成状态，避免重复生成
+     * 从清单文件加载缓存的就绪状态。
+     * <p>
+     * 仅当清单版本号与当前缓存版本一致且标记为 ready/done 时，
+     * 才将状态置为 DONE 并以物品与方块数量填充处理计数；
+     * 版本不一致时记录日志并等待重建。
      */
     private void loadStatusFromManifest() {
         try {
@@ -185,71 +178,74 @@ public class EditorIconCacheManager {
                 String statusStr = obj.has("status") ? obj.get("status").getAsString() : "";
                 int version = obj.has("version") ? obj.get("version").getAsInt() : 0;
 
-                // 如果清单状态为 ready 或 done，说明缓存已存在
                 if (version == CACHE_VERSION && ("ready".equals(statusStr) || "done".equals(statusStr))) {
                     this.status = Status.DONE;
                     int itemCount = obj.has("items") ? obj.getAsJsonArray("items").size() : 0;
                     int blockCount = obj.has("blocks") ? obj.getAsJsonArray("blocks").size() : 0;
                     this.total.set(itemCount + blockCount);
                     this.processed.set(this.total.get());
-                    LOGGER.info("[IconCache] 从 manifest 加载就绪状态 ({} items, {} blocks)", itemCount, blockCount);
+                    ShippingBox.LOGGER.info("[EditorIconCacheManager.loadStatusFromManifest] 从 manifest 加载就绪状态，物品: {}，方块: {}", itemCount, blockCount);
                 } else if ("ready".equals(statusStr) || "done".equals(statusStr)) {
-                    LOGGER.info("[IconCache] 忽略旧版 manifest cache version {}，等待重建", version);
+                    ShippingBox.LOGGER.info("[EditorIconCacheManager.loadStatusFromManifest] 忽略旧版 manifest，缓存版本: {}，等待重建", version);
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("[IconCache] 加载 manifest 状态失败: {}", e.getMessage());
+            ShippingBox.LOGGER.warn("[EditorIconCacheManager.loadStatusFromManifest] 加载 manifest 状态失败", e);
         }
     }
 
     /**
-     * 获取单例实例
-     * @return 缓存管理器唯一实例
+     * 获取单例实例。
+     *
+     * @return 图标缓存管理器实例
      */
     public static EditorIconCacheManager getInstance() {
         return INSTANCE;
     }
 
     /**
-     * 缓存任务状态枚举
+     * 缓存任务状态枚举。
+     * <p>
+     * IDLE 表示空闲，RUNNING 表示进行中，DONE 表示已完成，ERROR 表示出错。
      */
     public enum Status {
-        IDLE, // 空闲状态
-        RUNNING, // 正在运行
-        DONE, // 已完成
-        ERROR // 出错状态
+        IDLE,
+        RUNNING,
+        DONE,
+        ERROR
     }
 
     /**
-     * 缓存条目记录
-     * @param id 物品/方块的资源位置
-     * @param isBlock 是否为方块
+     * 缓存条目记录。
+     *
+     * @param id          物品或方块的标识符
+     * @param isBlock     是否为方块条目
      * @param displayName 显示名称
-     * @param fileName 安全的文件名
+     * @param fileName    输出文件名（不含扩展名）
      */
     private record CacheEntry(Identifier id, boolean isBlock, String displayName, String fileName) {}
 
     /**
-     * 启动缓存生成任务
-     * @param force 是否强制重新生成
+     * 启动图标缓存任务。
+     * <p>
+     * 若任务已在运行：强制模式下会先停止当前任务并清空缓存，否则直接返回。
+     * 随后按是否需要强制重建准备条目；无待处理条目时直接标记完成并写入清单，
+     * 否则进入运行状态并创建进度 Boss 条。
+     *
+     * @param force 是否强制重建（忽略已有缓存）
      */
     public void startCache(boolean force) {
-        // 如果已经在运行，根据force参数决定是否重启
         if (running.get()) {
             if (force) {
-                // 强制模式：停止当前任务并清空缓存
                 stopCurrentTask();
                 clearCacheInternal(false);
             } else {
-                // 非强制模式：直接返回
                 return;
             }
         }
 
-        // 确保缓存目录存在
         ensureDirectories();
 
-        // 如果是强制模式，清空已有缓存
         if (force) {
             forceMode = true;
             clearCacheInternal(false);
@@ -257,10 +253,8 @@ public class EditorIconCacheManager {
             forceMode = false;
         }
 
-        // 准备待处理的条目列表
         prepareEntries();
 
-        // 如果没有需要处理的条目，直接完成
         if (pendingEntries.isEmpty()) {
             status = Status.DONE;
             total.set(0);
@@ -269,83 +263,87 @@ public class EditorIconCacheManager {
             return;
         }
 
-        // 初始化任务状态
         total.set(pendingEntries.size());
         processed.set(0);
         status = Status.RUNNING;
         errorMessage = null;
         running.set(true);
 
-        // 显示Boss条进度
         bossBarId = UUID.randomUUID();
         updateBossBar();
 
-        LOGGER.info("[IconCache] 开始缓存任务，共 {} 个条目", total.get());
+        ShippingBox.LOGGER.info("[EditorIconCacheManager.startCache] 开始缓存任务，共 {} 个条目", total.get());
     }
 
     /**
-     * 停止当前缓存任务
+     * 停止当前缓存任务。
+     * <p>
+     * 通过原子比较避免重复停止，停止后移除进度 Boss 条。
      */
     public void stopCurrentTask() {
         if (running.compareAndSet(true, false)) {
             status = Status.IDLE;
             removeBossBar();
-            LOGGER.info("[IconCache] 缓存任务已停止");
+            ShippingBox.LOGGER.info("[EditorIconCacheManager.stopCurrentTask] 缓存任务已停止");
         }
     }
 
     /**
-     * 清空所有缓存
+     * 清空缓存并重置状态。
+     * <p>
+     * 先停止当前任务，再删除缓存目录内容并重置状态为 IDLE。
      */
     public void clearCache() {
         stopCurrentTask();
         clearCacheInternal(true);
-        LOGGER.info("[IconCache] 缓存已清除");
+        ShippingBox.LOGGER.info("[EditorIconCacheManager.clearCache] 缓存已清除");
     }
 
     /**
-     * 确保缓存目录存在
-     * 如果目录不存在则创建
+     * 确保缓存目录存在。
      */
     private void ensureDirectories() {
         try {
             Files.createDirectories(itemsDir);
             Files.createDirectories(blocksDir);
         } catch (Exception e) {
-            LOGGER.error("[IconCache] 创建缓存目录失败", e);
+            ShippingBox.LOGGER.error("[EditorIconCacheManager.ensureDirectories] 创建缓存目录失败", e);
         }
     }
 
     /**
-     * 清空缓存内部实现
-     * @param resetStatus 是否重置状态为IDLE
+     * 清空缓存目录内容并重置计数。
+     * <p>
+     * 按深度逆序删除缓存目录下的所有文件，随后重建物品与方块目录；
+     * 是否重置状态由参数控制。
+     *
+     * @param resetStatus 是否同时重置状态为 IDLE
      */
     private void clearCacheInternal(boolean resetStatus) {
-        // 移除Boss条
         removeBossBar();
 
-        // 删除所有缓存文件
         try {
             if (Files.exists(cacheRoot)) {
                 Files.walk(cacheRoot)
-                        .sorted((a, b) -> -a.compareTo(b)) // 先删除子文件再删除目录
+                        .sorted((a, b) -> -a.compareTo(b))
                         .forEach(path -> {
-                            try { Files.deleteIfExists(path); } catch (IOException ignored) {}
+                            try {
+                                Files.deleteIfExists(path);
+                            } catch (IOException e) {
+                                ShippingBox.LOGGER.warn("[EditorIconCacheManager.clearCacheInternal] 删除缓存文件失败，路径: {}", path, e);
+                            }
                         });
             }
-            // 重新创建空目录
             Files.createDirectories(itemsDir);
             Files.createDirectories(blocksDir);
         } catch (Exception e) {
-            LOGGER.error("[IconCache] 清空缓存失败", e);
+            ShippingBox.LOGGER.error("[EditorIconCacheManager.clearCacheInternal] 清空缓存失败", e);
         }
 
-        // 重置计数
         pendingEntries.clear();
         processed.set(0);
         total.set(0);
 
-        // 重置状态
         if (resetStatus) {
             status = Status.IDLE;
             errorMessage = null;
@@ -353,15 +351,16 @@ public class EditorIconCacheManager {
     }
 
     /**
-     * 准备待处理的条目列表
-     * 遍历所有物品和方块，生成缓存条目
+     * 准备待处理的缓存条目。
+     * <p>
+     * 遍历物品与方块注册表（跳过空气与无有效 ID 的条目），
+     * 为每个条目生成文件名与显示名称加入待处理列表。
      */
     private void prepareEntries() {
         pendingEntries.clear();
 
-        // 1. 处理所有物品
         BuiltInRegistries.ITEM.forEach(item -> {
-            if (item == Items.AIR) return; // 跳过空气
+            if (item == Items.AIR) return;
             Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) return;
             String fileName = toSafeFileName(id);
@@ -369,10 +368,9 @@ public class EditorIconCacheManager {
             pendingEntries.add(new CacheEntry(id, false, display, fileName));
         });
 
-        // 2. 处理所有方块（使用对应的物品图标）
         BuiltInRegistries.BLOCK.forEach(block -> {
             Item item = block.asItem();
-            if (item == Items.AIR) return; // 跳过没有物品形式的方块
+            if (item == Items.AIR) return;
             Identifier id = BuiltInRegistries.BLOCK.getKey(block);
             if (id == null) return;
             String fileName = toSafeFileName(id);
@@ -382,39 +380,40 @@ public class EditorIconCacheManager {
     }
 
     /**
-     * 将ResourceLocation转换为安全的文件名
-     * @param id 资源位置
+     * 将标识符转换为安全的文件名。
+     *
+     * @param id 物品或方块标识符
      * @return 安全的文件名（不含扩展名）
      */
     private String toSafeFileName(Identifier id) {
-        // 替换可能引起路径问题的字符
         return (id.getNamespace() + "_" + id.getPath()).replace(':', '_').replace('/', '_');
     }
 
     /**
-     * 客户端tick回调，每游戏刻执行一次
-     * 处理有限数量的图标生成，避免卡顿
+     * 每游戏刻推进缓存任务。
+     * <p>
+     * 按每刻固定数量依次处理待处理条目：渲染图标 PNG 并写入对应目录，
+     * 渲染失败时以占位图代替，无法解析为物品的条目标记处理后跳过。
+     * 全部处理完成后写入清单、移除进度条并标记完成；否则更新进度条。
      */
     public void tick() {
         if (!running.get() || status != Status.RUNNING) return;
 
         int processedThisTick = 0;
-        // 每刻最多处理 ICONS_PER_TICK 个条目
         while (processedThisTick < ICONS_PER_TICK && !pendingEntries.isEmpty()) {
             CacheEntry entry = pendingEntries.remove(0);
 
             try {
-                // 获取物品栈
                 ItemStack stack = entry.isBlock()
                         ? BuiltInRegistries.BLOCK.get(entry.id())
-                                .map(Holder::value)
-                                .map(Block::asItem)
-                                .map(ItemStack::new)
-                                .orElse(ItemStack.EMPTY)
+                          .map(Holder::value)
+                          .map(Block::asItem)
+                          .map(ItemStack::new)
+                          .orElse(ItemStack.EMPTY)
                         : BuiltInRegistries.ITEM.get(entry.id())
-                                .map(Holder::value)
-                                .map(ItemStack::new)
-                                .orElse(ItemStack.EMPTY);
+                          .map(Holder::value)
+                          .map(ItemStack::new)
+                          .orElse(ItemStack.EMPTY);
 
                 if (stack.isEmpty()) {
                     processed.incrementAndGet();
@@ -422,55 +421,45 @@ public class EditorIconCacheManager {
                     continue;
                 }
 
-                // 渲染图标为PNG
                 byte[] png = ItemIconPngRenderer.renderStackToPng(stack, ICON_SIZE, entry.isBlock());
                 if (png == null || png.length == 0) {
-                    // 渲染失败，使用占位图
                     png = createPlaceholderPng(ICON_SIZE, entry.id().hashCode());
-                    LOGGER.warn("[IconCache] 使用占位符图标 for {}", entry.id());
+                    ShippingBox.LOGGER.warn("[EditorIconCacheManager.tick] 渲染失败，使用占位图，物品: {}", entry.id());
                 }
 
-                // 保存到文件
                 Path targetDir = entry.isBlock() ? blocksDir : itemsDir;
                 Path targetFile = targetDir.resolve(entry.fileName() + ".png");
                 Files.write(targetFile, png);
 
             } catch (Exception e) {
-                LOGGER.warn("[IconCache] 处理 {} 失败: {}", entry.id(), e.getMessage());
+                ShippingBox.LOGGER.warn("[EditorIconCacheManager.tick] 处理条目失败，物品: {}", entry.id(), e);
             } finally {
                 processed.incrementAndGet();
                 processedThisTick++;
             }
         }
 
-        // 检查是否所有条目都已处理完成
         if (pendingEntries.isEmpty()) {
             running.set(false);
             status = Status.DONE;
-            writeManifest();          // 生成清单文件
-            removeBossBar();          // 移除Boss条
-            LOGGER.info("[IconCache] 缓存任务完成，共处理 {} 个", processed.get());
+            writeManifest();
+            removeBossBar();
+            ShippingBox.LOGGER.info("[EditorIconCacheManager.tick] 缓存任务完成，共处理 {} 个", processed.get());
         } else if (running.get()) {
-            updateBossBar();          // 更新进度显示
+            updateBossBar();
         }
     }
 
     /**
-     * 生成清单文件（manifest.json）
-     * 记录所有已缓存的图标信息，供Web编辑器使用
-     *
-     * <p>清单包含以下信息：</p>
-     * <ul>
-     *   <li>版本信息和生成时间</li>
-     *   <li>所有已缓存的物品和方块列表</li>
-     *   <li>所有标签及其对应的代表性图标</li>
-     * </ul>
+     * 写入清单文件。
+     * <p>
+     * 汇总已生成的物品与方块图标路径、标签列表及标签代表图标，
+     * 输出为 manifest.json。写入失败时将状态置为 ERROR 并记录错误信息。
      */
     private void writeManifest() {
         try {
             Files.createDirectories(cacheRoot);
 
-            // 构建根JSON对象
             JsonObject root = new JsonObject();
             root.addProperty("version", CACHE_VERSION);
             root.addProperty("modid", ShippingBox.MOD_ID);
@@ -479,7 +468,6 @@ public class EditorIconCacheManager {
             root.addProperty("status", "ready");
             root.addProperty("generatedAt", System.currentTimeMillis());
 
-            // 1. 收集所有已缓存的物品
             JsonArray itemsArr = new JsonArray();
             BuiltInRegistries.ITEM.forEach(item -> {
                 if (item == Items.AIR) return;
@@ -496,7 +484,6 @@ public class EditorIconCacheManager {
                 }
             });
 
-            // 2. 收集所有已缓存的方块
             JsonArray blocksArr = new JsonArray();
             BuiltInRegistries.BLOCK.forEach(block -> {
                 Item item = block.asItem();
@@ -517,7 +504,6 @@ public class EditorIconCacheManager {
             root.add("items", itemsArr);
             root.add("blocks", blocksArr);
 
-            // 3. 收集标签及其代表性图标
             JsonArray tagsArr = new JsonArray();
             JsonObject tagIcons = new JsonObject();
             BuiltInRegistries.ITEM.getTags().forEach(named -> {
@@ -527,7 +513,6 @@ public class EditorIconCacheManager {
                 String tagId = "#" + loc.getNamespace() + ":" + loc.getPath();
                 tagsArr.add(tagId);
 
-                // 查找标签中第一个有缓存的物品作为代表性图标 (26.2: getTag → getTagOrEmpty)
                 var holders = BuiltInRegistries.ITEM.getTagOrEmpty(tagKey);
                 for (var holder : holders) {
                     Item item = holder.value();
@@ -543,102 +528,138 @@ public class EditorIconCacheManager {
             root.add("tags", tagsArr);
             root.add("tagIcons", tagIcons);
 
-            // 写入文件
             Files.writeString(manifestFile, GSON.toJson(root), StandardCharsets.UTF_8);
-            LOGGER.info("[IconCache] manifest.json 已生成");
+            ShippingBox.LOGGER.info("[EditorIconCacheManager.writeManifest] manifest.json 已生成");
 
         } catch (Exception e) {
-            LOGGER.error("[IconCache] 写入 manifest 失败", e);
+            ShippingBox.LOGGER.error("[EditorIconCacheManager.writeManifest] 写入 manifest 失败", e);
             status = Status.ERROR;
             errorMessage = e.getMessage();
         }
     }
 
+    /**
+     * 获取当前任务状态。
+     *
+     * @return 任务状态
+     */
     public Status getStatus() {
         return status;
     }
 
+    /**
+     * 获取已处理数量。
+     *
+     * @return 已处理数量
+     */
     public int getProcessed() {
         return processed.get();
     }
 
+    /**
+     * 获取总条目数量。
+     *
+     * @return 总条目数量
+     */
     public int getTotal() {
         return total.get();
     }
 
+    /**
+     * 获取错误信息。
+     *
+     * @return 错误信息，无错误时返回 null
+     */
     public String getErrorMessage() {
         return errorMessage;
     }
 
+    /**
+     * 判断任务是否正在运行。
+     *
+     * @return 正在运行返回 true
+     */
     public boolean isRunning() {
         return running.get();
     }
 
+    /**
+     * 获取缓存根目录。
+     *
+     * @return 缓存根目录
+     */
     public Path getCacheRoot() {
         return cacheRoot;
     }
 
+    /**
+     * 获取清单文件路径。
+     *
+     * @return 清单文件路径
+     */
     public Path getManifestFile() {
         return manifestFile;
     }
 
     /**
-     * 创建占位符PNG图标
-     * 当正常渲染失败时，生成一个基于种子颜色的简单方块作为替代
+     * 生成占位图 PNG。
+     * <p>
+     * 依据种子生成单色图像并编码为 PNG，用于渲染失败时的替代图标。
      *
-     * @param size 图标尺寸
-     * @param seed 种子值，用于生成颜色
-     * @return PNG图片的字节数组
+     * @param size 图像边长
+     * @param seed 颜色种子
+     * @return PNG 字节数组，生成失败时返回空数组
      */
     public static byte[] createPlaceholderPng(int size, int seed) {
         try {
-            // 创建NativeImage
             NativeImage image = new NativeImage(NativeImage.Format.RGBA, size, size, false);
-            // 根据种子生成RGB颜色
             int r = (seed >> 16) & 0xFF;
             int g = (seed >> 8) & 0xFF;
             int b = seed & 0xFF;
             int color = 0xFF000000 | (r << 16) | (g << 8) | b;
-            // 填充整个图片
             for (int x = 0; x < size; x++) {
                 for (int y = 0; y < size; y++) {
                     image.setPixel(x, y, color);
                 }
             }
-            // 编码为PNG
             byte[] bytes = encodePng(image);
             image.close();
             if (bytes != null && bytes.length > 0) {
                 return bytes;
             }
         } catch (Exception e) {
-            LOGGER.warn("[IconCache] 创建占位图失败", e);
+            ShippingBox.LOGGER.warn("[EditorIconCacheManager.createPlaceholderPng] 创建占位图失败", e);
         }
         return new byte[0];
     }
 
     /**
-     * 将NativeImage编码为PNG格式
-     * 通过临时文件的方式实现编码
+     * 将图像编码为 PNG 字节数组。
+     * <p>
+     * 通过临时文件写出并读取字节，最后删除临时文件。
      *
-     * @param image 要编码的图像
-     * @return PNG字节数组，失败返回null
+     * @param image 待编码图像
+     * @return PNG 字节数组，编码失败返回 null
      */
     private static byte[] encodePng(NativeImage image) {
+        Path tempFile = null;
         try {
-            // 创建临时文件
-            Path tempFile = Files.createTempFile("icon_", ".png");
-            // 写入PNG
+            tempFile = Files.createTempFile("icon_", ".png");
             image.writeToFile(tempFile);
-            // 读取字节
             byte[] result = Files.readAllBytes(tempFile);
-            // 删除临时文件
-            Files.deleteIfExists(tempFile);
             if (result.length > 0) {
                 return result;
             }
         } catch (Exception e) {
-            // 忽略异常，返回null
+            ShippingBox.LOGGER.warn("[EditorIconCacheManager.encodePng] 编码 PNG 失败", e);
+        } finally {
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (Exception e) {
+                    ShippingBox.LOGGER.warn("[EditorIconCacheManager.encodePng] 删除临时文件失败，路径: {}", tempFile, e);
+                }
+            }
         }
         return null;
     }

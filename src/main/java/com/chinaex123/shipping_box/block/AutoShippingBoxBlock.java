@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.block;
 
+import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.block.entity.AutoShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.init.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
@@ -36,22 +37,24 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 自动售货箱方块类；
- * 处理自动售货箱的放置、交互和状态管理
+ * 自动售货箱方块类。
+ * <p>
+ * 处理自动售货箱的放置、交互和状态管理。
  * <p>
  * 核心特性：
- * 1. 每个自动售货箱绑定到放置它的玩家
- * 2. 只有绑定的玩家可以打开箱子
- * 3. 破坏时保留绑定信息到掉落物品中
- * 4. 支持每日自动兑换
+ * 1. 每个自动售货箱绑定到放置它的玩家；
+ * 2. 只有绑定的玩家可以打开箱子；
+ * 3. 破坏时保留绑定信息到掉落物品中；
+ * 4. 支持每日自动兑换。
  */
 @ParametersAreNonnullByDefault
 public class AutoShippingBoxBlock extends BaseEntityBlock {
 
+    /** 方块编解码器 */
     public static final MapCodec<AutoShippingBoxBlock> CODEC = simpleCodec(AutoShippingBoxBlock::new);
 
     /**
-     * 获取方块的数据编解码器
+     * 获取方块的数据编解码器。
      *
      * @return 方块编解码器实例
      */
@@ -60,7 +63,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
     }
 
     /**
-     * 构造函数
+     * 构造自动售货箱方块。
      *
      * @param properties 方块属性（硬度、抗爆性等）
      */
@@ -74,7 +77,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * 此方法指定自动售货箱方块使用模型渲染方式。
      *
      * @param state 方块状态对象
-     * @return 渲染形状枚举值，此处返回MODEL表示使用模型渲染
+     * @return 渲染形状枚举值，此处返回 MODEL 表示使用模型渲染
      */
     @Override
     public @NotNull RenderShape getRenderShape(BlockState state) {
@@ -88,7 +91,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      *
      * @param pos   方块位置坐标
      * @param state 方块状态对象
-     * @return 新创建的AutoShippingBoxBlockEntity实例
+     * @return 新创建的 AutoShippingBoxBlockEntity 实例
      */
     @Nullable
     @Override
@@ -106,7 +109,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @param state 方块状态对象
      * @param type  方块实体类型
      * @param <T>   方块实体泛型参数
-     * @return 方块实体更新器，如果条件不匹配则返回null
+     * @return 方块实体更新器，如果条件不匹配则返回 null
      */
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
@@ -137,29 +140,26 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
         if (!level.isClientSide() && placer instanceof Player player) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
-                // 检查物品是否有绑定信息（从CUSTOM_DATA组件中读取）
+                // 检查物品是否有绑定信息（从 CUSTOM_DATA 组件中读取）
                 CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
                 UUID boundPlayerUUID = null;
                 String boundPlayerName = "Unknown";
 
                 if (customData != null) {
                     CompoundTag tag = customData.copyTag();
-                    // 读取绑定的玩家UUID (26.2: getStringOr() → getString().orElse())
+                    // 读取绑定的玩家 UUID
                     var boundUuidStr = tag.getString("BoundPlayerUUID");
                     if (boundUuidStr.isPresent()) {
                         try {
                             boundPlayerUUID = UUID.fromString(boundUuidStr.get());
-                        } catch (IllegalArgumentException e) {
-                            // UUID格式错误，忽略
-                        }
+                        } catch (IllegalArgumentException ignored) {}
                     }
                     // 读取绑定的玩家名字
                     boundPlayerName = tag.getString("BoundPlayerName").orElse("Unknown");
                 }
 
                 if (boundPlayerUUID != null) {
-                    // ========== 情况1：物品中包含绑定信息 ==========
-                    // 恢复原有的绑定关系（例如：被破坏后重新放置）
+                    // 恢复原有的绑定关系
                     autoBox.bindPlayer(boundPlayerUUID);
 
                     // 显示绑定信息，使用读取到的玩家名字
@@ -168,7 +168,6 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                                     Component.literal(boundPlayerName).withStyle(style -> style.withColor(0xFFAA00)))
                     );
                 } else {
-                    // ========== 情况2：没有绑定信息（全新放置） ==========
                     // 将当前放置玩家绑定到该自动售货箱
                     autoBox.bindPlayer(player.getUUID());
                     player.sendSystemMessage(
@@ -184,7 +183,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * 处理玩家右键点击自动售货箱方块的交互逻辑。
      * <p>
      * 此方法在玩家右键点击自动售货箱时调用，负责验证玩家访问权限
-     * 并打开相应的GUI界面。只有绑定的玩家或未绑定的自动售货箱
+     * 并打开相应的 GUI 界面。只有绑定的玩家或未绑定的自动售货箱
      * 才能被访问。
      *
      * @param state  方块状态对象
@@ -192,7 +191,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * @param pos    方块位置坐标
      * @param player 执行交互的玩家
      * @param hit    点击结果信息
-     * @return 交互结果枚举值，CONSUME表示消耗此次交互
+     * @return 交互结果枚举值，CONSUME 表示消耗此次交互
      */
     public @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide()) {
@@ -210,7 +209,7 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                         SoundSource.BLOCKS,
                         0.5F, level.getRandom().nextFloat() * 0.1F + 0.9F);
 
-                // 打开GUI菜单，传递方块位置坐标
+                // 打开 GUI 菜单，传递方块位置坐标
                 player.openMenu(autoBox, buf -> buf.writeBlockPos(pos));
             } else {
                 // 发送拒绝访问消息
@@ -225,8 +224,8 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
      * 处理自动售货箱方块被破坏时的逻辑。
      * <p>
      * 此方法在方块被破坏时调用，负责保存绑定玩家信息到掉落物品中，
-     * 并处理物品掉落逻辑。通过CUSTOM_DATA组件存储UUID和玩家名字，
-     * 通过LORE组件显示友好的绑定信息提示。
+     * 并处理物品掉落逻辑。通过 CUSTOM_DATA 组件存储 UUID 和玩家名字，
+     * 通过 LORE 组件显示友好的绑定信息提示。
      *
      * @param state    被破坏前的方块状态
      * @param level    当前世界对象
@@ -240,7 +239,6 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof AutoShippingBoxBlockEntity autoBox) {
                 if (level instanceof ServerLevel) {
-                    // ========== 第一步：创建带绑定信息的掉落物品 ==========
                     // 自动售货箱必定有绑定信息
                     UUID boundPlayer = autoBox.getBoundPlayerUUID();
 
@@ -255,14 +253,12 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                             playerName = player.getName().getString();
                         }
 
-                        // ========== 使用CUSTOM_DATA组件存储UUID和玩家名字 ==========
                         // 这样当物品被再次放置时，可以恢复绑定关系
                         CompoundTag customData = new CompoundTag();
                         customData.putString("BoundPlayerUUID", boundPlayer.toString());
                         customData.putString("BoundPlayerName", playerName);
                         dropStack.set(DataComponents.CUSTOM_DATA, CustomData.of(customData));
 
-                        // ========== 使用LORE组件显示友好的绑定信息 ==========
                         // 玩家在物品栏中可以看到这个箱子绑定给了谁
                         dropStack.set(DataComponents.LORE, new ItemLore(List.of(
                                 Component.translatable("tooltip.item.shipping_box.bound_to_player_formatted",
@@ -271,10 +267,9 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                         )));
                     }
 
-                    // ========== 第二步：掉落方块本身 ==========
+                    // 掉落方块本身
                     Block.popResource(level, pos, dropStack);
 
-                    // ========== 第三步：掉落内部存储的所有物品 ==========
                     // 遍历所有槽位，将物品全部掉落
                     for (int i = 0; i < autoBox.getContainerSize(); i++) {
                         ItemStack stack = autoBox.getItem(i);
@@ -282,12 +277,8 @@ public class AutoShippingBoxBlock extends BaseEntityBlock {
                             Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
                         }
                     }
-
-                    // 直接返回，避免调用父类方法导致重复掉落
-                    return;
                 }
             }
-            // 26.2:super.onRemove 已不存在,不再调用
         }
     }
 }

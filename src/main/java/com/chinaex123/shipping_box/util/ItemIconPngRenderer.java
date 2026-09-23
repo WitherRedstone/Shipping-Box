@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.util;
 
+import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.web.EditorIconCacheManager;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -9,8 +10,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.item.ItemStack;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
@@ -28,38 +27,50 @@ import java.util.Optional;
 
 /**
  * 物品图标 PNG 渲染器。
- *
- * <p>26.2 的 item 模型入口变成 assets/<namespace>/items/*.json。这里不再从 atlas
- * 坐标反裁剪单张材质，因为 atlas 坐标和源 PNG 坐标不是同一个坐标系。</p>
+ * <p>
+ * 从资源包中解析物品模型与材质，将物品或方块的主材质导出为 PNG。
+ * 方块缓存通过等距立方体合成，避免退化为平面材质；
+ * 解析失败时回退为占位图。
  */
 public class ItemIconPngRenderer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ItemIconPngRenderer.class);
 
+    /** 默认输出图标尺寸 */
     public static final int DEFAULT_SIZE = 32;
 
+    /** 解析模型材质时按优先级尝试的键名 */
     private static final String[] PREFERRED_TEXTURE_KEYS = {
             "layer0", "all", "particle", "side", "top", "front", "end", "texture"
     };
 
-    /** 把物品对应的模型主材质导出为 PNG。 */
+    /**
+     * 把物品对应的模型主材质导出为 PNG。
+     *
+     * @param stack 待渲染的物品堆
+     * @param size  目标图标尺寸
+     * @return PNG 字节数组，物品为空时返回 null
+     */
     public static byte[] renderStackToPng(ItemStack stack, int size) {
         return renderStackToPng(stack, size, false);
     }
 
-    /** 把物品或方块栈导出为 PNG。方块缓存使用等距立方体合成，避免退化成平面材质。 */
+    /**
+     * 把物品或方块栈导出为 PNG。
+     * <p>
+     * 方块缓存使用等距立方体合成，避免退化成平面材质；
+     * 非方块或方块合成失败时回退为物品材质导出。
+     *
+     * @param stack         待渲染的物品堆
+     * @param size          目标图标尺寸
+     * @param renderAsBlock 是否按方块等距立方体渲染
+     * @return PNG 字节数组，物品为空时返回 null
+     */
     public static byte[] renderStackToPng(ItemStack stack, int size, boolean renderAsBlock) {
         if (stack == null || stack.isEmpty()) {
             return null;
         }
         Minecraft mc = Minecraft.getInstance();
-        if (mc == null) {
-            return null;
-        }
 
         Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (itemId == null) {
-            return null;
-        }
 
         try {
             if (renderAsBlock) {
@@ -74,11 +85,23 @@ public class ItemIconPngRenderer {
             }
             return textureToPng(mc, textureId, size, itemId.hashCode());
         } catch (Exception e) {
-            LOGGER.warn("[IconRenderer] Failed to export icon for {}", itemId, e);
+            ShippingBox.LOGGER.warn("[ItemIconPngRenderer.renderStackToPng] 导出物品图标失败，物品: {}", itemId, e);
             return EditorIconCacheManager.createPlaceholderPng(size, itemId.hashCode());
         }
     }
 
+    /**
+     * 将方块渲染为等距立方体图标。
+     * <p>
+     * 先解析物品模型并判断其是否类似立方体，随后收集模型材质，
+     * 分别取顶面、侧面与端面材质合成等距立方体。
+     * 任一步骤失败时返回 null，由调用方回退处理。
+     *
+     * @param mc     Minecraft 客户端实例
+     * @param itemId 物品标识符
+     * @param size   目标图标尺寸
+     * @return PNG 字节数组，无法合成时返回 null
+     */
     private static byte[] renderBlockIcon(Minecraft mc, Identifier itemId, int size) {
         Identifier modelId = resolveItemModelId(mc, itemId);
         if (modelId == null) {
@@ -107,11 +130,21 @@ public class ItemIconPngRenderer {
             ImageIO.write(icon, "png", output);
             return output.toByteArray();
         } catch (Exception e) {
-            LOGGER.debug("[IconRenderer] Failed to compose block icon for {}: {}", itemId, e.getMessage());
+            ShippingBox.LOGGER.debug("[ItemIconPngRenderer.renderBlockIcon] 合成方块图标失败，物品: {}", itemId, e);
             return null;
         }
     }
 
+    /**
+     * 判断模型是否类似立方体。
+     * <p>
+     * 逐级向上追溯模型的 parent，直到命中立方体模板或超出深度限制。
+     *
+     * @param mc      Minecraft 客户端实例
+     * @param modelId 模型标识符
+     * @param depth   当前递归深度
+     * @return 类似立方体返回 true
+     */
     private static boolean isCubeLikeModel(Minecraft mc, Identifier modelId, int depth) {
         if (modelId == null || depth > 12) {
             return false;
@@ -135,11 +168,17 @@ public class ItemIconPngRenderer {
             }
             return isCubeLikeModel(mc, Identifier.tryParse(root.get("parent").getAsString()), depth + 1);
         } catch (Exception e) {
-            LOGGER.debug("[IconRenderer] Failed to inspect model {}: {}", modelResourceId, e.getMessage());
+            ShippingBox.LOGGER.debug("[ItemIconPngRenderer.isCubeLikeModel] 检查模型是否为立方体失败，模型: {}", modelResourceId, e);
             return false;
         }
     }
 
+    /**
+     * 判断模型标识符是否对应原版立方体或可视为立方体的模板。
+     *
+     * @param modelId 模型标识符
+     * @return 是立方体模板返回 true
+     */
     private static boolean isCubeTemplate(Identifier modelId) {
         if (!"minecraft".equals(modelId.getNamespace())) {
             return false;
@@ -176,6 +215,16 @@ public class ItemIconPngRenderer {
                 || path.equals("block/rail_raised_sw");
     }
 
+    /**
+     * 解析物品对应的主材质标识符。
+     * <p>
+     * 先解析物品模型，收集其材质映射并按优先键顺序查找，
+     * 若均未命中则遍历全部材质，返回首个可用的材质资源。
+     *
+     * @param mc     Minecraft 客户端实例
+     * @param itemId 物品标识符
+     * @return 主材质标识符，无法解析时返回 null
+     */
     private static Identifier resolveItemTexture(Minecraft mc, Identifier itemId) {
         Identifier modelId = resolveItemModelId(mc, itemId);
         if (modelId == null) {
@@ -203,6 +252,13 @@ public class ItemIconPngRenderer {
         return null;
     }
 
+    /**
+     * 从物品定义文件解析其模型标识符。
+     *
+     * @param mc     Minecraft 客户端实例
+     * @param itemId 物品标识符
+     * @return 模型标识符，无法解析时返回 null
+     */
     private static Identifier resolveItemModelId(Minecraft mc, Identifier itemId) {
         Identifier definitionId = Identifier.fromNamespaceAndPath(
                 itemId.getNamespace(), "items/" + itemId.getPath() + ".json");
@@ -226,11 +282,21 @@ public class ItemIconPngRenderer {
             }
             return Identifier.tryParse(modelValue.getAsString());
         } catch (Exception e) {
-            LOGGER.debug("[IconRenderer] Failed to read item definition {}: {}", definitionId, e.getMessage());
+            ShippingBox.LOGGER.debug("[ItemIconPngRenderer.resolveItemModelId] 读取物品定义失败，定义文件: {}", definitionId, e);
             return null;
         }
     }
 
+    /**
+     * 递归收集模型及其父模型定义的材质映射。
+     * <p>
+     * 先递归父模型，再以当前模型的材质覆盖同名键。
+     *
+     * @param mc       Minecraft 客户端实例
+     * @param modelId  模型标识符
+     * @param textures 材质映射收集容器
+     * @param depth    当前递归深度
+     */
     private static void collectModelTextures(Minecraft mc, Identifier modelId, Map<String, String> textures, int depth) {
         if (modelId == null || depth > 12) {
             return;
@@ -260,10 +326,18 @@ public class ItemIconPngRenderer {
                 }
             }
         } catch (Exception e) {
-            LOGGER.debug("[IconRenderer] Failed to read model {}: {}", modelResourceId, e.getMessage());
+            ShippingBox.LOGGER.debug("[ItemIconPngRenderer.collectModelTextures] 读取模型纹理失败，模型: {}", modelResourceId, e);
         }
     }
 
+    /**
+     * 解析材质引用，支持以 "#" 开头的间接引用。
+     *
+     * @param textures 材质映射
+     * @param texture  待解析的材质引用
+     * @param depth    当前递归深度
+     * @return 解析后的材质路径
+     */
     private static String resolveTextureReference(Map<String, String> textures, String texture, int depth) {
         if (texture == null || depth > 12) {
             return texture;
@@ -274,6 +348,12 @@ public class ItemIconPngRenderer {
         return resolveTextureReference(textures, textures.get(texture.substring(1)), depth + 1);
     }
 
+    /**
+     * 将材质路径转换为资源管理器中的材质资源标识符。
+     *
+     * @param texture 材质路径
+     * @return 材质资源标识符，无法转换时返回 null
+     */
     private static Identifier textureResourceId(String texture) {
         if (texture == null || texture.isBlank() || texture.startsWith("#")) {
             return null;
@@ -286,6 +366,15 @@ public class ItemIconPngRenderer {
         return Identifier.fromNamespaceAndPath(id.getNamespace(), "textures/" + id.getPath() + ".png");
     }
 
+    /**
+     * 按给定键顺序从材质映射中选取首个可解析的材质。
+     * <p>
+     * 若指定键均未命中，则遍历全部材质返回首个可解析项。
+     *
+     * @param textures 材质映射
+     * @param keys     优先尝试的键名
+     * @return 解析后的材质路径，未找到返回 null
+     */
     private static String pickTexture(Map<String, String> textures, String... keys) {
         for (String key : keys) {
             String texture = resolveTextureReference(textures, textures.get(key), 0);
@@ -302,6 +391,13 @@ public class ItemIconPngRenderer {
         return null;
     }
 
+    /**
+     * 从资源管理器加载材质图片。
+     *
+     * @param mc      Minecraft 客户端实例
+     * @param texture 材质路径
+     * @return 材质图片，加载失败返回 null
+     */
     private static BufferedImage loadTextureImage(Minecraft mc, String texture) {
         Identifier textureId = textureResourceId(texture);
         if (textureId == null) {
@@ -314,11 +410,23 @@ public class ItemIconPngRenderer {
         try (InputStream in = resource.get().open()) {
             return ImageIO.read(in);
         } catch (Exception e) {
-            LOGGER.debug("[IconRenderer] Failed to load texture {}: {}", textureId, e.getMessage());
+            ShippingBox.LOGGER.debug("[ItemIconPngRenderer.loadTextureImage] 加载纹理图片失败，纹理: {}", textureId, e);
             return null;
         }
     }
 
+    /**
+     * 将材质资源缩放并编码为 PNG 字节数组。
+     * <p>
+     * 先截取首个正方形帧，再按最近邻算法缩放至目标尺寸；
+     * 资源缺失或编码失败时回退为占位图。
+     *
+     * @param mc           Minecraft 客户端实例
+     * @param textureId    材质资源标识符
+     * @param targetSize   目标图标尺寸
+     * @param fallbackSeed 占位图生成所需的种子
+     * @return PNG 字节数组
+     */
     private static byte[] textureToPng(Minecraft mc, Identifier textureId, int targetSize, int fallbackSeed) {
         Optional<Resource> resource = mc.getResourceManager().getResource(textureId);
         if (resource.isEmpty()) {
@@ -337,11 +445,19 @@ public class ItemIconPngRenderer {
             ImageIO.write(scaled, "png", output);
             return output.toByteArray();
         } catch (Exception e) {
-            LOGGER.debug("[IconRenderer] Failed to read texture {}: {}", textureId, e.getMessage());
+            ShippingBox.LOGGER.debug("[ItemIconPngRenderer.textureToPng] 将图片转换为PNG失败，纹理: {}", textureId, e);
             return EditorIconCacheManager.createPlaceholderPng(targetSize, fallbackSeed);
         }
     }
 
+    /**
+     * 截取图像左上角的首个正方形帧。
+     * <p>
+     * 若图像本身为正方形则原样返回。
+     *
+     * @param source 源图像
+     * @return 正方形帧图像
+     */
     private static BufferedImage firstSquareFrame(BufferedImage source) {
         int frameSize = Math.min(source.getWidth(), source.getHeight());
         if (source.getWidth() == frameSize && source.getHeight() == frameSize) {
@@ -350,6 +466,15 @@ public class ItemIconPngRenderer {
         return source.getSubimage(0, 0, frameSize, frameSize);
     }
 
+    /**
+     * 使用最近邻算法将图像缩放至指定尺寸。
+     * <p>
+     * 若尺寸一致则原样返回，保持像素风格清晰。
+     *
+     * @param source 源图像
+     * @param size   目标边长
+     * @return 缩放后的图像
+     */
     private static BufferedImage scaleNearest(BufferedImage source, int size) {
         if (source.getWidth() == size && source.getHeight() == size) {
             return source;
@@ -363,6 +488,18 @@ public class ItemIconPngRenderer {
         return output;
     }
 
+    /**
+     * 将顶面、左侧面与右侧面材质合成为等距立方体图标。
+     * <p>
+     * 根据基准尺寸换算各顶点位置，构造顶面、左侧面与右侧面多边形，
+     * 并分别按不同的明暗系数绘制纹理。
+     *
+     * @param top   顶面材质
+     * @param left  左侧面材质
+     * @param right 右侧面材质
+     * @param size  目标图标尺寸
+     * @return 合成后的等距立方体图像
+     */
     private static BufferedImage drawIsometricCube(BufferedImage top, BufferedImage left, BufferedImage right, int size) {
         BufferedImage output = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = output.createGraphics();
@@ -400,10 +537,33 @@ public class ItemIconPngRenderer {
         return output;
     }
 
+    /**
+     * 按缩放系数换算基准坐标。
+     *
+     * @param value 基准坐标
+     * @param scale 缩放系数
+     * @return 换算后的坐标
+     */
     private static int scale(int value, double scale) {
         return (int) Math.round(value * scale);
     }
 
+    /**
+     * 在多边形裁剪区域内绘制带明暗的纹理面。
+     * <p>
+     * 通过仿射变换将纹理映射到多边形，并按明暗系数叠加半透明黑色蒙层。
+     *
+     * @param graphics  图形上下文
+     * @param texture   纹理图像
+     * @param clip      裁剪多边形
+     * @param originX   原点 X 坐标
+     * @param originY   原点 Y 坐标
+     * @param xAxisX    X 轴方向终点 X 坐标
+     * @param xAxisY    X 轴方向终点 Y 坐标
+     * @param yAxisX    Y 轴方向终点 X 坐标
+     * @param yAxisY    Y 轴方向终点 Y 坐标
+     * @param shade     明暗系数（小于 1 时叠加暗色）
+     */
     private static void drawTexturedFace(Graphics2D graphics, BufferedImage texture, Polygon clip,
                                          int originX, int originY, int xAxisX, int xAxisY,
                                          int yAxisX, int yAxisY, float shade) {
@@ -422,10 +582,5 @@ public class ItemIconPngRenderer {
             graphics.fillPolygon(clip);
         }
         graphics.setClip(oldClip);
-    }
-
-    /** 旧 API — 26.2 后无实现。 */
-    public static void disposeRenderTarget() {
-        // no-op
     }
 }

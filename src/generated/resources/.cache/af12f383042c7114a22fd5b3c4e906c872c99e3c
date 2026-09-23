@@ -1,7 +1,0 @@
-// 1.21.1	2026-02-26T18:01:51.1357268	Block States: shipping_box
-e2d0ca86ee94e0aa0a11e2f1301eee953573f455 assets/shipping_box/blockstates/auto_shipping_box.json
-f58c31fdd3ef0c95596b36691020e5ec11c7d1d5 assets/shipping_box/blockstates/shipping_box.json
-8f87a60d30994dde0bd94e74239e1d269949b932 assets/shipping_box/models/block/auto_shipping_box.json
-f088d50c71ed6f022fcb6e1fe1ffee5cbb810cd4 assets/shipping_box/models/block/shipping_box.json
-d3ece9756723b6d81c26142a7a0bcda091fbb5fe assets/shipping_box/models/item/auto_shipping_box.json
-4cf5830e94b77251e76812ccec9a3ea5be59c977 assets/shipping_box/models/item/shipping_box.json

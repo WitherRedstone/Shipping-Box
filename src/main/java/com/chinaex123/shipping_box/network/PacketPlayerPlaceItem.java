@@ -10,19 +10,23 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jspecify.annotations.NonNull;
 
 /**
- * 玩家放置物品数据包（客户端→服务端）
+ * 玩家放置物品数据包（客户端→服务端）。
  * <p>
  * 当玩家在普通售货箱中放置物品时，客户端发送此数据包通知服务端，
  * 记录该槽位的物品归属玩家。此信息用于跨玩家兑换时的物品所有权追踪。
  * 服务端收到后会在方块实体中记录该槽位的放置者 UUID。
  */
 public record PacketPlayerPlaceItem(BlockPos pos, int slot) implements CustomPacketPayload {
+
+    /** 网络包类型标识 */
     public static final Type<PacketPlayerPlaceItem> TYPE = new Type<>(
             Identifier.fromNamespaceAndPath(ShippingBox.MOD_ID, "player_place_item")
     );
 
+    /** 网络包编解码器，按字段顺序组合方块位置与槽位索引 */
     public static final StreamCodec<FriendlyByteBuf, PacketPlayerPlaceItem> STREAM_CODEC =
             StreamCodec.composite(
                     BlockPos.STREAM_CODEC, PacketPlayerPlaceItem::pos,
@@ -30,11 +34,25 @@ public record PacketPlayerPlaceItem(BlockPos pos, int slot) implements CustomPac
                     PacketPlayerPlaceItem::new
             );
 
+    /**
+     * 获取网络包类型。
+     *
+     * @return 网络包类型标识
+     */
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public @NonNull Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 
+    /**
+     * 处理玩家放置物品请求。
+     * <p>
+     * 在主线程中获取玩家所在世界，若目标位置为普通售货箱方块实体，
+     * 则将对应槽位的归属者记录为当前玩家。
+     *
+     * @param packet  数据包
+     * @param context 上下文
+     */
     public static void handle(PacketPlayerPlaceItem packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             Level level = context.player().level();

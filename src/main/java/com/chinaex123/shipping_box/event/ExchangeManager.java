@@ -2,13 +2,13 @@ package com.chinaex123.shipping_box.event;
 
 import com.chinaex123.shipping_box.api.ShippingBoxAPI;
 import com.chinaex123.shipping_box.attribute.ModAttributes;
+import com.chinaex123.shipping_box.compat.ViScriptShop.ViScriptShopUtil;
 import com.chinaex123.shipping_box.config.CommonConfig;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategy;
 import com.chinaex123.shipping_box.event.strategy.ExchangeStrategyFactory;
 import com.chinaex123.shipping_box.compat.EclipticSeasons.EclipticSeasonsUtil;
 import com.chinaex123.shipping_box.network.PacketExchangeEffects;
 import com.chinaex123.shipping_box.network.PacketShowSuccessMessage;
-import com.chinaex123.shipping_box.storage.PlayerBalanceManager;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,16 +24,26 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 兑换管理器；
- * 执行物品匹配、消耗和生成的核心兑换逻辑
+ * 兑换管理器。
+ * <p>
+ * 执行物品匹配、消耗和生成的核心兑换逻辑。
+ * 循环匹配规则并按策略生成输出，处理虚拟货币结算、
+ * 物品堆叠合并、结果回填、音效与客户端通知，
+ * 并支持可选的交易日志记录。
  */
 public class ExchangeManager {
 
     /**
-     * 执行物品兑换的核心逻辑
-     * @param items 物品存储列表
-     * @param level 世界实例
-     * @param blockPos 方块位置
+     * 执行物品兑换的核心逻辑。
+     * <p>
+     * 先对输入物品做快照，随后循环匹配规则并执行策略，
+     * 直到无规则可匹配。若兑换有效，则通过 API 触发兑换事件
+     * （可被取消），结算虚拟货币，合并并回填结果物品，
+     * 播放音效并根据配置发送客户端通知与记录交易日志。
+     *
+     * @param items           物品存储列表
+     * @param level           世界实例
+     * @param blockPos        方块位置
      * @param boundPlayerUUID 绑定的玩家 UUID（可为 null）
      */
     public static void performExchange(NonNullList<ItemStack> items, Level level, BlockPos blockPos, UUID boundPlayerUUID) {
@@ -70,7 +80,7 @@ public class ExchangeManager {
             if (rule != null) {
                 lastMatchedRule = rule;
 
-                if (rule.getOutputItem().isCoin() && !CommonConfig.ENABLE_VIRTUAL_CURRENCY.get()) {
+                if (rule.getOutputItem().isCoin() && !ViScriptShopUtil.isAvailable()) {
                     break;
                 }
 
@@ -101,7 +111,6 @@ public class ExchangeManager {
         } while (exchanged);
 
         if (hasValidExchange) {
-            int effectiveVirtualCurrency = CommonConfig.ENABLE_VIRTUAL_CURRENCY.get() ? totalVirtualCurrency : 0;
             List<ItemStack> consumedItems = calculateConsumedItems(initialItems, currentItems);
 
             if (ShippingBoxAPI.onExchange(
@@ -109,7 +118,7 @@ public class ExchangeManager {
                     level,
                     createNonNullList(consumedItems),
                     createNonNullList(results),
-                    effectiveVirtualCurrency,
+                    totalVirtualCurrency,
                     lastMatchedRule)) {
                 for (int i = 0; i < items.size(); i++) {
                     items.set(i, initialSnapshot.get(i).copy());
@@ -117,10 +126,12 @@ public class ExchangeManager {
                 return;
             }
 
-            if (effectiveVirtualCurrency > 0 && boundPlayerUUID != null) {
+            if (totalVirtualCurrency > 0 && boundPlayerUUID != null) {
                 ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
-                if (player != null) {
-                    PlayerBalanceManager.addBalance(player, effectiveVirtualCurrency);
+                if (player != null && ViScriptShopUtil.isAvailable()) {
+                    int currentBalance = ViScriptShopUtil.getMoney(player);
+                    startBalanceAnimation(player, currentBalance, totalVirtualCurrency, 1);
+                    ViScriptShopUtil.addMoney(player, totalVirtualCurrency);
                 }
             }
 
@@ -186,7 +197,7 @@ public class ExchangeManager {
                     PacketDistributor.sendToPlayer(player, new PacketShowSuccessMessage());
 
                     if (CommonConfig.ENABLE_EXCHANGE_EFFECTS.get()) {
-                        PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(effectiveVirtualCurrency));
+                        PacketDistributor.sendToPlayer(player, new PacketExchangeEffects(totalVirtualCurrency));
                     }
                 }
             }
@@ -196,23 +207,37 @@ public class ExchangeManager {
                 if (boundPlayerUUID != null) {
                     ServerPlayer logPlayer = serverLevel.getServer().getPlayerList().getPlayer(boundPlayerUUID);
                     if (logPlayer != null) {
-                        // 26.2:getStringOr() 已移除,改为 getString()
                         playerName = logPlayer.getName().getString();
                     }
                 }
-                TransactionLogger.logTransaction(playerName, consumedItems, results, effectiveVirtualCurrency, level, lastMatchedRule);
+                TransactionLogger.logTransaction(playerName, consumedItems, results, totalVirtualCurrency, level, lastMatchedRule);
             }
         }
     }
+
     /**
-     * 应用玩家出售价格属性加成到基础数量
+     * 开始余额动画。
+     *
+     * @param player         玩家对象
+     * @param startBalance   开始余额
+     * @param totalValue     增加的总金额
+     * @param exchangeAmount 兑换次数
+     */
+    private static void startBalanceAnimation(ServerPlayer player, int startBalance, int totalValue, int exchangeAmount) {
+        BalanceAnimationManager.startAnimation(player, startBalance, totalValue, exchangeAmount);
+    }
+
+    /**
+     * 应用玩家出售价格属性加成到基础数量。
      * <p>
      * 根据玩家的出售价格属性加成值，计算增强后的物品数量。
      * 采用智能取整策略：小数量向下取整保证平衡，大数量向上取整激励玩家。
      * 支持负数属性（减少售价），最少为 0 个物品。
+     * 若规则包含节气联动配置，则在属性加成基础上进一步应用应季加成或非应季减益。
      *
-     * @param baseCount 基础物品数量
-     * @param level 游戏世界实例，用于获取服务器和玩家信息
+     * @param baseCount  基础物品数量
+     * @param rule       兑换规则，可为 null
+     * @param level      游戏世界实例，用于获取服务器和玩家信息
      * @param playerUUID 玩家唯一标识符
      * @return 应用属性加成后的最终物品数量（最少为 0）
      */
@@ -286,14 +311,14 @@ public class ExchangeManager {
     }
 
     /**
-     * 计算指定兑换规则可以执行的最大兑换次数
+     * 计算指定兑换规则可以执行的最大兑换次数。
      * <p>
      * 通过检查每种输入物品的可用数量来确定限制因素，返回能够完成的最多兑换轮数。
      * 算法找出所有必需物品中最紧缺的那种，以其可支持的兑换次数作为整体上限。
      *
-     * @param rule 兑换规则，包含所需的输入物品列表及其数量要求
+     * @param rule            兑换规则，包含所需的输入物品列表及其数量要求
      * @param availableStacks 当前可用的物品堆列表
-     * @return 可以执行的最大兑换次数，如果无法兑换则返回0
+     * @return 可以执行的最大兑换次数，如果无法兑换则返回 0
      */
     public static int getMaxExchanges(ExchangeRule rule, List<ItemStack> availableStacks) {
         int maxExchanges = Integer.MAX_VALUE;
@@ -316,7 +341,14 @@ public class ExchangeManager {
     }
 
     /**
-     * 计算实际消耗的物品
+     * 计算实际消耗的物品。
+     * <p>
+     * 通过对比初始物品列表与剩余物品列表，得出每种物品被消耗的数量，
+     * 并在最后合并相同物品的消耗记录。
+     *
+     * @param initialItems   初始物品列表
+     * @param remainingItems 剩余物品列表
+     * @return 合并后的消耗物品列表
      */
     private static List<ItemStack> calculateConsumedItems(List<ItemStack> initialItems, List<ItemStack> remainingItems) {
         List<ItemStack> consumed = new ArrayList<>();
@@ -373,7 +405,10 @@ public class ExchangeManager {
     }
 
     /**
-     * 辅助方法：将 List 转换为 NonNullList
+     * 辅助方法：将 List 转换为 NonNullList。
+     *
+     * @param list 待转换的列表
+     * @return 转换后的 NonNullList
      */
     private static NonNullList<ItemStack> createNonNullList(List<ItemStack> list) {
         NonNullList<ItemStack> result = NonNullList.create();

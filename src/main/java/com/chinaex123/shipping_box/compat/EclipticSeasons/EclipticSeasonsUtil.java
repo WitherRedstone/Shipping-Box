@@ -11,46 +11,57 @@ import java.lang.invoke.MethodType;
 import java.util.List;
 
 /**
- * 节气模组（Ecliptic Seasons）兼容工具类
+ * 节气兼容工具类。
  * <p>
  * 通过反射机制与 Ecliptic Seasons 模组进行交互，
- * 在不直接依赖该模组的情况下获取当前世界的节气、季节信息。
- * 包含缓存机制减少反射调用次数。
- * <p>
- * 主要功能：
- * <ul>
- *   <li>检查节气模组是否已加载</li>
- *   <li>获取当前世界的节气（SolarTerm）对象</li>
- *   <li>获取当前季节名称（spring/summer/autumn/winter）</li>
- *   <li>获取季节索引</li>
- *   <li>检查当前世界是否处于特定季节</li>
- *   <li>获取节气持续天数配置</li>
- * </ul>
+ * 在不直接依赖该模组的情况下获取当前世界的节气、季节信息，
+ * 并通过缓存减少反射调用次数。
  */
 public class EclipticSeasonsUtil {
+
+    /** 日志记录器 */
     private static final Logger LOGGER = LoggerFactory.getLogger(EclipticSeasonsUtil.class);
 
     // 静态常量类引用
+
+    /** EclipticUtil 类引用 */
     static final Class<?> eclipticUtilClass;
+    /** SolarTerm 枚举类引用 */
     static final Class<?> solarTermEnumClass;
+    /** Season 类引用 */
     static final Class<?> seasonClass;
 
     // 静态常量方法句柄
+
+    /** 获取当前节气的方法句柄 */
     private static final MethodHandle getNowSolarTermHandle;
+    /** 获取节气所属季节的方法句柄 */
     private static final MethodHandle getSeasonHandle;
+    /** 获取季节序列化名称的方法句柄 */
     private static final MethodHandle getSerializedNameHandle;
+    /** 获取节气枚举序号的方法句柄 */
     private static final MethodHandle solarTermOrdinalHandle;
+    /** 获取当前节气日的方法句柄 */
     private static final MethodHandle getNowSolarDayHandle;
 
     // 配置相关字段
+
+    /** CommonConfig.Season 配置类引用 */
     private static final Class<?> commonConfigSeasonClass;
+    /** 获取每个节气持续天数的方法句柄 */
     private static final MethodHandle lastingDaysOfEachTermHandle;
 
     // 缓存对象
+
+    /** 缓存的节气对象 */
     private static Object cachedSolarTerm = null;
+    /** 上次检查的世界实例，用于判断缓存是否失效 */
     private static Level lastCheckedLevel = null;
+    /** 缓存的季节名称 */
     private static String cachedSeasonName = null;
+    /** 缓存的季节索引 */
     private static Integer cachedSeasonIndex = null;
+    /** 缓存的节气持续天数 */
     private static Integer cachedTermDuration = null;
 
     static {
@@ -72,10 +83,10 @@ public class EclipticSeasonsUtil {
 
             // 获取 getNowSolarTerm 方法句柄（静态方法）
             Class<?> levelClass = Class.forName("net.minecraft.world.level.Level");
-            
+
             // 先加载 SolarTerm 类，用于方法签名
             Class<?> solarTermClass = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.SolarTerm");
-            
+
             tempGetNowSolarTermHandle = MethodHandles.publicLookup()
                     .findStatic(tempEclipticUtilClass, "getNowSolarTerm",
                             MethodType.methodType(solarTermClass, levelClass));
@@ -91,7 +102,7 @@ public class EclipticSeasonsUtil {
             // 获取 getSeason() 方法句柄
             // 需要加载 Season 类用于方法签名
             Class<?> seasonCls = Class.forName("com.teamtea.eclipticseasons.api.constant.solar.Season");
-            
+
             tempGetSeasonHandle = MethodHandles.publicLookup()
                     .findVirtual(tempSolarTermEnumClass, "getSeason",
                             MethodType.methodType(seasonCls));
@@ -132,7 +143,7 @@ public class EclipticSeasonsUtil {
             MethodHandle solarDayHandle = null;
             try {
                 solarDayHandle = MethodHandles.publicLookup()
-                        .findVirtual(tempEclipticUtilClass, "getNowSolarDay",
+                        .findStatic(tempEclipticUtilClass, "getNowSolarDay",
                                 MethodType.methodType(int.class, levelClass));
             } catch (Exception e) {
                 // getNowSolarDay 可能是实例方法，需要 INSTANCE
@@ -166,14 +177,19 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 检查节气模组是否已加载
+     * 检查节气模组是否已加载。
+     *
+     * @return 已加载返回 true
      */
     public static boolean isAvailable() {
         return eclipticUtilClass != null && getNowSolarTermHandle != null;
     }
 
     /**
-     * 获取当前世界的节气对象
+     * 获取当前世界的节气对象。
+     * <p>
+     * 若缓存的世界与传入世界一致，则直接返回缓存的节气对象。
+     *
      * @param level 世界实例
      * @return 节气对象，如果无法获取则返回 null
      */
@@ -199,7 +215,8 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 获取当前世界的季节（带缓存）
+     * 获取当前世界的季节（带缓存）。
+     *
      * @param level 世界实例
      * @return 季节名称（spring/summer/autumn/winter），如果无法获取则返回 null
      */
@@ -236,8 +253,10 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 获取当前世界的子季节索引 (0-5)（带缓存）
-     * 基于节气在 6 个节气中的位置计算
+     * 获取当前世界的子季节索引 (0-5)（带缓存）。
+     * <p>
+     * 基于节气在 6 个节气中的位置计算：子季节索引 = (ordinal % 6) / 2。
+     *
      * @param level 世界实例
      * @return 子季节索引 (0-5)，如果无法获取则返回 -1
      */
@@ -268,7 +287,8 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 获取当前世界的子季节名称
+     * 获取当前世界的子季节名称。
+     *
      * @param level 世界实例
      * @return 子季节名称（Early/Mid/Late 或类似），如果无法获取则返回 null
      */
@@ -283,11 +303,13 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 获取当前世界的子季节名称
+     * 获取当前世界的节气持续天数（带缓存）。
+     * <p>
+     * 从节气模组配置读取每个节气的持续天数，读取失败时返回默认值 7。
+     *
      * @param level 世界实例
-     * @return 子季节名称（Early/Mid/Late 或类似），如果无法获取则返回 null
+     * @return 节气持续天数，读取失败时返回默认值 7
      */
-    @Nullable
     public static int getSolarTermDuration(Level level) {
         // 如果已缓存，直接返回
         if (cachedTermDuration != null) {
@@ -302,7 +324,7 @@ public class EclipticSeasonsUtil {
             // 获取 CommonConfig.Season.lastingDaysOfEachTerm 字段的访问句柄
             var field = commonConfigSeasonClass.getField("lastingDaysOfEachTerm");
             Object intValueObj = field.get(null);
-            
+
             if (intValueObj != null) {
                 // 调用 get() 方法获取实际的整数值
                 Object valueObj = lastingDaysOfEachTermHandle.invokeExact(intValueObj);
@@ -320,7 +342,10 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 获取当前季节的总天数
+     * 获取当前季节的总天数。
+     * <p>
+     * 季节总天数 = 节气持续天数 × 6（一个季节有 6 个节气）。
+     *
      * @param level 世界实例
      * @return 季节总天数（默认 42 天 = 6 个节气 × 7 天），失败返回 -1
      */
@@ -330,7 +355,10 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 获取当前季节的第几天
+     * 获取当前季节的第几天。
+     * <p>
+     * 通过当前节气日对季节总天数取模并加一，得到 1 到季节总天数之间的日期。
+     *
      * @param level 世界实例
      * @return 当前季节的日期（1 到季节总天数），失败返回 -1
      */
@@ -348,7 +376,7 @@ public class EclipticSeasonsUtil {
             // 计算在当前季节的日期
             int seasonDate = (seasonDay % seasonDuration) + 1;
 
-            return Math.max(1, Math.min(seasonDate, seasonDuration));
+            return Math.clamp(seasonDate, 1, seasonDuration);
         } catch (Throwable e) {
             // 获取失败返回 -1
         }
@@ -357,8 +385,11 @@ public class EclipticSeasonsUtil {
     }
 
     /**
-     * 检查指定季节列表是否包含当前季节
-     * @param level 世界实例
+     * 检查指定季节列表是否包含当前季节。
+     * <p>
+     * 若目标列表包含 "all"，则视为匹配所有季节。
+     *
+     * @param level         世界实例
      * @param targetSeasons 目标季节列表
      * @return 当前季节在目标列表中返回 true，否则返回 false
      */

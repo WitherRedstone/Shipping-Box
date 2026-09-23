@@ -14,28 +14,46 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
+/**
+ * 客户端事件处理器。
+ * <p>
+ * 集中处理客户端侧的玩家登出、客户端刻与客户端命令注册等事件，
+ * 通过事件订阅自动注册到游戏事件总线，仅在客户端生效。
+ */
 @EventBusSubscriber(modid = ShippingBox.MOD_ID, value = Dist.CLIENT)
 public class ClientModEvents {
 
-    /** 客户端玩家登出事件处理器 **/
+    /**
+     * 客户端玩家登出事件处理器。
+     * <p>
+     * 玩家登出时清空已售数量缓存，避免残留数据影响下次登录。
+     *
+     * @param event 玩家登出事件
+     */
     @SubscribeEvent
     public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         ClientSoldCountCache.clearCache();
     }
 
-    /** 客户端 tick 驱动缓存任务 **/
+    /**
+     * 客户端刻事件处理器。
+     * <p>
+     * 每客户端刻驱动编辑器图标缓存任务。
+     *
+     * @param event 客户端刻事件
+     */
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         EditorIconCacheManager.getInstance().tick();
     }
 
     /**
-     * 注册客户端命令事件处理器
+     * 注册客户端命令事件处理器。
      * <p>
      * 在客户端注册自定义命令，用于：
-     * - 缓存管理（图标缓存）
-     * - 状态查询
-     * - 调试和运维
+     * - 缓存管理（图标缓存）；
+     * - 状态查询；
+     * - 调试和运维。
      *
      * @param event 注册客户端命令事件
      */
@@ -45,7 +63,7 @@ public class ClientModEvents {
 
         dispatcher.register(Commands.literal(ShippingBox.MOD_ID)
                 .then(Commands.literal("editor")
-                        // ===== 子命令：cache_icons（缓存图标） =====
+                        // 子命令：cache_icons（缓存图标）
                         .then(Commands.literal("cache_icons")
                                 // 普通执行：启动图标缓存（非强制模式）
                                 .executes(ctx -> {
@@ -66,14 +84,14 @@ public class ClientModEvents {
                                         })
                                 )
                         )
-                        // ===== 子命令：cache_status（查询缓存状态） =====
+                        // 子命令：cache_status（查询缓存状态）
                         .then(Commands.literal("cache_status")
                                 .executes(ctx -> {
                                     var mgr = EditorIconCacheManager.getInstance();
-                                    String status = mgr.getStatus().name(); // 当前状态（IDLE/RUNNING/COMPLETED/ERROR）
-                                    int processed = mgr.getProcessed(); // 已处理数量
-                                    int total = mgr.getTotal(); // 总数量
-                                    String errorMsg = mgr.getErrorMessage(); // 错误信息（如果有）
+                                    String status = mgr.getStatus().name();
+                                    int processed = mgr.getProcessed();
+                                    int total = mgr.getTotal();
+                                    String errorMsg = mgr.getErrorMessage();
 
                                     // 根据是否有错误信息构造不同的消息
                                     Component message;
@@ -95,7 +113,7 @@ public class ClientModEvents {
                                     return 1;
                                 })
                         )
-                        // ===== 子命令：cache_clear（清除缓存） =====
+                        // 子命令：cache_clear（清除缓存）
                         .then(Commands.literal("cache_clear")
                                 .executes(ctx -> {
                                     EditorIconCacheManager.getInstance().clearCache();

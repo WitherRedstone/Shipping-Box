@@ -3,20 +3,23 @@ package com.chinaex123.shipping_box.event.strategy;
 import com.chinaex123.shipping_box.event.ExchangeRule;
 
 /**
- * 兑换策略工厂
+ * 兑换策略工厂。
  * <p>
- * 根据兑换规则的输出配置，动态选择合适的策略实现类。
- * 支持以下策略类型：
- * <ul>
- *   <li>普通物品策略（ItemSimpleStrategy）</li>
- *   <li>物品动态定价策略（ItemDynamicPricingStrategy）</li>
- *   <li>物品权重随机策略（ItemWeightedStrategy）</li>
- *   <li>普通虚拟货币策略（CoinSimpleStrategy）</li>
- *   <li>虚拟货币动态定价策略（CoinDynamicPricingStrategy）</li>
- * </ul>
- * 使用策略模式封装不同的兑换计算逻辑，便于扩展和维护。
+ * 根据兑换规则的输出物品类型，选择并返回对应的兑换策略实现。
+ * 先区分虚拟货币与普通物品，再按是否为动态定价、权重随机等模式细分。
  */
 public class ExchangeStrategyFactory {
+
+    /**
+     * 根据兑换规则选择兑换策略。
+     * <p>
+     * 判定顺序为：先按是否为虚拟货币分流；
+     * 虚拟货币下区分动态定价与普通模式；
+     * 普通物品下依次区分动态定价、权重随机与普通模式。
+     *
+     * @param rule 兑换规则
+     * @return 与规则匹配的兑换策略实现
+     */
     public static ExchangeStrategy getStrategy(ExchangeRule rule) {
         ExchangeRule.OutputItem output = rule.getOutputItem();
         if (output.isCoin()) {

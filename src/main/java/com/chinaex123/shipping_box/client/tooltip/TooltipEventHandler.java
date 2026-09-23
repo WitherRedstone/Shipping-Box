@@ -7,12 +7,13 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
- * 工具提示事件处理器
+ * 工具提示事件处理器。
  * <p>
- * 通过监听 NeoForge 的 ItemTooltipEvent 事件，
- * 为支持兑换的物品添加详细的兑换信息到 Tooltip 中。
+ * 通过监听 NeoForge 的物品工具提示事件，
+ * 为支持兑换的物品添加详细的兑换信息到 Tooltip 中，
  * 包括兑换产出、动态定价信息、权重物品列表、节气联动信息等。
  * 所有处理逻辑均捕获异常，避免因 Tooltip 生成错误导致游戏崩溃。
  */
@@ -20,8 +21,10 @@ import java.util.List;
 public class TooltipEventHandler {
 
     /**
-     * 物品工具提示事件处理器
-     * 为支持兑换的物品添加详细的兑换信息到工具提示中
+     * 物品工具提示事件处理器。
+     * <p>
+     * 为支持兑换的物品添加详细的兑换信息到工具提示中，
+     * 依次添加分隔线、标题、兑换信息、额外行信息与说明文字。
      *
      * @param event 物品工具提示事件
      */
@@ -31,6 +34,15 @@ public class TooltipEventHandler {
             ItemStack stack = event.getItemStack();
             if (stack.isEmpty()) {
                 return;
+            }
+
+            // 处理 TooltipItems 基类的自定义 tooltip
+            if (stack.getItem() instanceof TooltipItems tooltipItem) {
+                List<Component> customLines = tooltipItem.getTooltipLines();
+                if (customLines != null && !customLines.isEmpty()) {
+                    List<Component> tooltip = event.getToolTip();
+                    tooltip.addAll(customLines);
+                }
             }
 
             // 获取兑换信息

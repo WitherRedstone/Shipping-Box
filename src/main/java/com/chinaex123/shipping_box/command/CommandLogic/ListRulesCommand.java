@@ -15,13 +15,24 @@ import net.minecraft.world.item.Items;
 
 import java.util.List;
 
-/** 列出兑换规则命令的执行器 **/
+/**
+ * 列出兑换规则命令的执行器。
+ * <p>
+ * 分页展示当前已加载的所有兑换规则，每条规则以
+ * "输入物品 → 输出物品" 的格式化文本呈现，
+ * 并针对虚拟货币、权重随机、动态定价与节气联动等模式分别着色。
+ */
 public class ListRulesCommand {
 
+    /** 每页显示的规则条数 */
     private static final int RULES_PER_PAGE = 5;
 
     /**
-     * 执行列出规则命令
+     * 执行列出规则命令。
+     * <p>
+     * 解析可选的页码参数（默认第 1 页），计算总页数并发送标题、
+     * 当前页规则列表与分页提示。
+     *
      * @param context 命令上下文
      * @return 命令执行结果（成功返回 1，失败返回 0）
      */
@@ -86,23 +97,31 @@ public class ListRulesCommand {
     }
 
     /**
-     * 格式化单条规则的信息
+     * 格式化单条规则的信息。
+     * <p>
+     * 依次拼接序号、输入物品列表、箭头与输出物品，
+     * 并根据输出类型（权重随机、虚拟货币、动态定价、节气联动、普通物品）
+     * 采用不同的文本与颜色。
+     *
+     * @param index 规则序号（从 1 开始）
+     * @param rule  兑换规则
+     * @return 格式化后的规则信息组件
      */
     private static Component formatRuleInfo(int index, ExchangeRule rule) {
         // 创建可变文本组件
         MutableComponent text = Component.literal("");
-        
+
         // 序号 - 灰色
         text.append(Component.literal("[" + index + "] ").withStyle(ChatFormatting.GRAY));
-        
+
         // 输入标签 - 绿色
         text.append(Component.translatable("command.shipping_box.rules.input_label")
                 .withStyle(ChatFormatting.GREEN));
-        
+
         var inputs = rule.getInputs();
         for (int i = 0; i < inputs.size(); i++) {
             var input = inputs.get(i);
-            
+
             // 尝试获取本地化的物品名称
             String itemName = getLocalizedItemName(input.getItem(), input.getTag());
             // 输入物品：金色 - 先创建带颜色的组件
@@ -129,7 +148,7 @@ public class ListRulesCommand {
 
         // 输出物品
         var output = rule.getOutputItem();
-        
+
         // 检查是否是权重类型（随机物品）
         if ("weight".equals(output.getType())) {
             // 随机物品 - 淡紫色
@@ -174,7 +193,7 @@ public class ListRulesCommand {
             if (output.getCount() > 1) {
                 text.append(" x").withStyle(ChatFormatting.LIGHT_PURPLE).append(String.valueOf(output.getCount()));
             }
-            
+
             // 组件信息 - 黄色
             if (output.getComponents() != null) {
                 text.append(Component.translatable("command.shipping_box.rules.with_components")
@@ -186,9 +205,13 @@ public class ListRulesCommand {
     }
 
     /**
-     * 获取物品的本地化名称
+     * 获取物品的本地化名称。
+     * <p>
+     * 优先处理标签（以 # 开头），否则解析物品 ID 并返回其显示名称；
+     * 物品不存在或解析失败时回退为带颜色的原始 ID。
+     *
      * @param itemId 物品 ID（如 minecraft:diamond）
-     * @param tagId 标签 ID（如 #minecraft:planks）
+     * @param tagId  标签 ID（如 #minecraft:planks）
      * @return 本地化的物品名称
      */
     private static String getLocalizedItemName(String itemId, String tagId) {
@@ -198,7 +221,7 @@ public class ListRulesCommand {
                 String displayTag = tagId.startsWith("#") ? tagId : "#" + tagId;
                 return "§e" + displayTag + "§r";
             }
-            
+
             // 如果是物品 ID
             if (itemId != null && !itemId.isEmpty()) {
                 Identifier itemLoc = Identifier.tryParse(itemId);
@@ -221,7 +244,7 @@ public class ListRulesCommand {
         } catch (Exception e) {
             // 如果获取失败，返回原始 ID
         }
-        
+
         // 如果都失败了，返回原始 ID
         return itemId != null ? "§c" + itemId + "§r" : (tagId != null ? "§e" + tagId + "§r" : "Unknown Item");
     }

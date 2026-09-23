@@ -1,5 +1,6 @@
 package com.chinaex123.shipping_box.event;
 
+import com.chinaex123.shipping_box.ShippingBox;
 import com.chinaex123.shipping_box.config.CommonConfig;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -18,24 +19,35 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/** 交易日志记录器 **/
+/**
+ * 交易日志记录器。
+ * <p>
+ * 将兑换交易记录写入按日期命名的日志文件，
+ * 记录内容包括时间戳、玩家名称、消耗物品与获得物品（含组件信息）。
+ * 是否写入由配置开关控制。
+ */
 public class TransactionLogger {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TransactionLogger.class.getName());
+
+    /** 日志文件名所用的日期格式 */
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    /** 日志条目中的时间戳格式 */
     private static final DateTimeFormatter LOG_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    
-    // 日志目录路径：config/shipping_box/logs/
+
+    /** 日志目录路径：config/shipping_box/logs/ */
     private static final Path LOG_DIR = FMLPaths.CONFIGDIR.get().resolve("shipping_box/logs");
 
     /**
-     * 记录交易日志
-     * 
-     * @param playerName 玩家名称
-     * @param inputs 消耗的物品列表
-     * @param outputs 获得的物品列表
+     * 记录交易日志。
+     * <p>
+     * 若配置未启用交易日志则直接返回；否则确保日志目录存在，
+     * 并按当天日期追加写入一行交易记录。
+     *
+     * @param playerName      玩家名称
+     * @param inputs          消耗的物品列表
+     * @param outputs         获得的物品列表
      * @param virtualCurrency 获得的虚拟货币数量
-     * @param level 世界实例（用于获取时间等信息）
-     * @param rule 兑换规则（用于获取组件配置）
+     * @param level           世界实例（用于获取时间等信息）
+     * @param rule            兑换规则（用于获取组件配置）
      */
     public static void logTransaction(String playerName, List<ItemStack> inputs, List<ItemStack> outputs, int virtualCurrency, Level level, ExchangeRule rule) {
         try {
@@ -55,13 +67,13 @@ public class TransactionLogger {
 
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true))) {
                 StringBuilder logEntry = new StringBuilder();
-                
+
                 // 时间戳
                 logEntry.append("[").append(LocalDateTime.now().format(LOG_TIME_FORMAT)).append("] ");
-                
+
                 // 玩家信息
                 logEntry.append("玩家：").append(playerName).append(" | ");
-                
+
                 // 输入物品（带规则组件信息）
                 logEntry.append("输入：[");
                 if (inputs.isEmpty()) {
@@ -75,7 +87,7 @@ public class TransactionLogger {
                     }
                 }
                 logEntry.append("] | ");
-                
+
                 // 输出物品（带规则组件信息）
                 logEntry.append("输出：[");
                 if (virtualCurrency > 0) {
@@ -83,7 +95,7 @@ public class TransactionLogger {
                     long validOutputCount = outputs.stream().filter(s -> !s.isEmpty() && s.getCount() > 0).count();
                     if (validOutputCount > 0) logEntry.append(", ");
                 }
-                
+
                 // 过滤掉空物品和数量为 0 的物品
                 boolean hasValidOutput = false;
                 for (ItemStack stack : outputs) {
@@ -94,34 +106,39 @@ public class TransactionLogger {
                     logEntry.append(itemInfo);
                     hasValidOutput = true;
                 }
-                
+
                 if (!hasValidOutput && virtualCurrency == 0) {
                     logEntry.append("EMPTY");
                 }
                 logEntry.append("]");
-                
+
                 // 写入文件
                 writer.write(logEntry.toString());
                 writer.newLine();
             }
         } catch (IOException e) {
-            LOGGER.warn("[Shipping Box-TransactionLogger] 写入记录交易日志时出错");
+            ShippingBox.LOGGER.warn("[Shipping Box-TransactionLogger] 写入记录交易日志时出错");
         }
     }
 
     /**
-     * 格式化输入物品，使用规则中的组件配置
+     * 格式化输入物品，使用规则中的组件配置。
+     *
+     * @param stack 输入物品堆
+     * @param rule  兑换规则
+     * @param index 输入物品在规则输入列表中的索引
+     * @return 格式化后的物品描述字符串
      */
     private static String formatItemWithRuleComponents(ItemStack stack, ExchangeRule rule, int index) {
         String itemName = Component.translatable(stack.getItem().getDescriptionId()).getString();
         StringBuilder result = new StringBuilder();
         result.append(itemName).append(" x").append(stack.getCount());
-        
+
         // 从规则中获取对应输入的组件配置
         if (rule != null && rule.getInputs() != null && index < rule.getInputs().size()) {
             ExchangeRule.InputItem input = rule.getInputs().get(index);
             Object components = input.getComponents();
-            
+
             if (components != null) {
                 String componentStr = formatRuleComponents(components);
                 if (!componentStr.isEmpty()) {
@@ -129,22 +146,26 @@ public class TransactionLogger {
                 }
             }
         }
-        
+
         return result.toString();
     }
 
     /**
-     * 格式化输出物品，使用规则中的组件配置
+     * 格式化输出物品，使用规则中的组件配置。
+     *
+     * @param stack 输出物品堆
+     * @param rule  兑换规则
+     * @return 格式化后的物品描述字符串
      */
     private static String formatOutputItem(ItemStack stack, ExchangeRule rule) {
         String itemName = Component.translatable(stack.getItem().getDescriptionId()).getString();
         StringBuilder result = new StringBuilder();
         result.append(itemName).append(" x").append(stack.getCount());
-        
+
         // 从规则中获取输出的组件配置
         if (rule != null && rule.getOutputItem() != null) {
             Object components = rule.getOutputItem().getComponents();
-            
+
             if (components != null) {
                 String componentStr = formatRuleComponents(components);
                 if (!componentStr.isEmpty()) {
@@ -152,51 +173,64 @@ public class TransactionLogger {
                 }
             }
         }
-        
+
         return result.toString();
     }
 
     /**
-     * 格式化规则中的组件配置
+     * 格式化规则中的组件配置。
+     * <p>
+     * 支持 JsonObject 与 String 两种形式：JsonObject 会逐项拼接为
+     * "name=value" 形式，组件 ID 会去除命名空间前缀。
+     *
+     * @param components 组件配置对象
+     * @return 格式化后的组件描述字符串
      */
     private static String formatRuleComponents(Object components) {
         if (components instanceof com.google.gson.JsonObject jsonObj) {
             StringBuilder sb = new StringBuilder();
             boolean first = true;
-            
+
             // 处理每个组件
             for (var entry : jsonObj.entrySet()) {
                 String componentName = entry.getKey();
                 var componentValue = entry.getValue();
-                
+
                 // 简化组件 ID（去掉 minecraft: 前缀）
                 if (componentName.contains(":")) {
                     componentName = componentName.substring(componentName.indexOf(":") + 1);
                 }
-                
+
                 // 格式化组件值
                 String valueStr = formatComponentJsonValue(componentValue);
-                
+
                 if (!first) sb.append(", ");
                 sb.append(componentName).append("=").append(valueStr);
                 first = false;
             }
-            
+
             return sb.toString();
         } else if (components instanceof String str) {
             return str;
         }
-        
+
         return "";
     }
 
     /**
-     * 格式化组件 JSON 值（特别是附魔）
+     * 格式化组件 JSON 值（特别是附魔）。
+     * <p>
+     * 若对象包含 "levels" 字段（stored_enchantments 或 enchantments），
+     * 则按附魔等级表格式化为 "{附魔=等级}"；
+     * 其他对象直接返回原字符串表示，原始类型返回值本身。
+     *
+     * @param element 组件值的 JSON 元素
+     * @return 格式化后的组件值字符串
      */
     private static String formatComponentJsonValue(com.google.gson.JsonElement element) {
         if (element.isJsonObject()) {
             var obj = element.getAsJsonObject();
-            
+
             // 特殊处理附魔（stored_enchantments 或 enchantments）
             if (obj.has("levels")) {
                 var levelsObj = obj.getAsJsonObject("levels");
@@ -215,13 +249,13 @@ public class TransactionLogger {
                 sb.append("}");
                 return sb.toString();
             }
-            
+
             // 其他对象格式
             return obj.toString();
         } else if (element.isJsonPrimitive()) {
             return element.getAsString();
         }
-        
+
         return element.toString();
     }
 }

@@ -17,6 +17,7 @@ import java.util.function.Function;
 public class ModBlocks {
     public static final DeferredRegister.Blocks BLOCK_REGISTER = DeferredRegister.createBlocks(ShippingBox.MOD_ID);
 
+    /** 售货箱 */
     public static final DeferredBlock<ShippingBoxBlock> SHIPPING_BOX =
             registerBlocks("shipping_box",
                     props -> new ShippingBoxBlock(props
@@ -28,6 +29,7 @@ public class ModBlocks {
                     ),
                     Rarity.COMMON);
 
+    /** 自动售货箱 */
     public static final DeferredBlock<AutoShippingBoxBlock> AUTO_SHIPPING_BOX =
             registerBlocks("auto_shipping_box",
                     props -> new AutoShippingBoxBlock(props

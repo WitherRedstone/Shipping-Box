@@ -13,8 +13,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 public class ModBlockEntities {
-    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
-            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ShippingBox.MOD_ID);
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ShippingBox.MOD_ID);
 
     /** 普通售货箱方块实体类型 */
     public static final Supplier<BlockEntityType<ShippingBoxBlockEntity>> SHIPPING_BOX =

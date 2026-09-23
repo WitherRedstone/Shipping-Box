@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "shipping_box:item/shipping_box"
+    "model": "shipping_box:block/shipping_box"
   }
 }

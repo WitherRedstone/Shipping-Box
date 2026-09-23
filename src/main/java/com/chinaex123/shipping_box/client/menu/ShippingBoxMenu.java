@@ -1,4 +1,4 @@
-package com.chinaex123.shipping_box.menu;
+package com.chinaex123.shipping_box.client.menu;
 
 import com.chinaex123.shipping_box.block.entity.ShippingBoxBlockEntity;
 import com.chinaex123.shipping_box.client.gui.ShippingBoxLayout;
@@ -24,14 +24,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 /**
- * 普通售货箱菜单类
+ * 普通售货箱菜单类。
  * <p>
  * 负责管理普通售货箱的 GUI 交互逻辑，包括：
- * - 玩家独立存储（每个玩家拥有自己的 54 格存储空间）
- * - 物品槽位的布局和绑定
- * - 物品的快速移动（Shift + 点击）
- * - 玩家与方块的距离验证
- * - 打开/关闭时的音效播放
+ * - 玩家独立存储（每个玩家拥有自己的 54 格存储空间）；
+ * - 物品槽位的布局和绑定；
+ * - 物品的快速移动（Shift + 点击）；
+ * - 玩家与方块的距离验证；
+ * - 打开/关闭时的音效播放。
  */
 public class ShippingBoxMenu extends AbstractContainerMenu {
 
@@ -54,14 +54,14 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     private final Level menuLevel;
 
     /**
-     * 构造函数（通过网络缓冲区创建）
+     * 构造函数（通过网络缓冲区创建）。
      * <p>
      * 用于客户端接收服务端发送的菜单数据时创建菜单实例。
      * 从缓冲区读取玩家 UUID 和方块位置，然后查找对应的方块实体。
      *
-     * @param id 菜单 ID
+     * @param id              菜单 ID
      * @param playerInventory 玩家物品栏
-     * @param buf 网络缓冲区（包含玩家 UUID 和方块位置）
+     * @param buf             网络缓冲区（包含玩家 UUID 和方块位置）
      */
     public ShippingBoxMenu(int id, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
         super(ModMenuTypes.SHIPPING_BOX.get(), id);
@@ -80,14 +80,14 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 构造函数（服务端创建）
+     * 构造函数（服务端创建）。
      * <p>
      * 在服务端打开菜单时使用，直接引用方块实体和玩家 UUID。
      *
-     * @param id 菜单 ID
+     * @param id              菜单 ID
      * @param playerInventory 玩家物品栏
-     * @param blockEntity 普通售货箱方块实体
-     * @param playerUUID 当前玩家的 UUID
+     * @param blockEntity     普通售货箱方块实体
+     * @param playerUUID      当前玩家的 UUID
      */
     public ShippingBoxMenu(int id, Inventory playerInventory, ShippingBoxBlockEntity blockEntity, UUID playerUUID) {
         super(ModMenuTypes.SHIPPING_BOX.get(), id);
@@ -104,7 +104,7 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 根据方块位置查找普通售货箱方块实体
+     * 根据方块位置查找普通售货箱方块实体。
      * <p>
      * 仅在客户端使用，用于从网络缓冲区读取位置后查找对应的方块实体。
      *
@@ -121,42 +121,42 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 添加所有槽位到菜单
+     * 添加所有槽位到菜单。
      * <p>
      * 包括：
-     * 1. 售货箱存储区域（9×6 = 54 格）
-     * 2. 玩家背包（9×3 = 27 格）
-     * 3. 玩家快捷栏（9×1 = 9 格）
+     * 1. 售货箱存储区域（9×6 = 54 格）；
+     * 2. 玩家背包（9×3 = 27 格）；
+     * 3. 玩家快捷栏（9×1 = 9 格）。
      *
      * @param playerInventory 玩家物品栏
      */
     private void addAllSlots(Inventory playerInventory) {
-        // ========== 售货箱存储区域 (54 格) ==========
+        // 售货箱存储区域 (54 格)
         for (int row = 0; row < ShippingBoxLayout.CHEST_ROWS; row++) {
             for (int col = 0; col < ShippingBoxLayout.CHEST_COLS; col++) {
                 this.addSlot(new Slot(this.shippingContainer,
-                        col + row * ShippingBoxLayout.CHEST_COLS, // 槽位索引
-                        ShippingBoxLayout.CHEST_START_X + col * ShippingBoxLayout.SLOT_STEP, // X 坐标
-                        ShippingBoxLayout.CHEST_START_Y + row * ShippingBoxLayout.SLOT_STEP  // Y 坐标
+                        col + row * ShippingBoxLayout.CHEST_COLS,
+                        ShippingBoxLayout.CHEST_START_X + col * ShippingBoxLayout.SLOT_STEP,
+                        ShippingBoxLayout.CHEST_START_Y + row * ShippingBoxLayout.SLOT_STEP
                 ));
             }
         }
 
-        // ========== 玩家背包 (27 格) ==========
+        // 玩家背包 (27 格)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 this.addSlot(new Slot(playerInventory,
-                        col + row * 9 + 9, // 背包槽位索引（9-35）
+                        col + row * 9 + 9,
                         ShippingBoxLayout.PLAYER_INV_START_X + col * ShippingBoxLayout.SLOT_STEP,
                         ShippingBoxLayout.PLAYER_INV_START_Y + row * ShippingBoxLayout.SLOT_STEP
                 ));
             }
         }
 
-        // ========== 玩家快捷栏 (9 格) ==========
+        // 玩家快捷栏 (9 格)
         for (int col = 0; col < 9; col++) {
             this.addSlot(new Slot(playerInventory,
-                    col, // 快捷栏槽位索引（0-8）
+                    col,
                     ShippingBoxLayout.HOTBAR_START_X + col * ShippingBoxLayout.SLOT_STEP,
                     ShippingBoxLayout.HOTBAR_START_Y
             ));
@@ -164,7 +164,7 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 玩家独立存储容器包装器
+     * 玩家独立存储容器包装器。
      * <p>
      * 实现 Container 接口，将方块实体的玩家独立存储操作包装为标准的容器接口。
      * 所有操作都会通过 playerUUID 路由到对应的玩家存储空间。
@@ -174,55 +174,93 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
      */
     private record PlayerSpecificContainer(ShippingBoxBlockEntity blockEntity, UUID playerUUID) implements Container {
 
-        /** 获取容器大小（固定 54 格） */
+        /**
+         * 获取容器大小（固定 54 格）。
+         *
+         * @return 槽位总数
+         */
         @Override
         public int getContainerSize() {
             return 54;
         }
 
-        /** 检查容器是否为空 */
+        /**
+         * 检查容器是否为空。
+         *
+         * @return 所有槽位均为空返回 true
+         */
         @Override
         public boolean isEmpty() {
             return blockEntity.getPlayerItems(playerUUID).stream().allMatch(ItemStack::isEmpty);
         }
 
-        /** 获取指定槽位的物品 */
+        /**
+         * 获取指定槽位的物品。
+         *
+         * @param slot 槽位索引
+         * @return 该槽位的物品
+         */
         @Override
         public @NotNull ItemStack getItem(int slot) {
             return blockEntity.getItemForPlayer(slot, playerUUID);
         }
 
-        /** 从指定槽位移除指定数量的物品 */
+        /**
+         * 从指定槽位移除指定数量的物品。
+         *
+         * @param slot   槽位索引
+         * @param amount 移除数量
+         * @return 被移除的物品堆
+         */
         @Override
         public @NotNull ItemStack removeItem(int slot, int amount) {
             return blockEntity.removeItemForPlayer(slot, amount, playerUUID);
         }
 
-        /** 从指定槽位移除物品（不更新） */
+        /**
+         * 从指定槽位移除物品（不更新）。
+         *
+         * @param slot 槽位索引
+         * @return 被移除的物品堆
+         */
         @Override
         public @NotNull ItemStack removeItemNoUpdate(int slot) {
             return blockEntity.removeItemForPlayer(slot, 1, playerUUID);
         }
 
-        /** 在指定槽位设置物品 */
+        /**
+         * 在指定槽位设置物品。
+         *
+         * @param slot  槽位索引
+         * @param stack 要设置的物品堆
+         */
         @Override
         public void setItem(int slot, ItemStack stack) {
             blockEntity.setItemForPlayer(slot, stack, playerUUID);
         }
 
-        /** 标记容器已变更 */
+        /**
+         * 标记容器已变更。
+         */
         @Override
         public void setChanged() {
             blockEntity.setChanged();
         }
 
-        /** 检查玩家是否仍然可以访问此容器 */
+        /**
+         * 检查玩家是否仍然可以访问此容器。
+         *
+         * @param player 玩家
+         * @return 有效返回 true
+         */
         @Override
         public boolean stillValid(Player player) {
             return isBlockEntityValid(blockEntity, player);
         }
 
-        /** 清空容器内容 */
+        /**
+         * 清空容器内容。
+         */
         @Override
         public void clearContent() {
             blockEntity.getPlayerItems(playerUUID).clear();
@@ -230,13 +268,13 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 检查玩家是否仍然可以访问此菜单
+     * 检查玩家是否仍然可以访问此菜单。
      * <p>
      * 验证条件：
-     * 1. 方块实体存在且未被移除
-     * 2. 世界引用有效且匹配
-     * 3. 方块位置匹配
-     * 4. 玩家距离方块不超过 8 格
+     * 1. 方块实体存在且未被移除；
+     * 2. 世界引用有效且匹配；
+     * 3. 方块位置匹配；
+     * 4. 玩家距离方块不超过 8 格。
      *
      * @param player 要检查的玩家
      * @return true 表示菜单仍然有效，false 表示应关闭菜单
@@ -249,7 +287,7 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 检查方块实体是否有效且玩家在范围内
+     * 检查方块实体是否有效且玩家在范围内。
      *
      * @param blockEntity 方块实体
      * @param player      玩家
@@ -272,11 +310,11 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 快速移动物品（Shift + 点击）
+     * 快速移动物品（Shift + 点击）。
      * <p>
      * 处理逻辑：
-     * - 从售货箱移到玩家背包（index < 54 → 移动到 54-89）
-     * - 从玩家背包移到售货箱（index ≥ 54 → 移动到 0-53）
+     * - 从售货箱移到玩家背包（index &lt; 54 → 移动到 54-89）；
+     * - 从玩家背包移到售货箱（index ≥ 54 → 移动到 0-53）。
      *
      * @param player 执行操作的玩家
      * @param index  被点击的槽位索引
@@ -290,13 +328,13 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
         ItemStack itemstack = slot.getItem();
         ItemStack itemstack1 = itemstack.copy();
 
-        // ========== 从售货箱移到玩家背包 ==========
+        // 从售货箱移到玩家背包
         if (index < 54) {
             // 尝试移动到玩家背包 (54-89)
             if (!this.moveItemStackTo(itemstack, 54, 90, true))
                 return ItemStack.EMPTY;
         }
-        // ========== 从玩家背包移到售货箱 ==========
+        // 从玩家背包移到售货箱
         else {
             // 尝试移动到售货箱 (0-53)
             if (!this.moveItemStackTo(itemstack, 0, 54, false))
@@ -313,11 +351,11 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 菜单被关闭/移除时的回调
+     * 菜单被关闭/移除时的回调。
      * <p>
      * 执行清理操作：
-     * 1. 通知容器停止使用
-     * 2. 播放关闭音效（服务端）
+     * 1. 通知容器停止使用；
+     * 2. 播放关闭音效（服务端）。
      *
      * @param player 关闭菜单的玩家
      */
@@ -339,7 +377,7 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 获取当前玩家的 UUID
+     * 获取当前玩家的 UUID。
      *
      * @return 玩家 UUID
      */
@@ -348,7 +386,7 @@ public class ShippingBoxMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 获取关联的方块实体
+     * 获取关联的方块实体。
      *
      * @return 普通售货箱方块实体
      */

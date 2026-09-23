@@ -10,19 +10,23 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 
 /**
- * 模组命令注册类
+ * 模组命令注册类。
  * <p>
- * 注册售货箱模组的所有管理命令，所有命令需要 OP 权限（LEVEL_GAMEMASTERS）才能执行。
- * 根命令为 {@code /shipping_box}，包含以下子命令：
- * <ul>
- *   <li>{@code force_exchange} - 强制玩家指向的售货箱立即执行兑换</li>
- *   <li>{@code rules count} - 统计当前加载的兑换规则数量</li>
- *   <li>{@code rules list [page]} - 分页列出所有兑换规则</li>
- *   <li>{@code web} - 启动本地 Web 规则编辑器</li>
- * </ul>
+ * 注册 {@code /shipping_box} 根命令及其子命令，包括强制兑换、
+ * 规则管理与打开网页编辑器。根命令需要权限等级 2 才可执行。
  */
 public class ModCommands {
 
+    /**
+     * 注册模组命令。
+     * <p>
+     * 注册根命令 {@code /shipping_box}，并挂载以下子命令：
+     * - {@code force_exchange}：强制兑换；
+     * - {@code rules}：规则管理（count 统计数量、list 分页列出）；
+     * - {@code web}：打开网页编辑器。
+     *
+     * @param dispatcher 命令调度器
+     */
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("shipping_box")
                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
